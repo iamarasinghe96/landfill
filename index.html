@@ -251,30 +251,30 @@
       margin-bottom: 10px;
     }
 
-    /* Gauge: canvas + overlay text */
+    /* Gauge: 2:1 canvas so Chart.js half-circle fills it exactly,
+       text anchored inside the cutout area at the bottom */
     .gauge-wrap {
       position: relative;
-      width: 220px;
-      height: 120px;
+      width: 260px;
+      height: 130px;
       margin: 0 auto;
     }
     #gaugeChart {
       display: block;
-      width: 220px !important;
-      height: 220px !important;
-      margin-top: -100px;   /* pull half-circle up so flat edge aligns with bottom */
+      width: 260px;
+      height: 130px;
     }
-    .gauge-overlay {
+    .gauge-text {
       position: absolute;
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 8px;
+      left: 0;
+      width: 100%;
       text-align: center;
-      white-space: nowrap;
       pointer-events: none;
+      line-height: 1;
     }
     .gauge-number {
-      font-size: 42px;
+      font-size: 44px;
       font-weight: 800;
       letter-spacing: -2px;
       line-height: 1;
@@ -282,8 +282,6 @@
     .gauge-pct {
       font-size: 20px;
       font-weight: 700;
-      vertical-align: super;
-      line-height: 0;
     }
     .gauge-period-lbl {
       font-size: 10.5px;
@@ -291,7 +289,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-top: 4px;
+      margin-top: 5px;
     }
 
     .gauge-zones {
@@ -705,9 +703,9 @@
       <div class="gauge-card">
         <div class="gauge-title">Diversion Rate</div>
         <div class="gauge-wrap">
-          <canvas id="gaugeChart" width="220" height="220"></canvas>
-          <div class="gauge-overlay">
-            <span class="gauge-number" id="gauge-rate" style="color:var(--blue)">--</span><span class="gauge-pct" id="gauge-pct" style="color:var(--blue)">%</span>
+          <canvas id="gaugeChart" width="260" height="130"></canvas>
+          <div class="gauge-text">
+            <div><span class="gauge-number" id="gauge-rate" style="color:var(--blue)">--</span><span class="gauge-pct" id="gauge-pct" style="color:var(--blue)">%</span></div>
             <div class="gauge-period-lbl" id="gauge-period">loading...</div>
           </div>
         </div>
@@ -976,6 +974,9 @@ function render(d) {
 
 function renderGauge(rate, color) {
   const canvas = document.getElementById('gaugeChart');
+  // Force exact 2:1 dimensions so Chart.js half-circle fills canvas perfectly
+  canvas.width  = 260;
+  canvas.height = 130;
   const ctx = canvas.getContext('2d');
   if (gaugeChartInst) { gaugeChartInst.destroy(); gaugeChartInst = null; }
   gaugeChartInst = new Chart(ctx, {
@@ -989,10 +990,12 @@ function renderGauge(rate, color) {
       }]
     },
     options: {
+      responsive: false,
+      maintainAspectRatio: false,
       circumference: 180,
       rotation: -90,
-      cutout: '74%',
-      layout: { padding: 0 },
+      cutout: '72%',
+      layout: { padding: 2 },
       animation: { duration: 1000, easing: 'easeOutQuart' },
       plugins: { tooltip: { enabled: false }, legend: { display: false } }
     }
