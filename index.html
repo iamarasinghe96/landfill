@@ -448,7 +448,25 @@
       font-size: 15px;
       font-weight: 700;
       color: var(--navy);
-      margin-bottom: 18px;
+      margin-bottom: 4px;
+    }
+    .chart-subtitle {
+      font-size: 11.5px;
+      color: var(--text-sm);
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+    .nsw-target-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #FDE8E6;
+      border: 1px solid #FADBD8;
+      color: var(--red);
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
     }
 
     /* BREAKDOWN TABLE */
@@ -816,12 +834,16 @@
     <div class="charts-grid">
       <div class="chart-card">
         <h3>Waste Breakdown</h3>
-        <div style="position:relative;height:260px">
+        <div style="position:relative;height:200px">
           <canvas id="breakdownChart"></canvas>
         </div>
       </div>
       <div class="chart-card">
         <h3>6-Month Diversion Rate Trend</h3>
+        <div class="chart-subtitle">
+          <span class="nsw-target-note">&#9650; NSW Government Target: 80% by 2030</span>
+          &nbsp;Waste &amp; Sustainable Materials Strategy 2041
+        </div>
         <div style="position:relative;height:260px">
           <canvas id="trendChart"></canvas>
         </div>
@@ -1087,10 +1109,12 @@ function renderBreakdown(d) {
 }
 
 function renderTrend(d) {
-  const ctx = document.getElementById('trendChart');
+  const ctx  = document.getElementById('trendChart');
   if (trendChartInst) trendChartInst.destroy();
   const hist = d.history || [];
   const at   = d.targets.annualTarget;
+  const nswt = d.targets.nswTarget || 80;
+  const nswY = d.targets.nswTargetYear || 2030;
   trendChartInst = new Chart(ctx, {
     type: 'line',
     data: {
@@ -1106,17 +1130,30 @@ function renderTrend(d) {
           tension: 0.35,
           pointRadius: 5,
           pointBackgroundColor: '#2471A3',
-          pointHoverRadius: 7
+          pointHoverRadius: 7,
+          order: 1
         },
         {
-          label: 'Annual Target (' + at + '%)',
+          label: 'Council Target (' + at + '%)',
           data: hist.map(() => at),
           borderColor: '#27AE60',
           borderWidth: 2,
           borderDash: [6, 4],
           pointRadius: 0,
           fill: false,
-          tension: 0
+          tension: 0,
+          order: 2
+        },
+        {
+          label: 'NSW Gov. Target ' + nswt + '% (by ' + nswY + ')',
+          data: hist.map(() => nswt),
+          borderColor: '#E74C3C',
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+          order: 3
         }
       ]
     },
@@ -1124,12 +1161,20 @@ function renderTrend(d) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { padding: 18, usePointStyle: true, font: { size: 12, weight: '600' } } },
+        legend: {
+          position: 'bottom',
+          labels: { padding: 16, usePointStyle: true, font: { size: 11.5, weight: '600' } }
+        },
         tooltip: { callbacks: { label: ctx2 => ` ${ctx2.dataset.label}: ${fmt(ctx2.parsed.y)}%` } }
       },
       scales: {
-        y: { min: 30, max: 80, ticks: { callback: v => v + '%', font: { size: 12 } }, grid: { color: '#EDF2F7' } },
-        x: { ticks: { font: { size: 12 } }, grid: { display: false } }
+        y: {
+          min: 30,
+          max: 90,
+          ticks: { callback: v => v + '%', font: { size: 11.5 }, stepSize: 10 },
+          grid: { color: '#EDF2F7' }
+        },
+        x: { ticks: { font: { size: 11.5 } }, grid: { display: false } }
       }
     }
   });
