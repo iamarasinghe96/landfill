@@ -1,0 +1,64 @@
+{
+  "lastUpdated": "2026-05-09",
+  "reportingPeriod": "April 2026",
+  "reportingMonth": 4,
+  "reportingYear": 2026,
+  "fiscalYear": "2025-26",
+  "dataVerifiedBy": "Waste Management Team",
+  "verificationDate": "2026-05-02",
+  "dataSource": "Weighbridge records, contractor reports, MRF operator data",
+  "kerbside": {
+    "residualWaste": 420.0,
+    "comingliedRecycling": 270.0,
+    "contaminationRate": 18,
+    "greenWaste": 200.0,
+    "foodOrganics": 60.0
+  },
+  "organics": {
+    "rejectionRate": 10
+  },
+  "transferStation": {
+    "generalToLandfill": 130.0,
+    "materialsRecovered": 65.0,
+    "eWasteKg": 3500,
+    "hhwKg": 1800,
+    "mattresses": 10.0,
+    "tyres": 13.0
+  },
+  "constructionDemolition": {
+    "recovered": 95.0,
+    "landfill": 50.0
+  },
+  "commercial": {
+    "diverted": 75.0,
+    "landfill": 85.0
+  },
+  "other": {
+    "textiles": 4.0,
+    "glassSeparate": 20.0
+  },
+  "context": {
+    "householdsServed": 23450,
+    "populationServed": 56200,
+    "previousYearRate": 47.2
+  },
+  "targets": {
+    "annualTarget": 55,
+    "nswTarget": 70,
+    "nswTargetYear": 2030
+  },
+  "calculated": {
+    "diversionRate": 49.4,
+    "totalGenerated": 1502.3,
+    "totalDiverted": 742.7,
+    "totalLandfill": 759.6
+  },
+  "history": [
+    {"period": "Nov 2025", "diversionRate": 44.2},
+    {"period": "Dec 2025", "diversionRate": 45.8},
+    {"period": "Jan 2026", "diversionRate": 47.1},
+    {"period": "Feb 2026", "diversionRate": 48.5},
+    {"period": "Mar 2026", "diversionRate": 48.9},
+    {"period": "Apr 2026", "diversionRate": 49.4}
+  ]
+}

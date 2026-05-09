@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlburyCity — Diversion Rate Admin Panel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #1B3A6B;
+      --navy-dk: #122850;
+      --blue:    #2471A3;
+      --green:   #1E8449;
+      --green-lt:#27AE60;
+      --amber:   #D4860B;
+      --amber-lt:#F39C12;
+      --red:     #C0392B;
+      --red-lt:  #E74C3C;
+      --bg:      #EEF2F7;
+      --card:    #FFFFFF;
+      --text:    #1C2833;
+      --text-md: #4A5568;
+      --text-sm: #718096;
+      --border:  #CBD5E0;
+      --input-bg:#F7FAFC;
+      --shadow:  0 2px 10px rgba(27,58,107,0.10);
+      --radius:  12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--navy-dk) 0%, var(--navy) 60%, #2557A7 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-wrap img {
+      height: 52px;
+      background: #fff;
+      border-radius: 7px;
+      padding: 5px 8px;
+    }
+    .logo-fallback {
+      height: 52px;
+      background: #fff;
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--navy);
+      display: flex; align-items: center;
+    }
+    .header-text { flex: 1; }
+    .header-text h1 { font-size: 20px; font-weight: 700; }
+    .admin-tag {
+      background: rgba(231,76,60,0.85);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+      border: none;
+      text-decoration: none;
+    }
+    .btn-outline-wh {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35);
+    }
+    .btn-outline-wh:hover { background: rgba(255,255,255,0.22); }
+    .btn-primary {
+      background: linear-gradient(135deg, #1E8449, #27AE60);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(39,174,96,0.35);
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #1A7A42, #219A52); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── LAYOUT ── */
+    .admin-layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .admin-layout { grid-template-columns: 1fr; }
+      .sidebar { order: -1; }
+    }
+
+    /* ── SIDEBAR (Live Preview) ── */
+    .sidebar {}
+    .preview-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      position: sticky;
+      top: 90px;
+    }
+    .preview-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-md);
+      margin-bottom: 16px;
+    }
+    .preview-rate-wrap {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .preview-rate {
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      color: var(--blue);
+    }
+    .preview-rate-label {
+      font-size: 13px;
+      color: var(--text-sm);
+      margin-top: 4px;
+    }
+    .preview-bar-bg {
+      height: 12px;
+      background: var(--bg);
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 12px 0 8px;
+    }
+    .preview-bar-fill {
+      height: 100%;
+      border-radius: 20px;
+      background: var(--blue);
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.4s;
+    }
+    .preview-targets {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-sm);
+      margin-bottom: 16px;
+    }
+    .preview-breakdown {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+    .pb-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 13px;
+      border-bottom: 1px dotted var(--border);
+    }
+    .pb-row:last-child { border-bottom: none; }
+    .pb-label { color: var(--text-md); }
+    .pb-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pb-value.green { color: var(--green); }
+    .pb-value.red   { color: var(--red); }
+    .pb-value.blue  { color: var(--blue); }
+
+    .upload-guide {
+      background: linear-gradient(135deg, #EBF5FB, #E0F5EC);
+      border: 1.5px solid #AED6F1;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .upload-guide h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .upload-guide ol {
+      padding-left: 18px;
+      font-size: 12px;
+      color: var(--text-md);
+      line-height: 2;
+    }
+    .upload-guide li { margin-bottom: 2px; }
+
+    /* ── FORM CARD ── */
+    .form-col {}
+    .form-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .form-card-header {
+      background: var(--bg);
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .form-card-header:hover { background: #E8EDF5; }
+    .form-card-header .fch-icon {
+      font-size: 18px;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .form-card-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      flex: 1;
+    }
+    .form-card-header .chevron {
+      font-size: 12px;
+      color: var(--text-sm);
+      transition: transform 0.2s;
+    }
+    .form-card-header.open .chevron { transform: rotate(180deg); }
+    .form-card-body {
+      padding: 22px;
+      display: none;
+    }
+    .form-card-body.open { display: block; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .field-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-md);
+    }
+    .unit-tag {
+      font-size: 11px;
+      color: var(--text-sm);
+      background: var(--bg);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    /* Info button + tooltip */
+    .info-btn {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .info-btn:hover { background: var(--navy); }
+    .tooltip-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+    .tooltip-box {
+      display: none;
+      position: absolute;
+      left: 22px;
+      top: -6px;
+      width: 280px;
+      background: var(--navy-dk);
+      color: rgba(255,255,255,0.92);
+      font-size: 12px;
+      line-height: 1.55;
+      padding: 12px 14px;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+      z-index: 200;
+    }
+    .tooltip-box::before {
+      content: '';
+      position: absolute;
+      left: -7px;
+      top: 10px;
+      border: 7px solid transparent;
+      border-right-color: var(--navy-dk);
+      border-left: none;
+    }
+    .tooltip-wrap:hover .tooltip-box,
+    .info-btn:focus + .tooltip-box { display: block; }
+
+    input[type=text], input[type=number], input[type=date],
+    select, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      font-size: 14px;
+      color: var(--text);
+      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(36,113,163,0.12);
+    }
+    input[type=number] { font-variant-numeric: tabular-nums; }
+    textarea { resize: vertical; min-height: 70px; }
+    .field-note {
+      font-size: 11px;
+      color: var(--text-sm);
+    }
+
+    /* History table */
+    .hist-table-wrap { overflow-x: auto; }
+    .hist-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .hist-table th {
+      background: var(--bg);
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-md);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .hist-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .hist-table input {
+      padding: 5px 8px;
+      font-size: 13px;
+      border-radius: 6px;
+    }
+    .hist-table .del-btn {
+      background: #FDE8E6;
+      color: var(--red);
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .add-row-btn {
+      background: var(--bg);
+      color: var(--navy);
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      width: 100%;
+      transition: all 0.15s;
+    }
+    .add-row-btn:hover { background: #E8EDF5; border-color: var(--blue); }
+
+    /* Action row */
+    .action-row {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .action-row .btn-xl {
+      padding: 13px 28px;
+      font-size: 15px;
+    }
+    .action-note {
+      font-size: 12px;
+      color: var(--text-sm);
+      flex: 1;
+      min-width: 200px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--navy);
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { background: var(--green); }
+    #toast.error   { background: var(--red); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <img src="https://www.alburycity.nsw.gov.au/__data/assets/image/0009/368064/AC-logo.png"
+           alt="AlburyCity Council"
+           onerror="this.style.display='none';document.getElementById('lfb').style.display='flex'">
+      <div class="logo-fallback" id="lfb" style="display:none">AlburyCity</div>
+    </div>
+    <div class="header-text">
+      <h1>Waste Diversion — Data Entry</h1>
+      <span class="admin-tag">Administration Panel</span>
+    </div>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-outline-wh">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Public Dashboard
+      </a>
+      <button class="btn btn-primary" onclick="exportAndUpload()" id="export-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Save &amp; Upload to GitHub
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="admin-layout">
+
+  <!-- ── MAIN FORM ── -->
+  <div class="form-col">
+
+    <!-- 1. Reporting Information -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">📅</div>
+        <h2>1 — Reporting Information</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label for="rpt-month">Reporting Month</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box">The calendar month this data covers. Data should be compiled after month-end once all contractor and facility reports are received (typically 2–4 weeks after month end).</div>
+              </div>
+            </div>
+            <select id="rpt-month" onchange="recalc()">
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4" selected>April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label for="rpt-year">Reporting Year</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box">The calendar year of the reporting period. For financial year reporting, use the year in which the month falls (e.g., April 2026 is in FY 2025–26).</div>
+              </div>
+            </div>
+            <input type="number" id="rpt-year" value="2026" min="2020" max="2040" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label for="verified-by">Verified By</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box">Name or role of the person who reviewed and verified this data entry. Important for audit trail and data quality assurance.</div>
+              </div>
+            </div>
+            <input type="text" id="verified-by" value="Waste Management Team">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label for="verify-date">Verification Date</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box">The date this data was reviewed and confirmed accurate. Should be after all source data (weighbridge reports, contractor data) has been received and reconciled.</div>
+              </div>
+            </div>
+            <input type="date" id="verify-date" value="2026-05-02">
+          </div>
+
+          <div class="form-group full">
+            <div class="field-header">
+              <label for="data-source">Data Source Description</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box">Brief description of where each data point was sourced. Examples: "Weighbridge records from Albury Transfer Station; MRF report from ResourceCo; contractor delivery dockets." Good documentation assists auditing and future cross-checking.</div>
+              </div>
+            </div>
+            <textarea id="data-source">Weighbridge records, contractor reports, MRF operator data</textarea>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Kerbside Collection -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🗑</div>
+        <h2>2 — Kerbside Collection</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Residual Waste — Red Lid <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Total weight of general/residual waste from red (or dark-coloured) lid bins collected kerbside.<br><br><strong>Source:</strong> Weighbridge records at the transfer station or direct from the collection contractor's monthly report.<br><br><strong>Effect:</strong> Entirely sent to landfill — reducing this value improves the diversion rate. Typical range: 350–600 t/month for a council of this size.</div>
+              </div>
+            </div>
+            <input type="number" id="residual" value="420" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Commingled Recycling — Yellow Lid <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Total weight of commingled recyclables (glass, plastics, metals, paper, cardboard) from yellow-lid bins.<br><br><strong>Source:</strong> MRF (Materials Recovery Facility) monthly report or collection contractor.<br><br><strong>Effect:</strong> A portion is diverted (net of contamination). Higher recycling with low contamination is optimal.</div>
+              </div>
+            </div>
+            <input type="number" id="recycling" value="270" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Recycling Contamination Rate <span class="unit-tag">%</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Percentage of the yellow-lid bin contents rejected at the MRF due to contamination (e.g., food scraps, nappies, plastic bags, garden waste).<br><br><strong>Source:</strong> MRF monthly contamination report. Some MRFs provide a percentage; others report actual contamination tonnes.<br><br><strong>Typical range:</strong> 10–25%. Australian average is ~18%. Lower is better.<br><br><strong>Effect:</strong> Contaminated material is sent to landfill, reducing effective recycling tonnage.</div>
+              </div>
+            </div>
+            <input type="number" id="contamination" value="18" step="0.1" min="0" max="100" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Green / Garden Waste — Green Lid <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Garden organics (grass clippings, leaves, branches, prunings) collected from lime/green-lid bins.<br><br><strong>Source:</strong> Collection contractor monthly report or weighbridge at organics processing facility.<br><br><strong>Effect:</strong> Processed into compost or mulch. After deducting organics rejection rate, the remaining portion counts as diverted. Key stream for improving overall rate.</div>
+              </div>
+            </div>
+            <input type="number" id="green-waste" value="200" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Food Organics — FOGO <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Food organics collected separately (FOGO service). If AlburyCity does not run a FOGO service, enter 0.<br><br><strong>Source:</strong> Collection contractor or organics processing facility monthly report.<br><br><strong>Effect:</strong> Composted at an approved organics facility. Significantly boosts diversion rate — the NSW Government strongly encourages FOGO roll-out.<br><br><strong>Note:</strong> FOGO includes fruit/vegetable scraps, meat, dairy, and food-soiled paper.</div>
+              </div>
+            </div>
+            <input type="number" id="fogo" value="60" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Organics Processing -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🌿</div>
+        <h2>3 — Organics Processing</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Organics Processing Rejection Rate <span class="unit-tag">%</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> The percentage of organic material received at the composting/processing facility that is rejected and sent to landfill due to contamination (e.g., plastics, glass in green waste).<br><br><strong>Source:</strong> Organics processing facility monthly report. Also called "rejection rate" or "residue rate."<br><br><strong>Typical range:</strong> 3–15%. Facilities processing FOGO typically have higher rejection rates (8–15%) than pure garden organics (3–8%).<br><br><strong>Effect:</strong> Applied to the total organics collected (green waste + FOGO) to calculate the net diverted amount.</div>
+              </div>
+            </div>
+            <input type="number" id="org-rejection" value="10" step="0.1" min="0" max="100" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Compost / Mulch Produced <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Actual weight of finished compost or mulch produced from the organics processing. This is for reporting purposes only — diversion is calculated from input tonnage minus rejection rate.<br><br><strong>Note:</strong> Finished product is typically 40–60% lighter than input material due to moisture loss during composting. This field is informational and does not affect the diversion calculation.</div>
+              </div>
+            </div>
+            <input type="number" id="compost-produced" value="216" step="0.1" min="0">
+            <span class="field-note">Informational only — does not affect diversion calculation</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Transfer Station & Drop-off -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🏭</div>
+        <h2>4 — Transfer Station &amp; Drop-off Facilities</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>General Waste to Landfill <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> General waste received at the council's transfer station from residents (self-haul) that is not recovered and is sent to landfill.<br><br><strong>Source:</strong> Transfer station weighbridge records. Exclude any material separated out for reuse or recycling (capture separately in "Materials Recovered").<br><br><strong>Effect:</strong> Entirely sent to landfill. Reducing this through better education, reuse shops, and resource recovery facilities directly improves diversion.</div>
+              </div>
+            </div>
+            <input type="number" id="ts-general" value="130" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Materials Recovered at Transfer Station <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Recoverable materials separated at the transfer station before waste goes to landfill. Includes timber, scrap metal, cardboard, clean concrete, bricks, and reusable items (Revolve/ReStore shop).<br><br><strong>Source:</strong> Transfer station operator records or scrap metal contractor receipts.<br><br><strong>Effect:</strong> Directly diverted from landfill. Every tonne recovered here improves the diversion rate.</div>
+              </div>
+            </div>
+            <input type="number" id="ts-recovered" value="65" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>E-Waste Collected <span class="unit-tag">kg</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Electronic waste (TVs, computers, phones, white goods, batteries, fluorescent lamps) collected at designated drop-off points or during hard waste collections.<br><br><strong>Source:</strong> E-waste drop-off contractor's monthly report. Enter in kilograms.<br><br><strong>Note:</strong> Under the National Television and Computer Recycling Scheme (NTCRS), approved products are collected free of charge. White goods and other items may have separate contractor arrangements.<br><br><strong>Effect:</strong> Converted to tonnes internally (÷1000) for the diversion calculation.</div>
+              </div>
+            </div>
+            <input type="number" id="ewaste" value="3500" step="1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Household Hazardous Waste <span class="unit-tag">kg</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Hazardous materials collected from residents — paints, chemicals, batteries (non-e-waste), fluorescent lamps, pesticides, motor oils, gas cylinders.<br><br><strong>Source:</strong> HHW drop-off event records or permanent facility reports. Enter in kilograms.<br><br><strong>Note:</strong> May be collected via periodic community events or permanent HHW drop-off stations. Data may need to be apportioned if events span multiple months.<br><br><strong>Effect:</strong> Converted to tonnes internally (÷1000). Diverted from landfill and treated appropriately.</div>
+              </div>
+            </div>
+            <input type="number" id="hhw" value="1800" step="1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Mattresses &amp; Bulky Goods <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Mattresses, furniture, and other bulky items collected at the transfer station or during periodic kerbside clean-up events.<br><br><strong>Source:</strong> Transfer station records or clean-up contractor report.<br><br><strong>Note:</strong> Mattresses can be recycled through Soft Landing (national program). Furniture may be diverted through Revolve/op-shop networks.<br><br><strong>Effect:</strong> Counted as diverted when recycled or reused. If the council cannot confirm diversion, set to 0 or exclude.</div>
+              </div>
+            </div>
+            <input type="number" id="mattresses" value="10" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Tyres <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Used tyres collected from residents at the transfer station or designated drop-off.<br><br><strong>Source:</strong> Transfer station records or Tyre Stewardship Australia (TSA) contractor receipts.<br><br><strong>Note:</strong> Tyres are recycled under the TSA Product Stewardship scheme into crumb rubber, playground surfaces, and road materials. Council may receive reports quarterly — apportion monthly if needed.<br><br><strong>Effect:</strong> Diverted from landfill. Tyres are banned from landfill in NSW.</div>
+              </div>
+            </div>
+            <input type="number" id="tyres" value="13" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Construction & Demolition -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🏗</div>
+        <h2>5 — Construction &amp; Demolition Waste</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>C&amp;D Waste Recovered / Recycled <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Construction and demolition waste (concrete, bricks, timber, steel, plasterboard) that is recovered, recycled, or beneficially reused rather than landfilled.<br><br><strong>Source:</strong> Recycling facility reports, transfer station records, or contractor data. May need to be obtained directly from the receiving C&D recycler.<br><br><strong>Note:</strong> C&D waste is typically a large proportion of total waste volumes. High recovery rates (70–95%) are achievable with proper sorting. Does not include asbestos.<br><br><strong>Effect:</strong> Major contributor to diversion. Focus on this stream for significant rate improvements.</div>
+              </div>
+            </div>
+            <input type="number" id="cd-recovered" value="95" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>C&amp;D Waste to Landfill <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Construction and demolition waste that cannot be recovered and is disposed of in landfill. Includes contaminated mixed C&D, asbestos (disposed separately at licensed facility), and non-recyclable residue.<br><br><strong>Source:</strong> Receiving landfill weighbridge records. Must specify "C&D" waste category in the landfill receipt.<br><br><strong>Note:</strong> Asbestos disposal should be tracked separately for safety reporting but included here for total waste accounting.</div>
+              </div>
+            </div>
+            <input type="number" id="cd-landfill" value="50" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Commercial & Industrial -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🏢</div>
+        <h2>6 — Commercial &amp; Industrial Waste</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Commercial Waste Diverted <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Waste from businesses and commercial premises within the LGA that is diverted from landfill through recycling, composting, or resource recovery programs.<br><br><strong>Source:</strong> Commercial waste contractor reports, council-operated commercial collection records, or waste audit data. This data can be difficult to obtain — use best available estimates with notes.<br><br><strong>Note:</strong> Includes office paper, cardboard, food waste (if composted), and packaging recycling from commercial premises.<br><br><strong>Effect:</strong> Counts toward the overall LGA diversion rate. Some reporting frameworks exclude C&I if council has no service responsibility.</div>
+              </div>
+            </div>
+            <input type="number" id="comm-diverted" value="75" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Commercial Waste to Landfill <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Commercial and industrial waste generated within the LGA that is disposed of in landfill.<br><br><strong>Source:</strong> Receiving landfill weighbridge records (filtered by LGA of origin) or commercial waste contractor reports. NSW EPA "Waste Data Portal" may have relevant aggregate data.<br><br><strong>Note:</strong> If data is not available, enter 0 and note this in the Data Source field. Incomplete data reduces accuracy of the diversion rate for state reporting purposes.</div>
+              </div>
+            </div>
+            <input type="number" id="comm-landfill" value="85" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Other Diversions -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">♻️</div>
+        <h2>7 — Other Diversions</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Textiles &amp; Clothing <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Unwanted clothing and textiles collected through charity donation bins, clothing exchanges, or council-facilitated collections.<br><br><strong>Source:</strong> Charity partner reports (Vinnies, Salvos, etc.) or council textile collection program records.<br><br><strong>Note:</strong> Only include textiles where diversion from landfill can be confirmed. Items going to charity shops for reuse or to textile recyclers both count as diverted.<br><br><strong>Effect:</strong> Relatively small volume but easy diversion win. Growing as textile recycling infrastructure expands in Australia.</div>
+              </div>
+            </div>
+            <input type="number" id="textiles" value="4" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Glass (Separate Collection) <span class="unit-tag">tonnes</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Glass containers collected separately from commingled recycling — through dedicated glass bins (purple lids), drop-off "igloos," or the Container Deposit Scheme (CDS/Return and Earn).<br><br><strong>Source:</strong> Purple-bin contractor report, glass drop-off facility records, or CDS operator data.<br><br><strong>Note:</strong> Separately collected glass achieves much higher recycling rates than glass in commingled bins (which often breaks and contaminates other materials). If your council runs purple bins, track this separately.<br><br><strong>Effect:</strong> Counted as diverted. Also do not double-count with commingled recycling figures.</div>
+              </div>
+            </div>
+            <input type="number" id="glass-sep" value="20" step="0.1" min="0" onchange="recalc()">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Service Context -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">📊</div>
+        <h2>8 — Service Context</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Households Served</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Total number of occupied residential dwellings receiving kerbside collection services from the council.<br><br><strong>Source:</strong> Council rating records or collection contractor service data. Update annually or when service area changes.<br><br><strong>Note:</strong> Used to calculate per-household waste generation (kg/household) which is often required for NSW EPA reporting and benchmark comparisons with other councils.</div>
+              </div>
+            </div>
+            <input type="number" id="households" value="23450" step="1" min="0">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Population Served</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Estimated residential population within the LGA.<br><br><strong>Source:</strong> ABS Census data (most recent) or DPIE population projections. Update every 1–2 years.<br><br><strong>Note:</strong> Per-capita waste generation (kg/person/year) is a key state and national reporting metric. Albury's current population is approximately 56,000 (ABS 2021 Census). Growth projections suggest ~60,000 by 2030.</div>
+              </div>
+            </div>
+            <input type="number" id="population" value="56200" step="1" min="0">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>Previous Full Year Diversion Rate <span class="unit-tag">%</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> The council's overall diversion rate for the previous complete financial year. Used to calculate and display year-on-year improvement on the public dashboard.<br><br><strong>Source:</strong> Annual Waste Report or previous year's final data submission to NSW EPA.<br><br><strong>Note:</strong> This should be the full-year rate, not just the previous month. Update this figure once the full-year data has been finalised (typically August–September of the following year).</div>
+              </div>
+            </div>
+            <input type="number" id="prev-year-rate" value="47.2" step="0.1" min="0" max="100" onchange="recalc()">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Targets -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🎯</div>
+        <h2>9 — Targets &amp; Benchmarks</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>AlburyCity Annual Target <span class="unit-tag">%</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> Council's internal annual diversion rate target for the current financial year.<br><br><strong>Source:</strong> AlburyCity Waste Strategy / Resource Recovery Strategy, or annual Operational Plan.<br><br><strong>Note:</strong> Should increase progressively year-on-year. Align with the council's Sustainability Action Plan and NSW Government targets. Displaying this on the public dashboard helps community accountability.<br><br><strong>Suggested trajectory:</strong> 50% by 2025, 55% by 2027, 65% by 2030.</div>
+              </div>
+            </div>
+            <input type="number" id="target-annual" value="55" step="0.1" min="0" max="100" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>NSW Government Target <span class="unit-tag">%</span></label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box"><strong>What:</strong> The NSW Government's diversion/recovery target as set in the Waste and Sustainable Materials Strategy 2041 (WaSM Strategy).<br><br><strong>Current targets:</strong><br>• 70% recovery of all materials by 2025 (interim)<br>• 80% by 2030<br>• 90% by 2041<br><br><strong>Source:</strong> NSW EPA / Department of Climate Change, Energy, the Environment and Water (DCCEEW) policy documents.<br><br><strong>Note:</strong> Update if state government revises targets. The 2025 interim target of 70% applies to all material types combined.</div>
+              </div>
+            </div>
+            <input type="number" id="target-nsw" value="70" step="0.1" min="0" max="100" onchange="recalc()">
+          </div>
+
+          <div class="form-group">
+            <div class="field-header">
+              <label>NSW Target Achievement Year</label>
+              <div class="tooltip-wrap">
+                <button class="info-btn" type="button" tabindex="-1">i</button>
+                <div class="tooltip-box">The year by which the NSW Government target should be achieved. This is displayed on the public dashboard to give context to the target progress bar. Update if the target or its timeline changes.</div>
+              </div>
+            </div>
+            <input type="number" id="nsw-target-year" value="2030" min="2020" max="2050">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. Historical Trend -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">📈</div>
+        <h2>10 — Historical Trend Data (6-Month Chart)</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <p style="font-size:13px;color:var(--text-md);margin-bottom:14px">
+          Manage the data points shown on the public dashboard's 6-month trend chart.
+          Keep the most recent 6 entries. The last entry should match the current reporting period.
+        </p>
+        <div class="hist-table-wrap">
+          <table class="hist-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Period Label (e.g. "Nov 2025")</th>
+                <th>Diversion Rate (%)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" onclick="addHistoryRow()">+ Add Period</button>
+      </div>
+    </div>
+
+    <!-- ACTION ROW -->
+    <div class="action-row">
+      <button class="btn btn-primary btn-xl" id="export-btn2" onclick="exportAndUpload()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Save &amp; Upload to GitHub
+      </button>
+      <div class="action-note">
+        This will download <strong>data.json</strong> and open the GitHub upload page.
+        Drag the downloaded file into GitHub to update the public dashboard.
+      </div>
+    </div>
+
+  </div><!-- /form-col -->
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="preview-card">
+      <div class="preview-title">⚡ Live Calculation Preview</div>
+      <div class="preview-rate-wrap">
+        <div class="preview-rate" id="preview-rate">49.4</div>
+        <div style="font-size:28px;font-weight:700;color:var(--text-md)">%</div>
+        <div class="preview-rate-label">Diversion Rate</div>
+      </div>
+      <div class="preview-bar-bg">
+        <div class="preview-bar-fill" id="preview-bar" style="width:49.4%"></div>
+      </div>
+      <div class="preview-targets">
+        <span>0%</span>
+        <span id="preview-target-label">Target: 55%</span>
+        <span>100%</span>
+      </div>
+      <div class="preview-breakdown">
+        <div class="pb-row">
+          <span class="pb-label">Total Generated</span>
+          <span class="pb-value blue" id="p-generated">—</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label">Total Diverted</span>
+          <span class="pb-value green" id="p-diverted">—</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label">Sent to Landfill</span>
+          <span class="pb-value red" id="p-landfill">—</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label">vs. Council Target</span>
+          <span class="pb-value" id="p-vs-target">—</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label">vs. Previous Year</span>
+          <span class="pb-value" id="p-vs-prev">—</span>
+        </div>
+      </div>
+
+      <div class="upload-guide">
+        <h4>📤 Upload Workflow</h4>
+        <ol>
+          <li>Click <strong>"Save &amp; Upload to GitHub"</strong></li>
+          <li><strong>data.json</strong> downloads automatically</li>
+          <li>GitHub upload page opens in a new tab</li>
+          <li>Drag &amp; drop the downloaded file</li>
+          <li>Click <strong>"Commit changes"</strong></li>
+          <li>Dashboard updates within ~60 seconds</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /admin-layout -->
+
+<div id="toast"></div>
+
+<script>
+const UPLOAD_URL = 'https://github.com/iamarasinghe96/landfill/upload/claude/landfill-diversion-dashboard-mpjem';
+const RAW_URL    = 'https://raw.githubusercontent.com/iamarasinghe96/landfill/claude/landfill-diversion-dashboard-mpjem/data.json';
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function toggleSection(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function g(id) { return document.getElementById(id); }
+function gv(id, fallback=0) { const v = parseFloat(g(id).value); return isNaN(v) ? fallback : v; }
+function fmt(n, d=1) { return typeof n==='number' ? n.toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d}) : '--'; }
+
+function recalc() {
+  const residual   = gv('residual');
+  const recycling  = gv('recycling');
+  const contam     = gv('contamination') / 100;
+  const greenWaste = gv('green-waste');
+  const fogo       = gv('fogo');
+  const orgReject  = gv('org-rejection') / 100;
+  const tsGeneral  = gv('ts-general');
+  const tsRecov    = gv('ts-recovered');
+  const ewaste     = gv('ewaste') / 1000;
+  const hhw        = gv('hhw') / 1000;
+  const mattresses = gv('mattresses');
+  const tyres      = gv('tyres');
+  const cdRecov    = gv('cd-recovered');
+  const cdLand     = gv('cd-landfill');
+  const commDiv    = gv('comm-diverted');
+  const commLand   = gv('comm-landfill');
+  const textiles   = gv('textiles');
+  const glassSep   = gv('glass-sep');
+  const prevRate   = gv('prev-year-rate');
+  const annTarget  = gv('target-annual');
+
+  const netRecycled = recycling * (1 - contam);
+  const contamLand  = recycling * contam;
+  const organicsTotal = greenWaste + fogo;
+  const orgDiverted = organicsTotal * (1 - orgReject);
+  const orgLandfill = organicsTotal * orgReject;
+
+  const totalDiverted = netRecycled + orgDiverted + tsRecov + ewaste + hhw + mattresses + tyres
+                      + cdRecov + commDiv + textiles + glassSep;
+  const totalLandfill = residual + contamLand + orgLandfill + tsGeneral + cdLand + commLand;
+  const totalGenerated = totalDiverted + totalLandfill;
+  const rate = totalGenerated > 0 ? (totalDiverted / totalGenerated * 100) : 0;
+
+  const color = rate >= 55 ? '#27AE60' : rate >= 40 ? '#F39C12' : '#E74C3C';
+
+  g('preview-rate').textContent = fmt(rate);
+  g('preview-rate').style.color = color;
+  g('preview-bar').style.width = Math.min(rate, 100) + '%';
+  g('preview-bar').style.background = color;
+  g('preview-target-label').textContent = 'Target: ' + fmt(annTarget, 0) + '%';
+  g('p-generated').textContent = fmt(totalGenerated) + ' t';
+  g('p-diverted').textContent  = fmt(totalDiverted) + ' t';
+  g('p-landfill').textContent  = fmt(totalLandfill) + ' t';
+
+  const vsTarget = (rate - annTarget).toFixed(1);
+  g('p-vs-target').textContent = (parseFloat(vsTarget) >= 0 ? '+' : '') + vsTarget + '% pts';
+  g('p-vs-target').className = 'pb-value ' + (parseFloat(vsTarget) >= 0 ? 'green' : 'red');
+
+  const vsPrev = (rate - prevRate).toFixed(1);
+  g('p-vs-prev').textContent = (parseFloat(vsPrev) >= 0 ? '+' : '') + vsPrev + '% pts';
+  g('p-vs-prev').className = 'pb-value ' + (parseFloat(vsPrev) >= 0 ? 'green' : 'red');
+
+  return { totalDiverted, totalLandfill, totalGenerated, rate };
+}
+
+function buildHistoryRows() {
+  const tbody = g('hist-tbody');
+  tbody.innerHTML = '';
+  const initialData = [
+    {period: 'Nov 2025', diversionRate: 44.2},
+    {period: 'Dec 2025', diversionRate: 45.8},
+    {period: 'Jan 2026', diversionRate: 47.1},
+    {period: 'Feb 2026', diversionRate: 48.5},
+    {period: 'Mar 2026', diversionRate: 48.9},
+    {period: 'Apr 2026', diversionRate: 49.4}
+  ];
+  initialData.forEach((h, i) => appendHistoryRow(h.period, h.diversionRate, i + 1));
+}
+
+function appendHistoryRow(period='', rate='', num='') {
+  const tbody = g('hist-tbody');
+  const tr = document.createElement('tr');
+  const rowNum = num || tbody.rows.length + 1;
+  tr.innerHTML = `
+    <td style="color:var(--text-sm);font-weight:600">${rowNum}</td>
+    <td><input type="text" value="${period}" placeholder="e.g. May 2026" style="width:100%"></td>
+    <td><input type="number" value="${rate}" step="0.1" min="0" max="100" style="width:100%"></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove()">✕ Remove</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function addHistoryRow() {
+  const tbody = g('hist-tbody');
+  const num = tbody.rows.length + 1;
+  appendHistoryRow('', '', num);
+}
+
+function getHistoryData() {
+  const rows = g('hist-tbody').querySelectorAll('tr');
+  return Array.from(rows).map(tr => {
+    const inputs = tr.querySelectorAll('input');
+    return {
+      period: inputs[0].value.trim(),
+      diversionRate: parseFloat(inputs[1].value) || 0
+    };
+  }).filter(h => h.period);
+}
+
+function buildJSON() {
+  const { totalDiverted, totalLandfill, totalGenerated, rate } = recalc();
+  const monthIdx = parseInt(g('rpt-month').value) - 1;
+  const year = parseInt(g('rpt-year').value);
+  const monthName = MONTHS[monthIdx];
+  const fiscalYear = monthIdx >= 6
+    ? `${year}-${String(year+1).slice(-2)}`
+    : `${year-1}-${String(year).slice(-2)}`;
+
+  return {
+    lastUpdated: new Date().toISOString().slice(0, 10),
+    reportingPeriod: `${monthName} ${year}`,
+    reportingMonth: monthIdx + 1,
+    reportingYear: year,
+    fiscalYear,
+    dataVerifiedBy: g('verified-by').value.trim(),
+    verificationDate: g('verify-date').value,
+    dataSource: g('data-source').value.trim(),
+    kerbside: {
+      residualWaste:       gv('residual'),
+      comingliedRecycling: gv('recycling'),
+      contaminationRate:   gv('contamination'),
+      greenWaste:          gv('green-waste'),
+      foodOrganics:        gv('fogo')
+    },
+    organics: {
+      rejectionRate:      gv('org-rejection'),
+      compostProducedT:   gv('compost-produced')
+    },
+    transferStation: {
+      generalToLandfill:  gv('ts-general'),
+      materialsRecovered: gv('ts-recovered'),
+      eWasteKg:           gv('ewaste'),
+      hhwKg:              gv('hhw'),
+      mattresses:         gv('mattresses'),
+      tyres:              gv('tyres')
+    },
+    constructionDemolition: {
+      recovered: gv('cd-recovered'),
+      landfill:  gv('cd-landfill')
+    },
+    commercial: {
+      diverted: gv('comm-diverted'),
+      landfill: gv('comm-landfill')
+    },
+    other: {
+      textiles:    gv('textiles'),
+      glassSeparate: gv('glass-sep')
+    },
+    context: {
+      householdsServed:   parseInt(g('households').value) || 0,
+      populationServed:   parseInt(g('population').value) || 0,
+      previousYearRate:   gv('prev-year-rate')
+    },
+    targets: {
+      annualTarget:   gv('target-annual'),
+      nswTarget:      gv('target-nsw'),
+      nswTargetYear:  parseInt(g('nsw-target-year').value) || 2030
+    },
+    calculated: {
+      diversionRate:  Math.round(rate * 10) / 10,
+      totalGenerated: Math.round(totalGenerated * 10) / 10,
+      totalDiverted:  Math.round(totalDiverted * 10) / 10,
+      totalLandfill:  Math.round(totalLandfill * 10) / 10
+    },
+    history: getHistoryData()
+  };
+}
+
+function downloadJSON(obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'data.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportAndUpload() {
+  try {
+    const json = buildJSON();
+    downloadJSON(json);
+    setTimeout(() => { window.open(UPLOAD_URL, '_blank'); }, 800);
+    showToast('✅ data.json downloaded — drag it into the GitHub upload tab!', 'success', 6000);
+  } catch (e) {
+    showToast('⚠ Error generating JSON: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+function showToast(msg, type='', duration=4000) {
+  const el = g('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.className = type; }, duration);
+}
+
+async function tryLoadExistingData() {
+  const urls = [RAW_URL + '?t=' + Date.now(), './data.json?t=' + Date.now()];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const d = await res.json();
+      populateForm(d);
+      showToast('ℹ Loaded existing data for ' + (d.reportingPeriod || 'current period'), '', 3000);
+      return;
+    } catch (e) { /* try next */ }
+  }
+}
+
+function populateForm(d) {
+  if (!d) return;
+  if (d.reportingMonth) g('rpt-month').value = d.reportingMonth;
+  if (d.reportingYear)  g('rpt-year').value  = d.reportingYear;
+  if (d.dataVerifiedBy) g('verified-by').value = d.dataVerifiedBy;
+  if (d.verificationDate) g('verify-date').value = d.verificationDate;
+  if (d.dataSource)     g('data-source').value   = d.dataSource;
+
+  const k = d.kerbside || {};
+  if (k.residualWaste       != null) g('residual').value      = k.residualWaste;
+  if (k.comingliedRecycling != null) g('recycling').value     = k.comingliedRecycling;
+  if (k.contaminationRate   != null) g('contamination').value = k.contaminationRate;
+  if (k.greenWaste          != null) g('green-waste').value   = k.greenWaste;
+  if (k.foodOrganics        != null) g('fogo').value          = k.foodOrganics;
+
+  const or = d.organics || {};
+  if (or.rejectionRate    != null) g('org-rejection').value    = or.rejectionRate;
+  if (or.compostProducedT != null) g('compost-produced').value = or.compostProducedT;
+
+  const ts = d.transferStation || {};
+  if (ts.generalToLandfill  != null) g('ts-general').value   = ts.generalToLandfill;
+  if (ts.materialsRecovered != null) g('ts-recovered').value  = ts.materialsRecovered;
+  if (ts.eWasteKg           != null) g('ewaste').value        = ts.eWasteKg;
+  if (ts.hhwKg              != null) g('hhw').value           = ts.hhwKg;
+  if (ts.mattresses         != null) g('mattresses').value    = ts.mattresses;
+  if (ts.tyres              != null) g('tyres').value         = ts.tyres;
+
+  const cd = d.constructionDemolition || {};
+  if (cd.recovered != null) g('cd-recovered').value = cd.recovered;
+  if (cd.landfill  != null) g('cd-landfill').value  = cd.landfill;
+
+  const cm = d.commercial || {};
+  if (cm.diverted != null) g('comm-diverted').value = cm.diverted;
+  if (cm.landfill != null) g('comm-landfill').value  = cm.landfill;
+
+  const ot = d.other || {};
+  if (ot.textiles     != null) g('textiles').value  = ot.textiles;
+  if (ot.glassSeparate!= null) g('glass-sep').value = ot.glassSeparate;
+
+  const cx = d.context || {};
+  if (cx.householdsServed != null) g('households').value    = cx.householdsServed;
+  if (cx.populationServed != null) g('population').value    = cx.populationServed;
+  if (cx.previousYearRate != null) g('prev-year-rate').value= cx.previousYearRate;
+
+  const tg = d.targets || {};
+  if (tg.annualTarget  != null) g('target-annual').value   = tg.annualTarget;
+  if (tg.nswTarget     != null) g('target-nsw').value      = tg.nswTarget;
+  if (tg.nswTargetYear != null) g('nsw-target-year').value = tg.nswTargetYear;
+
+  if (d.history && d.history.length) {
+    g('hist-tbody').innerHTML = '';
+    d.history.forEach((h, i) => appendHistoryRow(h.period, h.diversionRate, i + 1));
+  }
+
+  recalc();
+}
+
+// Init
+buildHistoryRows();
+recalc();
+tryLoadExistingData();
+
+// Live recalc on any input
+document.querySelectorAll('input[type=number], input[type=text], select').forEach(el => {
+  el.addEventListener('input', recalc);
+});
+</script>
+</body>
+</html>

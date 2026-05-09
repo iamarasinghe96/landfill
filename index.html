@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlburyCity Council — Waste Diversion Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #1B3A6B;
+      --navy-dk: #122850;
+      --blue:    #2471A3;
+      --green:   #1E8449;
+      --green-lt:#27AE60;
+      --amber:   #D4860B;
+      --amber-lt:#F39C12;
+      --red:     #C0392B;
+      --red-lt:  #E74C3C;
+      --bg:      #F0F4F8;
+      --card:    #FFFFFF;
+      --text:    #1C2833;
+      --text-md: #4A5568;
+      --text-sm: #718096;
+      --border:  #D1DCE8;
+      --shadow:  0 2px 12px rgba(27,58,107,0.10);
+      --radius:  14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--navy-dk) 0%, var(--navy) 60%, #2557A7 100%);
+      color: #fff;
+      padding: 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .logo-wrap img {
+      height: 64px;
+      width: auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      display: block;
+    }
+    .logo-fallback {
+      height: 64px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--navy);
+      letter-spacing: -0.5px;
+      white-space: nowrap;
+    }
+    .header-text { flex: 1; }
+    .header-text h1 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.3px;
+    }
+    .header-text p {
+      font-size: 13px;
+      opacity: 0.82;
+      margin-top: 4px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+      border: none;
+      text-decoration: none;
+    }
+    .btn-outline {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.22); }
+    .period-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* ── LAYOUT ── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    /* ── LOADING / ERROR ── */
+    .state-box {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-md);
+    }
+    .state-box .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 18px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .state-box.error { color: var(--red); }
+    .state-box.error h3 { margin-bottom: 8px; }
+
+    /* ── SECTION TITLES ── */
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(to right, var(--border), transparent);
+    }
+
+    /* ── HERO: GAUGE + METRICS ── */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 860px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+
+    .gauge-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .gauge-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-md);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+    .gauge-canvas-wrap {
+      position: relative;
+      width: 240px;
+      height: 130px;
+    }
+    #gaugeChart { position: absolute; top: 0; left: 0; }
+    .gauge-center {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      line-height: 1;
+    }
+    .gauge-rate {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+    .gauge-unit {
+      font-size: 20px;
+      font-weight: 600;
+      vertical-align: super;
+      font-size: 22px;
+    }
+    .gauge-label {
+      font-size: 11px;
+      color: var(--text-sm);
+      margin-top: 2px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .gauge-zones {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .zone-pill {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .zone-red   { background: #FDE8E6; color: var(--red); }
+    .zone-amber { background: #FEF3E0; color: var(--amber); }
+    .zone-green { background: #E0F5EC; color: var(--green); }
+
+    .metrics-stack {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 500px) {
+      .metrics-stack { grid-template-columns: 1fr; }
+    }
+    .metric-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-left: 5px solid var(--border);
+      transition: transform 0.15s;
+    }
+    .metric-card:hover { transform: translateY(-2px); }
+    .metric-card.gen  { border-left-color: var(--blue); }
+    .metric-card.div  { border-left-color: var(--green-lt); }
+    .metric-card.lnd  { border-left-color: var(--red-lt); }
+    .metric-card.hhs  { border-left-color: var(--amber-lt); }
+    .metric-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .metric-card.gen .metric-icon  { background: #EBF5FB; }
+    .metric-card.div .metric-icon  { background: #E0F5EC; }
+    .metric-card.lnd .metric-icon  { background: #FDECEA; }
+    .metric-card.hhs .metric-icon  { background: #FEF9EC; }
+    .metric-body {}
+    .metric-value {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .metric-card.gen .metric-value  { color: var(--blue); }
+    .metric-card.div .metric-value  { color: var(--green); }
+    .metric-card.lnd .metric-value  { color: var(--red); }
+    .metric-card.hhs .metric-value  { color: var(--amber); }
+    .metric-name {
+      font-size: 12px;
+      color: var(--text-sm);
+      font-weight: 500;
+      margin-top: 3px;
+    }
+
+    /* ── TARGETS SECTION ── */
+    .targets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .target-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 24px;
+    }
+    .target-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .target-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-md);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .target-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .badge-on-track    { background: #E0F5EC; color: var(--green); }
+    .badge-behind      { background: #FDECEA; color: var(--red); }
+    .badge-approaching { background: #FEF3E0; color: var(--amber); }
+    .target-numbers {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .target-current { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; }
+    .target-slash { font-size: 22px; color: var(--text-sm); }
+    .target-goal {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-sm);
+    }
+    .target-pct { font-size: 16px; font-weight: 600; }
+    .target-bar-bg {
+      height: 10px;
+      background: var(--bg);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .target-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+    .target-bar-fill.green { background: linear-gradient(to right, #27AE60, #1E8449); }
+    .target-bar-fill.amber { background: linear-gradient(to right, #F39C12, #D4860B); }
+    .target-bar-fill.red   { background: linear-gradient(to right, #E74C3C, #C0392B); }
+    .target-meta {
+      font-size: 12px;
+      color: var(--text-sm);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── CHARTS ROW ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 760px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .chart-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 18px;
+    }
+    .chart-wrap {
+      position: relative;
+    }
+
+    /* ── BREAKDOWN TABLE ── */
+    .breakdown-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+    }
+    .breakdown-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead tr {
+      background: var(--bg);
+      border-bottom: 2px solid var(--border);
+    }
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-md);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    tbody tr:hover { background: #F8FAFD; }
+    td {
+      padding: 12px 14px;
+      color: var(--text);
+    }
+    td.stream-name {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    td.tonnes { font-variant-numeric: tabular-nums; }
+    td.status-div { color: var(--green); font-weight: 600; }
+    td.status-lnd { color: var(--red); font-weight: 600; }
+    .stream-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    tfoot tr { background: var(--navy); color: #fff; font-weight: 700; }
+    tfoot td { padding: 12px 14px; }
+
+    /* ── INFO BOX ── */
+    .info-box {
+      background: linear-gradient(135deg, #EBF5FB, #E8F8F5);
+      border: 1.5px solid #AED6F1;
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .info-box h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .info-item h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .info-item p { font-size: 13px; color: var(--text-md); line-height: 1.5; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy-dk);
+      color: rgba(255,255,255,0.75);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    footer strong { color: #fff; }
+    footer p { font-size: 12.5px; line-height: 1.6; }
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    footer a {
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      font-size: 12px;
+      transition: color 0.15s;
+    }
+    footer a:hover { color: #fff; }
+    .last-updated {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <img src="https://www.alburycity.nsw.gov.au/__data/assets/image/0009/368064/AC-logo.png"
+           alt="AlburyCity Council"
+           onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='flex'">
+      <div class="logo-fallback" id="logo-fallback" style="display:none">AlburyCity</div>
+    </div>
+    <div class="header-text">
+      <h1>Waste Diversion Dashboard</h1>
+      <p>Tracking Albury's progress toward a circular, zero-waste community</p>
+    </div>
+    <div class="header-actions">
+      <span class="period-badge" id="header-period">Loading…</span>
+      <button class="btn btn-outline" onclick="loadData(true)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+      <a href="admin.html" class="btn btn-outline">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Admin
+      </a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="loading" class="state-box">
+    <div class="spinner"></div>
+    <p>Loading latest waste data…</p>
+  </div>
+  <div id="error" class="state-box error" style="display:none">
+    <h3>⚠ Unable to load data</h3>
+    <p>Could not fetch the latest data. Please check your connection or try refreshing.</p>
+    <button class="btn btn-outline" style="margin-top:16px;background:var(--red);color:#fff;border:none" onclick="loadData(true)">Try Again</button>
+  </div>
+
+  <div id="content" style="display:none">
+
+    <!-- ── HERO ── -->
+    <div class="section-title">Current Reporting Period</div>
+    <div class="hero-grid">
+
+      <!-- Gauge -->
+      <div class="gauge-card">
+        <div class="gauge-title">Diversion Rate</div>
+        <div class="gauge-canvas-wrap">
+          <canvas id="gaugeChart" width="240" height="130"></canvas>
+          <div class="gauge-center">
+            <div class="gauge-rate" id="gauge-rate" style="color:var(--blue)">--</div>
+            <div class="gauge-label" id="gauge-period">loading…</div>
+          </div>
+        </div>
+        <div class="gauge-zones">
+          <span class="zone-pill zone-red">0–40% Needs Attention</span>
+          <span class="zone-pill zone-amber">40–55% Improving</span>
+          <span class="zone-pill zone-green">55%+ On Track</span>
+        </div>
+      </div>
+
+      <!-- Metric Cards -->
+      <div class="metrics-stack">
+        <div class="metric-card gen">
+          <div class="metric-icon">🏗</div>
+          <div class="metric-body">
+            <div class="metric-value" id="m-generated">--</div>
+            <div class="metric-name">Total Waste Generated (t)</div>
+          </div>
+        </div>
+        <div class="metric-card div">
+          <div class="metric-icon">♻️</div>
+          <div class="metric-body">
+            <div class="metric-value" id="m-diverted">--</div>
+            <div class="metric-name">Total Diverted from Landfill (t)</div>
+          </div>
+        </div>
+        <div class="metric-card lnd">
+          <div class="metric-icon">🗑</div>
+          <div class="metric-body">
+            <div class="metric-value" id="m-landfill">--</div>
+            <div class="metric-name">Sent to Landfill (t)</div>
+          </div>
+        </div>
+        <div class="metric-card hhs">
+          <div class="metric-icon">🏘</div>
+          <div class="metric-body">
+            <div class="metric-value" id="m-households">--</div>
+            <div class="metric-name">Households Served</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TARGETS SECTION ── -->
+    <div class="section-title">Targets &amp; Progress</div>
+    <div class="targets-grid">
+      <!-- Council Target -->
+      <div class="target-card">
+        <div class="target-header">
+          <h3>🏛 AlburyCity Annual Target</h3>
+          <span class="target-badge" id="council-badge">…</span>
+        </div>
+        <div class="target-numbers">
+          <span class="target-current" id="council-current" style="color:var(--blue)">--</span>
+          <span class="target-pct">%</span>
+          <span class="target-slash">/</span>
+          <span class="target-goal" id="council-goal">--%</span>
+        </div>
+        <div class="target-bar-bg">
+          <div class="target-bar-fill" id="council-bar" style="width:0%"></div>
+        </div>
+        <div class="target-meta">
+          <span id="council-gap">Loading…</span>
+          <span id="council-year">FY 2025–26</span>
+        </div>
+      </div>
+
+      <!-- NSW Government Target -->
+      <div class="target-card">
+        <div class="target-header">
+          <h3>🏛 NSW Government Target</h3>
+          <span class="target-badge" id="nsw-badge">…</span>
+        </div>
+        <div class="target-numbers">
+          <span class="target-current" id="nsw-current" style="color:var(--blue)">--</span>
+          <span class="target-pct">%</span>
+          <span class="target-slash">/</span>
+          <span class="target-goal" id="nsw-goal">--%</span>
+        </div>
+        <div class="target-bar-bg">
+          <div class="target-bar-fill" id="nsw-bar" style="width:0%"></div>
+        </div>
+        <div class="target-meta">
+          <span id="nsw-gap">Loading…</span>
+          <span id="nsw-year">Target Year 2030</span>
+        </div>
+      </div>
+
+      <!-- Year-on-Year -->
+      <div class="target-card">
+        <div class="target-header">
+          <h3>📈 Year-on-Year Change</h3>
+          <span class="target-badge" id="yoy-badge">…</span>
+        </div>
+        <div class="target-numbers">
+          <span class="target-current" id="yoy-current" style="color:var(--blue)">--</span>
+          <span class="target-pct">% pts</span>
+        </div>
+        <div class="target-bar-bg">
+          <div class="target-bar-fill" id="yoy-bar" style="width:0%"></div>
+        </div>
+        <div class="target-meta">
+          <span id="yoy-prev">vs. previous year</span>
+          <span id="yoy-label">Improvement</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CHARTS ── -->
+    <div class="section-title">Waste Stream Analysis</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Waste Breakdown</h3>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="breakdownChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>6-Month Diversion Rate Trend</h3>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STREAM BREAKDOWN TABLE ── -->
+    <div class="section-title">Stream-by-Stream Breakdown</div>
+    <div class="breakdown-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Waste Stream</th>
+            <th>Quantity</th>
+            <th>Unit</th>
+            <th>Destination</th>
+            <th>Diverted (t)</th>
+            <th>Landfill (t)</th>
+          </tr>
+        </thead>
+        <tbody id="stream-tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="color:#fff;font-weight:700">TOTAL</td>
+            <td id="tfoot-diverted" style="color:#7DCEA0">--</td>
+            <td id="tfoot-landfill" style="color:#F1948A">--</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ── INFO BOX ── -->
+    <div class="info-box">
+      <h3>ℹ What is the Diversion Rate?</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <h4>Definition</h4>
+          <p>The diversion rate is the percentage of total waste generated that is diverted from landfill through recycling, composting, or resource recovery.</p>
+        </div>
+        <div class="info-item">
+          <h4>How it's calculated</h4>
+          <p>Diversion Rate = (Total Diverted ÷ Total Generated) × 100. This includes recycling, organics, e-waste, hazardous waste, and materials recovered at the transfer station.</p>
+        </div>
+        <div class="info-item">
+          <h4>Why it matters</h4>
+          <p>Every tonne kept out of landfill reduces greenhouse gas emissions, saves resources, and helps AlburyCity meet state and local sustainability targets.</p>
+        </div>
+        <div class="info-item">
+          <h4>How you can help</h4>
+          <p>Reduce recycling contamination, compost food scraps, use the e-waste drop-off, and participate in hard waste collections to boost our community's rate.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <p><strong>AlburyCity Council</strong> — Waste Reduction Programme</p>
+    <p>Data sourced from weighbridge records, contractor reports, and MRF operator data. Figures are subject to revision.</p>
+    <div class="footer-links">
+      <a href="https://www.alburycity.nsw.gov.au" target="_blank">alburycity.nsw.gov.au</a>
+      <a href="admin.html">Admin Panel</a>
+    </div>
+    <div class="last-updated">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Last updated: <span id="footer-updated">--</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const RAW_DATA_URL = 'https://raw.githubusercontent.com/iamarasinghe96/landfill/claude/landfill-diversion-dashboard-mpjem/data.json';
+let gaugeChartInst = null, breakdownChartInst = null, trendChartInst = null;
+
+function fmt(n, dec=1) { return typeof n === 'number' ? n.toLocaleString('en-AU', {minimumFractionDigits:dec,maximumFractionDigits:dec}) : '--'; }
+function fmtInt(n)     { return typeof n === 'number' ? n.toLocaleString('en-AU', {maximumFractionDigits:0}) : '--'; }
+
+function rateColor(r) {
+  if (r >= 55) return getComputedStyle(document.documentElement).getPropertyValue('--green-lt').trim();
+  if (r >= 40) return getComputedStyle(document.documentElement).getPropertyValue('--amber-lt').trim();
+  return getComputedStyle(document.documentElement).getPropertyValue('--red-lt').trim();
+}
+
+async function loadData(bust=false) {
+  document.getElementById('loading').style.display = '';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+  try {
+    const url = bust ? RAW_DATA_URL + '?t=' + Date.now() : RAW_DATA_URL;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    render(data);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = '';
+  } catch (e) {
+    // Try relative fallback (for local dev / GH Pages)
+    try {
+      const res2 = await fetch('./data.json?t=' + Date.now());
+      if (!res2.ok) throw new Error('HTTP ' + res2.status);
+      const data = await res2.json();
+      render(data);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = '';
+    } catch (e2) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = '';
+      console.error(e2);
+    }
+  }
+}
+
+function render(d) {
+  const c = d.calculated;
+  const rate = c.diversionRate;
+  const color = rateColor(rate);
+
+  // Header period
+  document.getElementById('header-period').textContent = d.reportingPeriod || 'N/A';
+
+  // Gauge
+  document.getElementById('gauge-rate').textContent = fmt(rate);
+  document.getElementById('gauge-rate').style.color = color;
+  document.getElementById('gauge-period').textContent = d.reportingPeriod;
+  renderGauge(rate, color);
+
+  // Metric cards
+  document.getElementById('m-generated').textContent  = fmt(c.totalGenerated);
+  document.getElementById('m-diverted').textContent   = fmt(c.totalDiverted);
+  document.getElementById('m-landfill').textContent   = fmt(c.totalLandfill);
+  document.getElementById('m-households').textContent = fmtInt(d.context.householdsServed);
+
+  // Targets
+  renderTargets(d, rate);
+
+  // Charts
+  renderBreakdown(d);
+  renderTrend(d);
+
+  // Table
+  renderTable(d);
+
+  // Footer
+  document.getElementById('footer-updated').textContent = d.lastUpdated;
+}
+
+function renderGauge(rate, color) {
+  const canvas = document.getElementById('gaugeChart');
+  const ctx = canvas.getContext('2d');
+  if (gaugeChartInst) { gaugeChartInst.destroy(); gaugeChartInst = null; }
+  gaugeChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [Math.min(rate, 100), Math.max(0, 100 - rate)],
+        backgroundColor: [color, '#E8ECF0'],
+        borderWidth: 0,
+        hoverOffset: 0
+      }]
+    },
+    options: {
+      circumference: 180,
+      rotation: -90,
+      cutout: '72%',
+      animation: { duration: 1000, easing: 'easeOutQuart' },
+      plugins: { tooltip: { enabled: false }, legend: { display: false } }
+    }
+  });
+}
+
+function renderTargets(d, rate) {
+  const at = d.targets.annualTarget;
+  const nswt = d.targets.nswTarget;
+  const prev = d.context.previousYearRate;
+
+  // Council target
+  const cPct = Math.min((rate / at) * 100, 100);
+  const cgap = (at - rate).toFixed(1);
+  const cbadge = rate >= at ? 'On Track' : rate >= at * 0.9 ? 'Approaching' : 'Behind Target';
+  const cbclass = rate >= at ? 'badge-on-track' : rate >= at * 0.9 ? 'badge-approaching' : 'badge-behind';
+  const cbarclass = rate >= at ? 'green' : rate >= at * 0.9 ? 'amber' : 'red';
+
+  document.getElementById('council-current').textContent = fmt(rate);
+  document.getElementById('council-goal').textContent = fmt(at, 0) + '%';
+  document.getElementById('council-badge').textContent = cbadge;
+  document.getElementById('council-badge').className = 'target-badge ' + cbclass;
+  document.getElementById('council-bar').style.width = cPct + '%';
+  document.getElementById('council-bar').className = 'target-bar-fill ' + cbarclass;
+  document.getElementById('council-gap').textContent = rate >= at
+    ? '✓ Target achieved — ' + fmt(rate - at) + '% pts above target'
+    : cgap + '% pts to reach target';
+  document.getElementById('council-year').textContent = 'FY ' + (d.fiscalYear || d.reportingYear);
+
+  // NSW target
+  const nPct = Math.min((rate / nswt) * 100, 100);
+  const ngap = (nswt - rate).toFixed(1);
+  const nbadge = rate >= nswt ? 'Achieved' : rate >= nswt * 0.85 ? 'Approaching' : 'In Progress';
+  const nbclass = rate >= nswt ? 'badge-on-track' : rate >= nswt * 0.85 ? 'badge-approaching' : 'badge-behind';
+  const nbarclass = rate >= nswt ? 'green' : rate >= nswt * 0.85 ? 'amber' : 'red';
+
+  document.getElementById('nsw-current').textContent = fmt(rate);
+  document.getElementById('nsw-goal').textContent = fmt(nswt, 0) + '%';
+  document.getElementById('nsw-badge').textContent = nbadge;
+  document.getElementById('nsw-badge').className = 'target-badge ' + nbclass;
+  document.getElementById('nsw-bar').style.width = nPct + '%';
+  document.getElementById('nsw-bar').className = 'target-bar-fill ' + nbarclass;
+  document.getElementById('nsw-gap').textContent = rate >= nswt
+    ? '✓ State target met'
+    : ngap + '% pts to reach NSW goal';
+  document.getElementById('nsw-year').textContent = 'NSW Target by ' + (d.targets.nswTargetYear || 2030);
+
+  // YoY
+  const yoy = (rate - prev).toFixed(1);
+  const yoyPos = parseFloat(yoy) >= 0;
+  const yoyPct = Math.min(Math.abs(parseFloat(yoy)) / 10 * 100, 100);
+  document.getElementById('yoy-current').textContent = (yoyPos ? '+' : '') + yoy;
+  document.getElementById('yoy-current').style.color = yoyPos ? 'var(--green)' : 'var(--red)';
+  document.getElementById('yoy-badge').textContent = yoyPos ? 'Improving' : 'Declining';
+  document.getElementById('yoy-badge').className = 'target-badge ' + (yoyPos ? 'badge-on-track' : 'badge-behind');
+  document.getElementById('yoy-bar').style.width = yoyPct + '%';
+  document.getElementById('yoy-bar').className = 'target-bar-fill ' + (yoyPos ? 'green' : 'red');
+  document.getElementById('yoy-prev').textContent = 'Previous year: ' + fmt(prev) + '%';
+  document.getElementById('yoy-label').textContent = yoyPos ? 'Positive trend' : 'Needs attention';
+}
+
+function renderBreakdown(d) {
+  const ctx = document.getElementById('breakdownChart');
+  if (breakdownChartInst) breakdownChartInst.destroy();
+  const c = d.calculated;
+  breakdownChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Diverted', 'Landfill'],
+      datasets: [{
+        data: [c.totalDiverted, c.totalLandfill],
+        backgroundColor: ['#27AE60', '#E74C3C'],
+        borderColor: ['#fff', '#fff'],
+        borderWidth: 3,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 18, usePointStyle: true, pointStyleWidth: 10, font: { size: 13, weight: '600' } }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.label}: ${fmt(ctx.parsed)} t (${fmt(ctx.parsed / (c.totalGenerated) * 100)}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTrend(d) {
+  const ctx = document.getElementById('trendChart');
+  if (trendChartInst) trendChartInst.destroy();
+  const hist = d.history || [];
+  const at = d.targets.annualTarget;
+  trendChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hist.map(h => h.period),
+      datasets: [
+        {
+          label: 'Diversion Rate',
+          data: hist.map(h => h.diversionRate),
+          borderColor: '#2471A3',
+          backgroundColor: 'rgba(36,113,163,0.10)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 5,
+          pointBackgroundColor: '#2471A3',
+          pointHoverRadius: 7
+        },
+        {
+          label: 'Annual Target (' + at + '%)',
+          data: hist.map(() => at),
+          borderColor: '#27AE60',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          tension: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 18, usePointStyle: true, font: { size: 12, weight: '600' } } },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}%` } }
+      },
+      scales: {
+        y: {
+          min: 30,
+          max: 80,
+          ticks: { callback: v => v + '%', font: { size: 12 } },
+          grid: { color: '#EDF2F7' }
+        },
+        x: { ticks: { font: { size: 12 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderTable(d) {
+  const kk = d.kerbside;
+  const ts = d.transferStation;
+  const cd = d.constructionDemolition;
+  const cm = d.commercial;
+  const ot = d.other;
+  const rejR = d.organics.rejectionRate / 100;
+  const contR = kk.contaminationRate / 100;
+
+  const streams = [
+    {
+      icon: '🔴', bg: '#FDE8E6',
+      name: 'Residual Waste (Red Lid)',
+      qty: kk.residualWaste, unit: 'tonnes',
+      dest: 'Landfill',
+      diverted: 0,
+      landfill: kk.residualWaste
+    },
+    {
+      icon: '🟡', bg: '#FEF9EC',
+      name: 'Commingled Recycling (Yellow Lid)',
+      qty: kk.comingliedRecycling, unit: 'tonnes',
+      dest: 'MRF → Recycling',
+      diverted: kk.comingliedRecycling * (1 - contR),
+      landfill: kk.comingliedRecycling * contR
+    },
+    {
+      icon: '🟢', bg: '#E0F5EC',
+      name: 'Green / Garden Waste (Green Lid)',
+      qty: kk.greenWaste, unit: 'tonnes',
+      dest: 'Organics Facility → Compost',
+      diverted: kk.greenWaste * (1 - rejR),
+      landfill: kk.greenWaste * rejR
+    },
+    {
+      icon: '🍎', bg: '#E8F8F5',
+      name: 'Food Organics (FOGO)',
+      qty: kk.foodOrganics, unit: 'tonnes',
+      dest: 'Organics Facility → Compost',
+      diverted: kk.foodOrganics * (1 - rejR),
+      landfill: kk.foodOrganics * rejR
+    },
+    {
+      icon: '🏗', bg: '#EBF5FB',
+      name: 'Transfer Station — General',
+      qty: ts.generalToLandfill, unit: 'tonnes',
+      dest: 'Landfill',
+      diverted: 0,
+      landfill: ts.generalToLandfill
+    },
+    {
+      icon: '♻️', bg: '#E0F5EC',
+      name: 'Transfer Station — Recovered',
+      qty: ts.materialsRecovered, unit: 'tonnes',
+      dest: 'Recycling / Reuse',
+      diverted: ts.materialsRecovered,
+      landfill: 0
+    },
+    {
+      icon: '💻', bg: '#F5EEF8',
+      name: 'E-Waste',
+      qty: ts.eWasteKg, unit: 'kg',
+      dest: 'E-Waste Recycler',
+      diverted: ts.eWasteKg / 1000,
+      landfill: 0
+    },
+    {
+      icon: '⚗️', bg: '#FEF3E0',
+      name: 'Household Hazardous Waste',
+      qty: ts.hhwKg, unit: 'kg',
+      dest: 'HHW Facility',
+      diverted: ts.hhwKg / 1000,
+      landfill: 0
+    },
+    {
+      icon: '🛏', bg: '#F0F4F8',
+      name: 'Mattresses & Bulky Goods',
+      qty: ts.mattresses, unit: 'tonnes',
+      dest: 'Reuse / Recycling',
+      diverted: ts.mattresses,
+      landfill: 0
+    },
+    {
+      icon: '🔄', bg: '#F0F4F8',
+      name: 'Tyres',
+      qty: ts.tyres, unit: 'tonnes',
+      dest: 'Tyre Stewardship Scheme',
+      diverted: ts.tyres,
+      landfill: 0
+    },
+    {
+      icon: '🏚', bg: '#EBF5FB',
+      name: 'C&D Waste — Recovered',
+      qty: cd.recovered, unit: 'tonnes',
+      dest: 'Recycling / Clean Fill',
+      diverted: cd.recovered,
+      landfill: 0
+    },
+    {
+      icon: '🏚', bg: '#FDE8E6',
+      name: 'C&D Waste — Landfill',
+      qty: cd.landfill, unit: 'tonnes',
+      dest: 'Landfill',
+      diverted: 0,
+      landfill: cd.landfill
+    },
+    {
+      icon: '🏢', bg: '#E0F5EC',
+      name: 'Commercial — Diverted',
+      qty: cm.diverted, unit: 'tonnes',
+      dest: 'Recycling / Recovery',
+      diverted: cm.diverted,
+      landfill: 0
+    },
+    {
+      icon: '🏢', bg: '#FDE8E6',
+      name: 'Commercial — Landfill',
+      qty: cm.landfill, unit: 'tonnes',
+      dest: 'Landfill',
+      diverted: 0,
+      landfill: cm.landfill
+    },
+    {
+      icon: '👕', bg: '#F5EEF8',
+      name: 'Textiles & Clothing',
+      qty: ot.textiles, unit: 'tonnes',
+      dest: 'Charity / Textile Recovery',
+      diverted: ot.textiles,
+      landfill: 0
+    },
+    {
+      icon: '🍾', bg: '#E8F8F5',
+      name: 'Glass (Separate Collection)',
+      qty: ot.glassSeparate, unit: 'tonnes',
+      dest: 'Glass Recycler',
+      diverted: ot.glassSeparate,
+      landfill: 0
+    }
+  ];
+
+  let totalDiv = 0, totalLnd = 0;
+  const tbody = document.getElementById('stream-tbody');
+  tbody.innerHTML = streams.map(s => {
+    totalDiv += s.diverted;
+    totalLnd += s.landfill;
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="stream-icon" style="background:${s.bg}">${s.icon}</div>
+        <span style="font-weight:600">${s.name}</span>
+      </div></td>
+      <td class="tonnes">${fmt(s.qty)}</td>
+      <td style="color:var(--text-sm);font-size:12px">${s.unit}</td>
+      <td style="font-size:13px;color:var(--text-md)">${s.dest}</td>
+      <td class="tonnes ${s.diverted > 0 ? 'status-div' : ''}">${s.diverted > 0 ? fmt(s.diverted) : '—'}</td>
+      <td class="tonnes ${s.landfill > 0 ? 'status-lnd' : ''}">${s.landfill > 0 ? fmt(s.landfill) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tfoot-diverted').textContent = fmt(totalDiv);
+  document.getElementById('tfoot-landfill').textContent = fmt(totalLnd);
+}
+
+loadData();
+</script>
+</body>
+</html>
