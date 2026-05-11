@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlburyCity - Community Waste Education Hub</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #1B3A6B;
+      --navy-dk: #122850;
+      --blue:    #2471A3;
+      --green:   #1E8449;
+      --green-lt:#27AE60;
+      --amber:   #D4860B;
+      --red:     #C0392B;
+      --red-lt:  #E74C3C;
+      --yellow:  #D4AC0D;
+      --bg:      #F0F4F8;
+      --card:    #FFFFFF;
+      --text:    #1C2833;
+      --text-md: #4A5568;
+      --text-sm: #718096;
+      --border:  #D1DCE8;
+      --shadow:  0 2px 12px rgba(27,58,107,0.10);
+      --radius:  14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, var(--navy-dk) 0%, var(--navy) 60%, #2557A7 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .logo-wrap img {
+      height: 58px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 5px 9px;
+    }
+    .logo-fallback {
+      height: 58px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--navy);
+      display: flex; align-items: center;
+    }
+    .header-text { flex: 1; }
+    .header-text h1 { font-size: clamp(16px, 2.5vw, 22px); font-weight: 700; }
+    .header-text p  { font-size: 12px; opacity: 0.8; margin-top: 3px; }
+    .header-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.22); }
+
+    /* NAV PILLS */
+    .page-nav {
+      background: var(--navy);
+      padding: 0;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .page-nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 2px;
+    }
+    .nav-pill {
+      display: inline-block;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-pill:hover, .nav-pill.active {
+      color: #fff;
+      border-bottom-color: #fff;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #1B4F72 0%, #1A5276 50%, #1E8449 100%);
+      color: #fff;
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .hero h2 {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .hero p {
+      font-size: 16px;
+      opacity: 0.88;
+      max-width: 600px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .hero-stat {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      padding: 14px 24px;
+      text-align: center;
+      min-width: 140px;
+    }
+    .hero-stat-num { font-size: 28px; font-weight: 800; }
+    .hero-stat-lbl { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+    /* MAIN LAYOUT */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* SECTION HEADINGS */
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .section-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: var(--navy);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .section-head-text h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+    .section-head-text p {
+      font-size: 13.5px;
+      color: var(--text-md);
+      margin-top: 3px;
+      line-height: 1.5;
+    }
+
+    .page-section {
+      margin-bottom: 56px;
+      scroll-margin-top: 80px;
+    }
+
+    /* BIN FINDER */
+    .finder-search-wrap {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .search-input-wrap {
+      position: relative;
+      margin-bottom: 18px;
+    }
+    .search-input-wrap svg {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-sm);
+    }
+    #bin-search {
+      width: 100%;
+      padding: 14px 16px 14px 48px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #bin-search:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(36,113,163,0.10);
+      background: #fff;
+    }
+    #bin-search::placeholder { color: var(--text-sm); }
+
+    /* Filter tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .filter-tab {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid;
+      transition: all 0.15s;
+    }
+    .filter-tab.all     { border-color: var(--navy); color: var(--navy); }
+    .filter-tab.fogo    { border-color: var(--green); color: var(--green); }
+    .filter-tab.yellow  { border-color: #C7A400; color: #C7A400; }
+    .filter-tab.red     { border-color: var(--red); color: var(--red); }
+    .filter-tab.dropoff { border-color: var(--blue); color: var(--blue); }
+    .filter-tab.active.all     { background: var(--navy); color: #fff; }
+    .filter-tab.active.fogo    { background: var(--green); color: #fff; }
+    .filter-tab.active.yellow  { background: #C7A400; color: #fff; }
+    .filter-tab.active.red     { background: var(--red); color: #fff; }
+    .filter-tab.active.dropoff { background: var(--blue); color: #fff; }
+
+    /* Results grid */
+    #search-results {
+      min-height: 80px;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .result-card {
+      border-radius: 10px;
+      border: 2px solid;
+      padding: 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+    .result-card.fogo    { border-color: #A9DFBF; background: #F0FAF4; }
+    .result-card.yellow  { border-color: #F9E79F; background: #FFFDE7; }
+    .result-card.red     { border-color: #F5B7B1; background: #FEF9F9; }
+    .result-card.dropoff { border-color: #AED6F1; background: #EBF5FB; }
+    .result-bin-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .result-card.fogo    .result-bin-icon { background: #27AE60; }
+    .result-card.yellow  .result-bin-icon { background: #D4AC0D; }
+    .result-card.red     .result-bin-icon { background: #E74C3C; }
+    .result-card.dropoff .result-bin-icon { background: #2471A3; }
+    .result-body h4 { font-size: 14px; font-weight: 700; color: var(--text); }
+    .result-bin-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 2px 0 6px;
+    }
+    .result-card.fogo    .result-bin-label { color: var(--green); }
+    .result-card.yellow  .result-bin-label { color: #A07C00; }
+    .result-card.red     .result-bin-label { color: var(--red); }
+    .result-card.dropoff .result-bin-label { color: var(--blue); }
+    .result-body p { font-size: 12.5px; color: var(--text-md); line-height: 1.5; }
+    .result-tip {
+      margin-top: 8px;
+      font-size: 11.5px;
+      color: var(--text-sm);
+      background: rgba(0,0,0,0.04);
+      border-radius: 6px;
+      padding: 5px 8px;
+    }
+    .mistake-flag {
+      display: inline-block;
+      background: #FEF3CD;
+      color: #856404;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      margin-bottom: 4px;
+    }
+    .no-results {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-sm);
+    }
+    .no-results .emoji { font-size: 36px; margin-bottom: 10px; }
+
+    /* Bin quick guide */
+    .bin-quick-guide {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .bin-guide-card {
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+      border: 2px solid;
+    }
+    .bin-guide-card.green  { border-color: #A9DFBF; background: #F0FAF4; }
+    .bin-guide-card.yellow { border-color: #F9E79F; background: #FFFDE7; }
+    .bin-guide-card.red    { border-color: #F5B7B1; background: #FEF9F9; }
+    .bin-guide-card.blue   { border-color: #AED6F1; background: #EBF5FB; }
+    .bin-lid {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .bin-guide-card.green  .bin-lid { background: #27AE60; }
+    .bin-guide-card.yellow .bin-lid { background: #D4AC0D; }
+    .bin-guide-card.red    .bin-lid { background: #E74C3C; }
+    .bin-guide-card.blue   .bin-lid { background: #2471A3; }
+    .bin-guide-card h4 { font-size: 13px; font-weight: 800; color: var(--text); }
+    .bin-guide-card p  { font-size: 11.5px; color: var(--text-md); margin-top: 5px; line-height: 1.5; }
+
+    /* QUIZ */
+    .quiz-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .quiz-header {
+      background: linear-gradient(135deg, var(--navy-dk), var(--navy));
+      color: #fff;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .quiz-header h3 { font-size: 16px; font-weight: 700; }
+    .quiz-progress {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .quiz-progress-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      margin-top: 10px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .quiz-progress-fill {
+      height: 100%;
+      background: #2ECC71;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .quiz-body { padding: 28px; }
+    .quiz-q-num {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-sm);
+      margin-bottom: 10px;
+    }
+    .quiz-question {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+    .quiz-context {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text-md);
+      margin-bottom: 20px;
+      border-left: 4px solid var(--blue);
+    }
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .quiz-option {
+      padding: 14px 18px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.15s;
+      background: var(--card);
+      text-align: left;
+      width: 100%;
+    }
+    .quiz-option .opt-letter {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .quiz-option:hover:not(:disabled):not(.correct):not(.wrong) {
+      border-color: var(--blue);
+      background: #EBF5FB;
+    }
+    .quiz-option:hover:not(:disabled):not(.correct):not(.wrong) .opt-letter {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+    .quiz-option.correct {
+      border-color: var(--green-lt);
+      background: #E0F5EC;
+      cursor: default;
+    }
+    .quiz-option.correct .opt-letter {
+      background: var(--green-lt);
+      border-color: var(--green-lt);
+      color: #fff;
+    }
+    .quiz-option.wrong {
+      border-color: var(--red-lt);
+      background: #FDECEA;
+      cursor: default;
+    }
+    .quiz-option.wrong .opt-letter {
+      background: var(--red-lt);
+      border-color: var(--red-lt);
+      color: #fff;
+    }
+    .quiz-option:disabled { cursor: default; }
+    .quiz-explanation {
+      display: none;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      border-left: 4px solid var(--green-lt);
+      font-size: 13.5px;
+      color: var(--text-md);
+      line-height: 1.6;
+      animation: fadeIn 0.3s ease;
+    }
+    .quiz-explanation.show { display: block; }
+    .quiz-explanation.wrong-exp { border-left-color: var(--red-lt); }
+    .quiz-explanation strong { color: var(--text); }
+    .quiz-next {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: none;
+    }
+    .quiz-next.show { display: block; }
+    .quiz-next:hover { background: var(--navy-dk); }
+
+    /* Quiz result screen */
+    .quiz-result {
+      display: none;
+      text-align: center;
+      padding: 40px 28px;
+    }
+    .quiz-result.show { display: block; }
+    .quiz-score-circle {
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      margin: 0 auto 20px;
+      font-size: 36px;
+      font-weight: 800;
+    }
+    .quiz-score-circle.great { background: #E0F5EC; color: var(--green); border: 4px solid #27AE60; }
+    .quiz-score-circle.good  { background: #FEF3E0; color: var(--amber); border: 4px solid #F39C12; }
+    .quiz-score-circle.try   { background: #FDECEA; color: var(--red);   border: 4px solid #E74C3C; }
+    .quiz-score-circle small { font-size: 12px; font-weight: 600; opacity: 0.7; }
+    .quiz-result h3 { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+    .quiz-result p  { font-size: 14px; color: var(--text-md); margin-bottom: 24px; line-height: 1.6; }
+    .quiz-restart {
+      background: var(--green-lt);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 32px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .quiz-restart:hover { background: var(--green); }
+
+    /* EDUCATION PLAN */
+    .plan-intro {
+      background: linear-gradient(135deg, #EBF5FB, #E0F5EC);
+      border: 1.5px solid #AED6F1;
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+    .plan-intro h3 { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+    .plan-intro p  { font-size: 13.5px; color: var(--text-md); line-height: 1.6; }
+    .plan-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .plan-metric {
+      background: rgba(255,255,255,0.7);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .plan-metric-val { font-size: 24px; font-weight: 800; color: var(--navy); }
+    .plan-metric-lbl { font-size: 11.5px; color: var(--text-md); margin-top: 2px; }
+    .plan-metric-dir { font-size: 11px; color: var(--green); font-weight: 700; }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .plan-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      border-top: 4px solid var(--border);
+      transition: transform 0.15s;
+    }
+    .plan-card:hover { transform: translateY(-2px); }
+    .plan-card.s1 { border-top-color: #2471A3; }
+    .plan-card.s2 { border-top-color: #27AE60; }
+    .plan-card.s3 { border-top-color: #F39C12; }
+    .plan-card.s4 { border-top-color: #E74C3C; }
+    .plan-card.s5 { border-top-color: #8E44AD; }
+    .plan-card.s6 { border-top-color: #16A085; }
+    .plan-card.s7 { border-top-color: #D35400; }
+    .plan-card.s8 { border-top-color: #1ABC9C; }
+    .plan-card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .plan-card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .plan-card.s1 .plan-card-icon { background: #EBF5FB; }
+    .plan-card.s2 .plan-card-icon { background: #E0F5EC; }
+    .plan-card.s3 .plan-card-icon { background: #FEF9EC; }
+    .plan-card.s4 .plan-card-icon { background: #FDECEA; }
+    .plan-card.s5 .plan-card-icon { background: #F5EEF8; }
+    .plan-card.s6 .plan-card-icon { background: #E8F8F5; }
+    .plan-card.s7 .plan-card-icon { background: #FDF2E9; }
+    .plan-card.s8 .plan-card-icon { background: #E8F8F5; }
+    .plan-card h4 { font-size: 14px; font-weight: 800; color: var(--navy); }
+    .plan-card-num {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .plan-card p {
+      font-size: 13px;
+      color: var(--text-md);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .plan-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .plan-tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text-md);
+    }
+    .plan-tag.priority { background: #FEF3E0; color: var(--amber); }
+    .plan-tag.ongoing  { background: #E0F5EC; color: var(--green); }
+    .plan-tag.new      { background: #EBF5FB; color: var(--blue); }
+
+    /* Timeline */
+    .plan-timeline {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px 28px;
+    }
+    .plan-timeline h3 { font-size: 16px; font-weight: 800; color: var(--navy); margin-bottom: 20px; }
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .tl-item {
+      position: relative;
+      margin-bottom: 22px;
+    }
+    .tl-item:last-child { margin-bottom: 0; }
+    .tl-dot {
+      position: absolute;
+      left: -25px;
+      top: 3px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+    .tl-dot.done    { background: var(--green-lt); }
+    .tl-dot.current { background: var(--blue); }
+    .tl-dot.future  { background: var(--border); }
+    .tl-date {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-sm);
+      margin-bottom: 2px;
+    }
+    .tl-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .tl-desc {
+      font-size: 12.5px;
+      color: var(--text-md);
+      line-height: 1.5;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--navy-dk);
+      color: rgba(255,255,255,0.75);
+      padding: 24px;
+      text-align: center;
+    }
+    footer p { font-size: 12.5px; }
+    footer strong { color: #fff; }
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    footer a {
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      font-size: 12px;
+    }
+    footer a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <img src="https://www.alburycity.nsw.gov.au/__data/assets/image/0009/368064/AC-logo.png"
+           alt="AlburyCity Council"
+           onerror="this.style.display='none';document.getElementById('lf').style.display='flex'">
+      <div class="logo-fallback" id="lf" style="display:none">AlburyCity</div>
+    </div>
+    <div class="header-text">
+      <h1>Community Waste Education Hub</h1>
+      <p>AlburyCity Council - Waste Reduction Programme</p>
+    </div>
+    <span class="header-tag">Community</span>
+    <a href="../index.html" class="btn-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+</header>
+
+<nav class="page-nav">
+  <div class="page-nav-inner">
+    <a href="#bin-finder" class="nav-pill active" onclick="setActive(this)">Bin Finder</a>
+    <a href="#quiz"       class="nav-pill"        onclick="setActive(this)">Pop Quiz</a>
+    <a href="#plan"       class="nav-pill"        onclick="setActive(this)">Education Plan</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h2>Help Us Hit 55% Diversion - Start Here</h2>
+  <p>Use the Bin Finder to check any item instantly, take our FOGO Myth Buster quiz, and explore AlburyCity's community engagement plan.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">49.4%</div>
+      <div class="hero-stat-lbl">Current Diversion Rate</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">18%</div>
+      <div class="hero-stat-lbl">Recycling Contamination</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">55%</div>
+      <div class="hero-stat-lbl">Council Target FY 2025-26</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">80%</div>
+      <div class="hero-stat-lbl">NSW Target by 2030</div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ===================== BIN FINDER ===================== -->
+  <section class="page-section" id="bin-finder">
+    <div class="section-head">
+      <div class="section-icon">🔍</div>
+      <div class="section-head-text">
+        <h2>Bin Finder - What Bin Does It Go In?</h2>
+        <p>Type any household item below to instantly find the correct bin. Over 100 items including common mistakes and FOGO-specific guidance.</p>
+      </div>
+    </div>
+
+    <div class="finder-search-wrap">
+      <div class="search-input-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="bin-search" placeholder="e.g. pizza box, coffee cup, avocado seed..." autocomplete="off" oninput="doSearch()">
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab all active"     onclick="setFilter('all',this)">All Items</button>
+        <button class="filter-tab fogo"           onclick="setFilter('fogo',this)">Green Lid (FOGO)</button>
+        <button class="filter-tab yellow"         onclick="setFilter('yellow',this)">Yellow Lid (Recycling)</button>
+        <button class="filter-tab red"            onclick="setFilter('red',this)">Red Lid (General)</button>
+        <button class="filter-tab dropoff"        onclick="setFilter('dropoff',this)">Drop-off / Special</button>
+      </div>
+
+      <div id="search-results">
+        <div class="no-results" id="finder-placeholder">
+          <div class="emoji">👆</div>
+          <p>Type an item above or select a category to browse.</p>
+        </div>
+        <div class="results-grid" id="results-grid" style="display:none"></div>
+        <div class="no-results" id="no-results" style="display:none">
+          <div class="emoji">🤔</div>
+          <p>No results found. Try a simpler search term, or contact AlburyCity Waste Services on <strong>02 6023 8111</strong> for guidance.</p>
+        </div>
+      </div>
+
+      <!-- Quick Bin Guide -->
+      <div class="bin-quick-guide">
+        <div class="bin-guide-card green">
+          <div class="bin-lid">🟢</div>
+          <h4>Green Lid - FOGO</h4>
+          <p>Food scraps, garden organics, soiled paper. The more you put here, the less goes to landfill.</p>
+        </div>
+        <div class="bin-guide-card yellow">
+          <div class="bin-lid">🟡</div>
+          <h4>Yellow Lid - Recycling</h4>
+          <p>Glass, hard plastics (rinsed), paper, cardboard, metal cans. Must be clean and dry.</p>
+        </div>
+        <div class="bin-guide-card red">
+          <div class="bin-lid">🔴</div>
+          <h4>Red Lid - General</h4>
+          <p>Nappies, soft plastics, contaminated packaging. This goes straight to landfill - use it last.</p>
+        </div>
+        <div class="bin-guide-card blue">
+          <div class="bin-lid">🔵</div>
+          <h4>Drop-off Required</h4>
+          <p>Batteries, e-waste, paint, medicines. Never bin these - take to AlburyCity drop-off points.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== QUIZ ===================== -->
+  <section class="page-section" id="quiz">
+    <div class="section-head">
+      <div class="section-icon">🎯</div>
+      <div class="section-head-text">
+        <h2>FOGO Myth Buster - Pop Quiz</h2>
+        <p>10 questions on the most commonly misunderstood waste facts. Each wrong answer comes with a detailed explanation so you learn as you go.</p>
+      </div>
+    </div>
+
+    <div class="quiz-card">
+      <div class="quiz-header">
+        <div>
+          <h3>FOGO Myth Buster Quiz</h3>
+          <div class="quiz-progress" id="quiz-progress-label">Question 1 of 10</div>
+        </div>
+        <div style="text-align:right;font-size:13px;opacity:0.8" id="quiz-score-display">Score: 0</div>
+      </div>
+      <div class="quiz-progress-bar">
+        <div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div>
+      </div>
+
+      <!-- Questions -->
+      <div class="quiz-body" id="quiz-body">
+        <div class="quiz-q-num" id="q-num">Question 1 of 10</div>
+        <div class="quiz-question" id="q-text"></div>
+        <div class="quiz-context" id="q-context" style="display:none"></div>
+        <div class="quiz-options" id="q-options"></div>
+        <div class="quiz-explanation" id="q-explanation"></div>
+        <button class="quiz-next" id="q-next" onclick="nextQuestion()">Next Question &rarr;</button>
+      </div>
+
+      <!-- Result screen -->
+      <div class="quiz-result" id="quiz-result">
+        <div class="quiz-score-circle" id="score-circle">
+          <span id="score-num">0</span>
+          <small id="score-denom">/10</small>
+        </div>
+        <h3 id="result-title">Well Done!</h3>
+        <p id="result-msg"></p>
+        <button class="quiz-restart" onclick="startQuiz()">Try Again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== EDUCATION PLAN ===================== -->
+  <section class="page-section" id="plan">
+    <div class="section-head">
+      <div class="section-icon">📋</div>
+      <div class="section-head-text">
+        <h2>Community Education Plan 2025-2030</h2>
+        <p>AlburyCity's strategy to engage residents, reduce contamination, and drive diversion rates toward the NSW Government's 80% target by 2030.</p>
+      </div>
+    </div>
+
+    <div class="plan-intro">
+      <h3>Our Vision: Every resident knows their bin - and the city's diversion rate hits 70% by 2030</h3>
+      <p>FOGO contamination is the single largest controllable factor in our diversion rate. An 18% recycling contamination rate means thousands of tonnes of recyclable material is lost to landfill each year. Through education, community empowerment, and real-time data, we can change this together.</p>
+      <div class="plan-metrics">
+        <div class="plan-metric">
+          <div class="plan-metric-val">18%</div>
+          <div class="plan-metric-lbl">Current contamination</div>
+          <div class="plan-metric-dir">Target: below 8% by 2027</div>
+        </div>
+        <div class="plan-metric">
+          <div class="plan-metric-val">49.4%</div>
+          <div class="plan-metric-lbl">Current diversion rate</div>
+          <div class="plan-metric-dir">Target: 70% by 2030</div>
+        </div>
+        <div class="plan-metric">
+          <div class="plan-metric-val">23,450</div>
+          <div class="plan-metric-lbl">Households served</div>
+          <div class="plan-metric-dir">Target: 90% FOGO participation</div>
+        </div>
+        <div class="plan-metric">
+          <div class="plan-metric-val">8</div>
+          <div class="plan-metric-lbl">Languages targeted</div>
+          <div class="plan-metric-dir">English, Arabic, Italian, Hindi + more</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-grid">
+
+      <div class="plan-card s1">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">💻</div>
+          <div>
+            <div class="plan-card-num">Strategy 1</div>
+            <h4>Digital Education Hub (This Page)</h4>
+          </div>
+        </div>
+        <p>Provide residents with instant, searchable guidance on correct bin use via the Bin Finder tool, an interactive quiz, and downloadable resources. Embed on Council website and link from bin tags.</p>
+        <div class="plan-tags">
+          <span class="plan-tag priority">High Priority</span>
+          <span class="plan-tag ongoing">Live Now</span>
+        </div>
+      </div>
+
+      <div class="plan-card s2">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">🏫</div>
+          <div>
+            <div class="plan-card-num">Strategy 2</div>
+            <h4>School Partnership Programme</h4>
+          </div>
+        </div>
+        <p>Deliver Stage 2-4 curriculum-linked waste education sessions in all 22 Albury primary and secondary schools. Include "Bin Detective" class activities, school composting projects, and take-home challenges that engage the whole family.</p>
+        <div class="plan-tags">
+          <span class="plan-tag priority">High Priority</span>
+          <span class="plan-tag new">Launching Term 2 2026</span>
+        </div>
+      </div>
+
+      <div class="plan-card s3">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">🤝</div>
+          <div>
+            <div class="plan-card-num">Strategy 3</div>
+            <h4>Community Champions Network</h4>
+          </div>
+        </div>
+        <p>Recruit and train 200 volunteer "Waste Champions" - one per street or apartment block. Champions receive regular contamination data for their street, share updates with neighbours, and help new residents understand the system. Recognise champions publicly each year.</p>
+        <div class="plan-tags">
+          <span class="plan-tag priority">High Priority</span>
+          <span class="plan-tag new">Expressions of Interest Open</span>
+        </div>
+      </div>
+
+      <div class="plan-card s4">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">🏷️</div>
+          <div>
+            <div class="plan-card-num">Strategy 4</div>
+            <h4>Bin Tag Education Programme</h4>
+          </div>
+        </div>
+        <p>When collection crews identify a contaminated bin, attach a colour-coded tag explaining the problem and linking to this education hub. Data from tagging is fed back into the dashboard to identify contamination hotspots by street and suburb.</p>
+        <div class="plan-tags">
+          <span class="plan-tag ongoing">Ongoing</span>
+          <span class="plan-tag priority">High Impact</span>
+        </div>
+      </div>
+
+      <div class="plan-card s5">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">📱</div>
+          <div>
+            <div class="plan-card-num">Strategy 5</div>
+            <h4>Social Media Campaign - #AlburyBins</h4>
+          </div>
+        </div>
+        <p>Weekly "What Bin Wednesday" posts on Instagram, Facebook, and Nextdoor featuring common mistakes. Short-form video content showing correct bin use. Partnering with local food bloggers and community groups. Monthly giveaways for followers who share correct bin tips.</p>
+        <div class="plan-tags">
+          <span class="plan-tag ongoing">Ongoing</span>
+          <span class="plan-tag new">Campaign Launching May 2026</span>
+        </div>
+      </div>
+
+      <div class="plan-card s6">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">🌍</div>
+          <div>
+            <div class="plan-card-num">Strategy 6</div>
+            <h4>Multicultural Community Outreach</h4>
+          </div>
+        </div>
+        <p>Partnering with settlement services, multicultural organisations, and CALD community leaders. Produce bin guides in Arabic, Italian, Hindi, Mandarin, Vietnamese, Punjabi, and Nepali. Deliver tailored workshops for new arrivals during community orientation sessions.</p>
+        <div class="plan-tags">
+          <span class="plan-tag new">In Development</span>
+          <span class="plan-tag priority">Equity Focus</span>
+        </div>
+      </div>
+
+      <div class="plan-card s7">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">🏘️</div>
+          <div>
+            <div class="plan-card-num">Strategy 7</div>
+            <h4>Apartment & High-Density Education</h4>
+          </div>
+        </div>
+        <p>High-density residents have limited space and shared bins, creating unique contamination challenges. Deliver tailored bin guides for apartment buildings, work with body corporates and strata managers, and install clear visual guides in bin rooms. Host FOGO cooking demonstrations in common areas.</p>
+        <div class="plan-tags">
+          <span class="plan-tag new">Pilot 2026</span>
+        </div>
+      </div>
+
+      <div class="plan-card s8">
+        <div class="plan-card-head">
+          <div class="plan-card-icon">🏆</div>
+          <div>
+            <div class="plan-card-num">Strategy 8</div>
+            <h4>Street Challenge - Lowest Contamination Wins</h4>
+          </div>
+        </div>
+        <p>Annual competition where participating streets are measured on contamination rate over a 3-month period. Winning streets receive a community grant and public recognition. Quarterly suburb-level contamination data published on the main dashboard to encourage friendly competition.</p>
+        <div class="plan-tags">
+          <span class="plan-tag new">Annual Event</span>
+          <span class="plan-tag priority">Community Engagement</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="plan-timeline">
+      <h3>Implementation Timeline</h3>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot done"></div>
+          <div class="tl-date">Completed - Q1 2026</div>
+          <div class="tl-title">Digital Dashboard &amp; Education Hub launched</div>
+          <div class="tl-desc">Public waste diversion dashboard and community education hub live, including Bin Finder and quiz tools.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot current"></div>
+          <div class="tl-date">In Progress - Q2 2026</div>
+          <div class="tl-title">Social Media Campaign + Community Champions Recruitment</div>
+          <div class="tl-desc">#AlburyBins campaign launches across Facebook, Instagram, and Nextdoor. EOI for Community Champions programme opens.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot future"></div>
+          <div class="tl-date">Q3 2026</div>
+          <div class="tl-title">School Programme Rollout + Multicultural Materials</div>
+          <div class="tl-desc">Curriculum-linked sessions begin in all Albury schools. Multilingual bin guides distributed through settlement services.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot future"></div>
+          <div class="tl-date">Q4 2026</div>
+          <div class="tl-title">Bin Tag Programme Upgrade + Hotspot Mapping</div>
+          <div class="tl-desc">New bin tags with QR codes linking to education hub. Dashboard updated with suburb-level contamination data.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot future"></div>
+          <div class="tl-date">2027 Target</div>
+          <div class="tl-title">Contamination below 8% / Diversion Rate 60%+</div>
+          <div class="tl-desc">Full programme evaluation. Adjust strategies based on data. Expand FOGO service to commercial premises.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot future"></div>
+          <div class="tl-date">2030 Target</div>
+          <div class="tl-title">NSW Government 80% Target - Diversion Rate 70%+</div>
+          <div class="tl-desc">Full alignment with NSW Waste and Sustainable Materials Strategy 2041. Contamination target below 5%.</div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<footer>
+  <p><strong>AlburyCity Council</strong> - Waste Reduction Programme | Community Education Hub</p>
+  <div class="footer-links">
+    <a href="../index.html">Diversion Dashboard</a>
+    <a href="https://www.alburycity.nsw.gov.au" target="_blank">alburycity.nsw.gov.au</a>
+    <a href="tel:0260238111">02 6023 8111</a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   BIN FINDER DATABASE
+   ============================================================ */
+const ITEMS = [
+  // FOGO - Food
+  { name:"Apple core",           key:["apple","core","fruit"],                                bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All fruit scraps, cores, seeds and skins go in the FOGO bin.", tip:"No need to remove stickers first — do remove fruit stickers (plastic, go in red bin).", mistake:false },
+  { name:"Orange / citrus peel", key:["orange","lemon","lime","citrus","peel","grapefruit"],  bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Citrus is perfectly fine in commercial composting — it is a myth that citrus kills microbes. Industrial composting runs at high temperatures that break down all organic matter.", tip:"Put as much citrus as you like in the FOGO bin.", mistake:true, mistakeNote:"Common myth: citrus harms composting. NOT true for commercial FOGO facilities." },
+  { name:"Banana peel",          key:["banana","peel","skin"],                                bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All fruit peels and skins belong in the FOGO bin.", tip:"No need to break them up - just toss them in.", mistake:false },
+  { name:"Avocado (including seed)", key:["avocado","avo","seed","pit","stone"],              bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Avocado flesh, skin and the seed can all go in the FOGO bin. The seed takes longer to break down but is handled by commercial composting facilities.", tip:"No need to cut the seed up, but doing so speeds up composting.", mistake:false },
+  { name:"Meat scraps",          key:["meat","beef","lamb","pork","chicken","steak","mince"], bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All meat including raw and cooked scraps can go in the FOGO bin. Commercial composting handles meat safely, unlike home composting.", tip:"Unlike home compost, your FOGO bin accepts ALL meat - no restrictions.", mistake:true, mistakeNote:"Common myth: meat cannot be composted. NOT true for commercial FOGO." },
+  { name:"Chicken bones",        key:["chicken","bone","bones","wing","drumstick","carcass"], bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All bones including chicken, fish, and other meat bones go in the FOGO bin. Commercial composting facilities process bones.", tip:"No need to break them up. If bones are large (e.g. lamb leg), breaking them up helps.", mistake:true, mistakeNote:"Many residents put bones in the red bin — they should go in FOGO." },
+  { name:"Fish and seafood scraps", key:["fish","seafood","prawn","mussel","oyster","shrimp","crab","tuna"], bin:"fogo", label:"Green Lid - FOGO", icon:"🟢", why:"All seafood scraps including shells go in the FOGO bin.", tip:"Rinse shells if possible to reduce odour.", mistake:false },
+  { name:"Eggshells",            key:["egg","eggs","eggshell","shell","shells"],              bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Eggshells are organic and break down well in composting.", tip:"Crush shells to speed up decomposition.", mistake:false },
+  { name:"Bread and toast",      key:["bread","toast","roll","loaf","stale","sourdough"],     bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All bread and baked goods go in the FOGO bin.", tip:"Mouldy bread is fine — the composting process kills pathogens.", mistake:false },
+  { name:"Pasta and rice",       key:["pasta","rice","noodle","noodles","spaghetti","grain"], bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Cooked or uncooked pasta and rice belong in the FOGO bin.", tip:"Both plain and sauced leftovers can go in FOGO.", mistake:false },
+  { name:"Dairy (cheese, yogurt)", key:["dairy","cheese","yogurt","milk","cream","butter"],  bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Dairy products including cheese, yogurt, and milk go in the FOGO bin. Commercial composting handles dairy safely.", tip:"Scrape dairy containers into the FOGO bin, then recycle the clean container in the yellow bin.", mistake:false },
+  { name:"Coffee grounds",       key:["coffee","grounds","espresso","percolator","filter"],   bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Coffee grounds are a valuable nitrogen-rich compost ingredient.", tip:"Paper coffee filters can also go in FOGO.", mistake:false },
+  { name:"Tea bags (paper only)", key:["tea","teabag","tea bag","tea leaves"],               bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Paper tea bags and loose-leaf tea go in the FOGO bin. However, tea bags with plastic mesh or staples should go in the red bin.", tip:"Squeeze out the bag and check for a plastic mesh tag before putting in FOGO.", mistake:false },
+  { name:"Fruit stickers",       key:["sticker","stickers","fruit sticker","produce sticker"], bin:"red",  label:"Red Lid - General Waste", icon:"🔴", why:"Produce stickers are made from plastic or PVC and are not compostable or recyclable. Remove them before putting fruit in the FOGO bin.", tip:"Always peel off produce stickers before composting fruit skins.", mistake:true, mistakeNote:"Often accidentally composted — always remove stickers before putting fruit in FOGO." },
+  { name:"Vegetable peelings",   key:["vegetable","peel","peelings","potato","carrot","onion","garlic"], bin:"fogo", label:"Green Lid - FOGO", icon:"🟢", why:"All vegetable scraps and peelings go in the FOGO bin.", tip:"No need to separate peelings from other food scraps.", mistake:false },
+  { name:"Greasy pizza box",     key:["pizza","box","greasy","cardboard","takeaway"],         bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Greasy cardboard cannot be recycled as oil contaminates the paper fibre. However it CAN go in the FOGO bin as an organic carbon source.", tip:"Tear off any clean (non-greasy) sections for the yellow recycling bin.", mistake:true, mistakeNote:"Most people put this in recycling. Greasy portions go FOGO, clean portions go recycling." },
+  { name:"Cooking oil (small amounts)", key:["oil","cooking oil","olive oil","vegetable oil"], bin:"fogo", label:"Green Lid - FOGO",       icon:"🟢", why:"Small amounts of cooking oil (up to a cup) can go in the FOGO bin, absorbed into food scraps. Large amounts should be disposed of at a cooking oil recycling point.", tip:"Soak oil into paper towel or cardboard, then put in FOGO.", mistake:false },
+  { name:"Soiled paper towels",  key:["paper towel","tissue","napkin","serviette"],           bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Food-soiled paper towels, tissues and paper napkins belong in the FOGO bin as they are organic.", tip:"Clean paper towels can also go in yellow recycling, but FOGO is always safe.", mistake:false },
+  { name:"Leftovers / cooked food", key:["leftovers","leftover","cooked","food","scraps","meal"], bin:"fogo", label:"Green Lid - FOGO",   icon:"🟢", why:"All food scraps including cooked meals, sauces, soups and leftovers go in the FOGO bin.", tip:"Pour liquid down the drain before adding to FOGO to reduce odour.", mistake:false },
+  { name:"Corn cobs and husks",  key:["corn","cob","husk","husks"],                           bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Corn cobs, husks, and silks all go in the FOGO bin.", tip:"Break corn cobs in half to help them break down faster.", mistake:false },
+
+  // FOGO - Garden
+  { name:"Grass clippings",      key:["grass","lawn","clippings","mowing"],                   bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Grass clippings are a high-nitrogen organic material ideal for composting.", tip:"Avoid adding clippings from lawns treated with herbicides.", mistake:false },
+  { name:"Garden leaves",        key:["leaves","leaf","autumn","garden"],                      bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All garden leaves go in the FOGO bin.", tip:"Wet leaves can be compacted - dry leaves can go loose.", mistake:false },
+  { name:"Small branches / prunings", key:["branch","branches","pruning","prunings","twigs","shrub"], bin:"fogo", label:"Green Lid - FOGO", icon:"🟢", why:"Small prunings and branches under 10cm diameter go in the FOGO bin.", tip:"Break or cut long branches so they fit in the bin without jamming the lid.", mistake:false },
+  { name:"Weeds",                key:["weed","weeds","pulled","dandelion"],                    bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Weeds without mature seed heads can go in the FOGO bin. Commercial composting temperatures kill most weed seeds.", tip:"Avoid putting weeds with mature seed heads in FOGO as there is a small risk of seeds surviving.", mistake:false },
+  { name:"Flowers and plants",   key:["flower","flowers","plant","plants","bouquet"],          bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Cut flowers, dead plants and garden waste all go in the FOGO bin.", tip:"Remove synthetic/plastic elements like foam backing from floral arrangements.", mistake:false },
+
+  // Yellow - Recycling
+  { name:"Glass bottles and jars (intact)", key:["glass","bottle","jar","wine","beer","sauce","intact"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Intact glass bottles and jars go in the yellow recycling bin. Rinse them out first.", tip:"Leave the lid on if it is metal or plastic - do not leave glass lids on.", mistake:false },
+  { name:"Broken glass",         key:["broken","smashed","glass","shattered","mirror"],        bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Broken glass is dangerous for MRF workers and cannot be sorted safely. Wrap broken glass in several layers of newspaper, tape securely, and place in the RED bin.", tip:"Write 'BROKEN GLASS' on the wrapped package to warn waste workers.", mistake:true, mistakeNote:"People put broken glass in the yellow bin — it is dangerous for workers. Red bin only." },
+  { name:"Plastic water bottle", key:["water","bottle","plastic","PET","drink","bottle"],      bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"Plastic bottles (PET #1) go in the yellow recycling bin. Squeeze and replace the lid.", tip:"Crush the bottle and replace the lid so the lid stays attached and is recyclable.", mistake:false },
+  { name:"Aluminium cans",       key:["can","cans","aluminium","aluminum","beer","soda","soft drink","tin"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Aluminium cans are highly recyclable and valuable. Rinse and place in the yellow bin.", tip:"Aluminium cans can be recycled endlessly without quality loss.", mistake:false },
+  { name:"Cardboard boxes",      key:["cardboard","box","boxes","carton","packaging","flat"],  bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"Clean and dry cardboard goes in the yellow bin. Flatten boxes to save space.", tip:"Remove and FOGO any food-soiled sections (e.g. greasy pizza box bottom).", mistake:false },
+  { name:"Newspaper",            key:["newspaper","paper","print","news","magazine"],          bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"All newspapers, magazines, and catalogues go in the yellow recycling bin.", tip:"Wet or soiled newspaper should go in the FOGO bin, not yellow.", mistake:false },
+  { name:"Aerosol cans (empty)", key:["aerosol","spray","can","hairspray","deodorant","empty"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Empty aerosol cans are recyclable. Make sure they are completely empty before recycling.", tip:"Remove the plastic cap and put it in the yellow bin too. Never puncture or crush aerosol cans.", mistake:false },
+  { name:"Milk cartons / tetra packs", key:["milk","carton","tetra","juice","pak","tetrapak"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Milk cartons and Tetra Pak containers go in the yellow bin once rinsed.", tip:"Rinse, open the top and flatten for more space.", mistake:false },
+  { name:"Clean aluminium foil", key:["foil","aluminium foil","aluminum foil","baking"],      bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"Clean aluminium foil and trays go in the yellow bin. Foil must be clean of food - scrunch into a ball larger than your fist.", tip:"Scrunch all foil pieces into one large ball so they are not lost in MRF sorting machinery.", mistake:false },
+  { name:"Shampoo bottles (rinsed)", key:["shampoo","conditioner","bathroom","plastic","bottle"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Plastic bathroom product bottles (HDPE #2) go in the yellow bin once rinsed.", tip:"Rinse with a small amount of water to remove residue.", mistake:false },
+  { name:"Steel food tins (rinsed)", key:["tin","steel","can","baked beans","tomato","food tin"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Steel food tins go in the yellow recycling bin. Rinse them clean.", tip:"Labels can stay on - the recycling process removes them.", mistake:false },
+  { name:"Shredded paper",       key:["shredded","shredder","paper","confetti"],               bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Shredded paper is too small for MRF sorting machinery and causes jams. It belongs in the FOGO bin as a 'brown' carbon material that helps composting.", tip:"Never put shredded paper in the yellow recycling bin - use FOGO or home compost.", mistake:true, mistakeNote:"Commonly put in yellow recycling. It jams MRF machinery - go FOGO instead." },
+  { name:"Takeaway plastic containers (rinsed)", key:["takeaway","container","plastic","clean","rinse"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Clean plastic takeaway containers go in the yellow bin. They must be rinsed of food residue.", tip:"A quick rinse is enough - does not need to be spotless.", mistake:false },
+
+  // Red - General Waste
+  { name:"Nappies / diapers",    key:["nappy","nappies","diaper","diapers","baby"],            bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Nappies and sanitary items must go in the red general waste bin. They contain human waste and cannot be composted or recycled.", tip:"Wrap nappies in a bag to contain odours before placing in the red bin.", mistake:false },
+  { name:"Sanitary products",    key:["sanitary","pad","pads","tampon","tampon","incontinence"], bin:"red",   label:"Red Lid - General Waste", icon:"🔴", why:"All sanitary and personal hygiene products go in the red bin only.", tip:"Wrap before placing in the bin to reduce odours.", mistake:false },
+  { name:"Soft plastics (bread bags, pasta bags)", key:["soft plastic","plastic bag","bread bag","pasta","wrap","cling","film","bag"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Soft plastics jam MRF sorting machinery and cannot go in the yellow bin. They go in the red bin. Some supermarkets have soft plastic collection points.", tip:"Collect soft plastics and take them to Woolworths or Coles collection bins where available.", mistake:true, mistakeNote:"The biggest cause of recycling contamination. Soft plastics must NEVER go in the yellow bin." },
+  { name:"Coffee cups (disposable)", key:["coffee","cup","takeaway","cafe","paper cup","disposable"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Paper coffee cups have a thin plastic lining that bonds to the paper, making them impossible to recycle in standard facilities. They go in the red bin.", tip:"The plastic lid may be recyclable if clean - check for a recycling symbol. The cup itself goes red.", mistake:true, mistakeNote:"One of the most common mistakes. Despite looking like paper, coffee cups go in the RED bin." },
+  { name:"Polystyrene / Styrofoam", key:["polystyrene","styrofoam","foam","packing","takeaway box"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Polystyrene is not accepted in kerbside recycling. It breaks into small beads that contaminate other materials. It goes in the red bin.", tip:"Some specialist recyclers accept polystyrene. Check with AlburyCity for current drop-off options.", mistake:false },
+  { name:"Cling wrap / plastic wrap", key:["cling wrap","plastic wrap","glad wrap","saran wrap"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Cling wrap is a soft plastic that jams MRF machinery. It goes in the red bin.", tip:"Try to minimise cling wrap use - beeswax wraps and reusable containers are great alternatives.", mistake:false },
+  { name:"Broken ceramics / crockery", key:["ceramic","crockery","plate","mug","cup","bowl","broken","pottery"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Broken crockery and ceramics cannot be recycled. They go in the red bin wrapped for safety.", tip:"Consider donating usable crockery to charity before binning.", mistake:false },
+  { name:"Pyrex / ovenware",     key:["pyrex","ovenware","casserole","baking dish","heat"],    bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Pyrex and heat-tempered glass has a different melting point to regular glass and contaminates glass recycling. Always goes in the red bin.", tip:"Even intact Pyrex must go in the red bin - it cannot mix with bottle/jar glass recycling.", mistake:true, mistakeNote:"People assume all intact glass goes in yellow. Pyrex/ovenware goes RED." },
+  { name:"Chip packets / confectionery wrappers", key:["chip","chips","lolly","lollies","confectionery","wrapper","packet","snack"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Chip packets and lolly wrappers are multilayer soft plastics that cannot be recycled in the yellow bin.", tip:"Collect these along with other soft plastics for supermarket soft plastic collection points.", mistake:false },
+  { name:"Toothbrush",           key:["toothbrush","brush","dental"],                          bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Toothbrushes are made from multiple materials that cannot be separated for recycling. They go in the red bin.", tip:"Look for bamboo toothbrushes or brands with recycling programmes (e.g. TerraCycle).", mistake:false },
+  { name:"Garden hose",          key:["garden hose","hose","pipe","rubber"],                   bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Garden hoses tangle in MRF conveyor belts and cause dangerous shutdowns. They must never go in the yellow recycling bin.", tip:"Cut the hose into short pieces (under 30cm) before placing in the red bin to prevent tangling.", mistake:true, mistakeNote:"Hoses in yellow bins cause dangerous MRF machinery shutdowns." },
+  { name:"Pet waste / kitty litter", key:["pet","waste","poo","dog","cat","kitty litter","litter"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Pet waste and kitty litter contain pathogens and go in the red bin only. Never in FOGO.", tip:"Use compostable bags for dog waste where available - but they still go in the red bin.", mistake:false },
+  { name:"Light bulbs (incandescent)", key:["light bulb","bulb","incandescent","globe"],       bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Incandescent light bulbs cannot be recycled and go in the red bin wrapped for safety.", tip:"LEDs and CFLs must NOT go in the red bin - they go to e-waste drop-off.", mistake:false },
+  { name:"Tea bags (with plastic mesh)", key:["tea bag","plastic mesh","tea","nylon","mesh"], bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Some tea bags contain a nylon or plastic mesh that does not compost. These go in the red bin.", tip:"Look for 100% paper tea bags or use loose-leaf tea, which can go in FOGO.", mistake:false },
+  { name:"Bubble wrap",          key:["bubble wrap","packing","soft plastic"],                  bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Bubble wrap is a soft plastic that jams MRF machinery. It goes in the red bin.", tip:"Collect bubble wrap and other soft plastics for supermarket soft plastic bins.", mistake:false },
+  { name:"Wax-coated cardboard", key:["wax","coated","waxed","cardboard","butchers","paper"],  bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Wax-coated cardboard cannot be recycled as the wax contaminates the paper fibre during the recycling process.", tip:"Do the 'scratch test' - if you can scratch a white waxy residue off the surface, it goes in the red bin.", mistake:true, mistakeNote:"Looks like cardboard but goes in red bin. Check for wax coating before recycling." },
+  { name:"Disposable razors",    key:["razor","shaving","disposable","blade"],                  bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Disposable razors are made from multiple plastics and metal that cannot be separated.", tip:"Consider switching to a safety razor with replaceable blades for less waste.", mistake:false },
+
+  // Drop-off / Special
+  { name:"AA / AAA batteries",   key:["battery","batteries","AA","AAA","alkaline","rechargeable"], bin:"dropoff", label:"Drop-off Required", icon:"🔵", why:"Batteries contain hazardous chemicals including mercury, cadmium, and lithium. NEVER put batteries in any kerbside bin. Take to AlburyCity transfer station or supermarket battery recycling bins.", tip:"Many Bunnings, Aldi, and supermarket stores have free battery drop-off bins near the entrance.", mistake:true, mistakeNote:"Batteries in bins can cause fires in garbage trucks. Always drop-off." },
+  { name:"Mobile phones",        key:["phone","mobile","smartphone","iphone","android","cell"], bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Mobile phones contain lithium batteries and valuable materials. Take to AlburyCity MobileMuster collection points or any Officeworks/Telstra store.", tip:"MobileMuster accepts all brands and models for free responsible recycling.", mistake:false },
+  { name:"Computers / laptops",  key:["computer","laptop","desktop","monitor","screen","PC"],   bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"E-waste contains hazardous materials and valuable metals. Take to AlburyCity's e-waste drop-off at the transfer station or TechCollect collection points.", tip:"Erase your data before dropping off. Many libraries and council offices accept e-waste for free.", mistake:false },
+  { name:"Fluorescent tubes / CFLs", key:["fluorescent","CFL","tube","compact","lamp"],         bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Fluorescent lights contain mercury and must be disposed of at a fluorescent lamp recycler. Never put in any kerbside bin.", tip:"Ikea stores accept old fluorescent bulbs for free recycling.", mistake:true, mistakeNote:"Many people put these in the red bin. They contain mercury - always drop-off." },
+  { name:"Paint (unused / old)", key:["paint","leftover","unused","interior","exterior"],       bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Unused paint can be donated or recycled through PaintBack collection points. Never pour paint down the drain or put in bins.", tip:"Visit paintback.com.au to find the nearest free drop-off point in Albury.", mistake:false },
+  { name:"Motor oil",            key:["oil","motor oil","engine","car oil","automotive"],        bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Used motor oil is a hazardous liquid. Take to AlburyCity transfer station or a participating auto parts store for free oil recycling.", tip:"Repco and Autobarn stores in Albury accept used motor oil free of charge.", mistake:false },
+  { name:"Medicines / pharmaceuticals", key:["medicine","medication","pills","tablets","prescription","pharmacy"], bin:"dropoff", label:"Return to Pharmacy", icon:"🔵", why:"Never put medicines in any kerbside bin or flush down the toilet. Return all medicines to your local pharmacy through the Return Unwanted Medicines (RUM) programme.", tip:"Any Australian pharmacy will accept your unwanted medicines for safe disposal - no questions asked.", mistake:false },
+  { name:"Tyres",                key:["tyre","tyres","tire","tires","car","wheel"],              bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Tyres are banned from landfill in NSW. Take to AlburyCity transfer station or tyre retailers who accept old tyres under the Tyre Stewardship Australia scheme.", tip:"Most tyre shops will take your old tyres when fitting new ones.", mistake:false },
+  { name:"Gas cylinders",        key:["gas","cylinder","LPG","BBQ","propane","camping"],         bin:"dropoff",  label:"Hazardous - Drop-off", icon:"🔵", why:"Gas cylinders are pressurised and highly dangerous in waste collections. Return to place of purchase or take to a hazardous waste collection event.", tip:"Bunnings accepts empty gas cylinders for safe disposal at all stores.", mistake:false },
+];
+
+/* ============================================================
+   BIN FINDER LOGIC
+   ============================================================ */
+let currentFilter = 'all';
+
+function setActive(link) {
+  document.querySelectorAll('.nav-pill').forEach(el => el.classList.remove('active'));
+  link.classList.add('active');
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(el => {
+    el.classList.remove('active');
+  });
+  btn.classList.add('active');
+  doSearch();
+}
+
+function doSearch() {
+  const q = document.getElementById('bin-search').value.trim().toLowerCase();
+  const grid = document.getElementById('results-grid');
+  const noR  = document.getElementById('no-results');
+  const placeholder = document.getElementById('finder-placeholder');
+
+  let results = ITEMS;
+  if (currentFilter !== 'all') results = results.filter(i => i.bin === currentFilter);
+  if (q.length > 0) {
+    results = results.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      i.key.some(k => k.includes(q)) ||
+      (i.why && i.why.toLowerCase().includes(q))
+    );
+  }
+
+  placeholder.style.display = (q === '' && currentFilter === 'all') ? '' : 'none';
+
+  if (q === '' && currentFilter === 'all') {
+    grid.style.display = 'none';
+    noR.style.display = 'none';
+    return;
+  }
+
+  if (results.length === 0) {
+    grid.style.display = 'none';
+    noR.style.display  = '';
+    return;
+  }
+
+  noR.style.display  = 'none';
+  grid.style.display = '';
+  grid.innerHTML = results.slice(0, 30).map(item => `
+    <div class="result-card ${item.bin}">
+      <div class="result-bin-icon">${item.icon}</div>
+      <div class="result-body">
+        ${item.mistake ? '<span class="mistake-flag">Common Mistake</span>' : ''}
+        <h4>${item.name}</h4>
+        <div class="result-bin-label">${item.label}</div>
+        <p>${item.why}</p>
+        ${item.mistakeNote ? `<div class="result-tip">&#9888; ${item.mistakeNote}</div>` : ''}
+        ${item.tip ? `<div class="result-tip">Tip: ${item.tip}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   QUIZ
+   ============================================================ */
+const QUESTIONS = [
+  {
+    q: "You have a disposable takeaway coffee cup. Which bin does it go in?",
+    context: "It looks like it is made of paper, but look closely at the inside...",
+    options: ["Yellow Lid - Recycling (it is made of cardboard)", "Red Lid - General Waste", "Green Lid - FOGO", "It depends on the brand"],
+    correct: 1,
+    explanation: "<strong>Red Lid - General Waste.</strong> Despite appearing to be made of paper, all takeaway coffee cups are lined with a thin plastic film that bonds to the paper fibres. This plastic lining makes them impossible to recycle in standard facilities. The plastic lid may be separately recyclable if clean - but the cup itself always goes in the red bin."
+  },
+  {
+    q: "A greasy pizza box - what is the correct bin?",
+    context: "There is leftover cheese and oil on the cardboard.",
+    options: ["Yellow Lid - Recycling (it is cardboard)", "Red Lid - General Waste", "Green Lid - FOGO", "Tear it up and split between yellow and FOGO"],
+    correct: 2,
+    explanation: "<strong>Green Lid - FOGO.</strong> This is one of the most common mistakes! Greasy cardboard CANNOT go in the yellow bin because oil residue contaminate the paper fibres and ruins the batch at the MRF. However, grease is organic material and CAN go in the FOGO bin where commercial composting handles food-soiled paper. Pro tip: tear off any clean parts of the box for the yellow bin and the greasy sections in FOGO."
+  },
+  {
+    q: "TRUE or FALSE: Citrus peel (lemon, orange, lime) harms the composting process and should NOT go in the FOGO bin.",
+    context: "You have heard that citrus kills the good bacteria in compost...",
+    options: ["TRUE - citrus is too acidic for composting", "FALSE - citrus is perfectly fine in the FOGO bin"],
+    correct: 1,
+    explanation: "<strong>FALSE - this is a myth!</strong> Citrus is perfectly fine in your FOGO bin. This myth originated from home composting, where very large amounts of citrus can temporarily slow things down. However, your FOGO bin goes to a commercial composting facility that operates at high temperatures (55-70°C) and processes enormous volumes. Commercial composting handles citrus, onions, garlic, and any other food scraps without issue. Put all citrus in the FOGO bin!"
+  },
+  {
+    q: "Which bin does shredded paper belong in?",
+    context: "You have shredded confidential documents at home.",
+    options: ["Yellow Lid - Recycling (it is paper)", "Green Lid - FOGO", "Red Lid - General Waste", "Bag it and put in yellow recycling"],
+    correct: 1,
+    explanation: "<strong>Green Lid - FOGO.</strong> Shredded paper is too small to be sorted by the machinery at Materials Recovery Facilities (MRFs). If put in the yellow bin, it falls through conveyor gaps, clogs machinery, and ends up in landfill anyway. Shredded paper is actually a great FOGO addition - it is a 'carbon brown' material that helps balance the nitrogen-rich food scraps, improving compost quality."
+  },
+  {
+    q: "Chicken bones from last night's roast - which bin?",
+    context: "Unlike home composting, your FOGO bin goes to an industrial facility.",
+    options: ["Red Lid - General Waste (bones do not compost)", "Green Lid - FOGO", "Yellow Lid - Recycling", "Wrap and put in red bin"],
+    correct: 1,
+    explanation: "<strong>Green Lid - FOGO.</strong> All meat, fish, and bones can go in your FOGO bin. Many people know this rule from home composting, where meat and bones are not recommended. But your FOGO bin goes to a commercial composting facility that operates at much higher temperatures and volumes, which safely breaks down all food scraps including meat, bones, fish, and dairy. Put all food scraps in FOGO!"
+  },
+  {
+    q: "You have an empty aerosol deodorant can. Where does it go?",
+    context: "The can is completely empty - no product left when you shake it.",
+    options: ["Red Lid - General Waste (it is pressurised)", "Yellow Lid - Recycling", "Drop-off / Hazardous waste facility", "Green Lid - FOGO"],
+    correct: 1,
+    explanation: "<strong>Yellow Lid - Recycling.</strong> Empty aerosol cans are made from steel or aluminium and are fully recyclable. The key requirement is that they must be completely empty - no liquid product remaining. Remove the plastic cap (also recyclable in yellow bin if clean) and place the empty can in the yellow bin. Do NOT puncture or attempt to crush aerosol cans."
+  },
+  {
+    q: "A bag of soft plastics (bread bags, chip packets, cling wrap) - which bin?",
+    context: "These are all flexible, squeezable plastics.",
+    options: ["Yellow Lid - Recycling (plastic goes in yellow)", "Red Lid - General Waste (or supermarket collection)", "Green Lid - FOGO", "Any bin - they are small"],
+    correct: 1,
+    explanation: "<strong>Red Lid - General Waste.</strong> Soft plastics are the single biggest cause of recycling contamination in Australia. They jam and tangle around conveyor belts and rollers in MRF facilities, causing dangerous shutdowns and costly damage. NEVER put soft plastics in the yellow recycling bin. Your best options: (1) Place in the red bin, or (2) collect soft plastics and take to Woolworths or Coles soft plastic collection bins at the front of stores."
+  },
+  {
+    q: "Your Pyrex baking dish has cracked. Which bin?",
+    context: "It is glass, but a different type to bottles and jars.",
+    options: ["Yellow Lid - Recycling (it is glass)", "Red Lid - General Waste (wrapped for safety)", "Green Lid - FOGO", "Glass recycling bank / drop-off"],
+    correct: 1,
+    explanation: "<strong>Red Lid - General Waste.</strong> Pyrex and heat-tempered ovenware glass has a significantly different melting point to regular container glass (bottles and jars). Even a small amount of Pyrex mixed into a glass recycling batch can cause the entire batch to fail - the result is unusable glass that goes to landfill. Pyrex must always go in the red bin, wrapped safely in newspaper for waste workers."
+  },
+  {
+    q: "Which of these does NOT go in the yellow recycling bin?",
+    options: ["Steel food tin (rinsed)", "Milk carton (rinsed)", "Garden hose (cut up)", "Cardboard toilet paper roll"],
+    correct: 2,
+    explanation: "<strong>Garden hose - Red Lid - General Waste.</strong> Garden hoses and flexible rubber or plastic pipes must NEVER go in the yellow recycling bin. They wrap around and tangle in conveyor belts and sorting machinery at MRFs, causing dangerous shutdowns that can take hours to clear and cost thousands of dollars in repairs and lost production. Cut the hose into short pieces (under 30cm) and put in the red bin. The other three items all belong in the yellow bin."
+  },
+  {
+    q: "AA batteries from your TV remote - what is the correct disposal?",
+    context: "You have a handful of old batteries that no longer hold charge.",
+    options: ["Red Lid - General Waste", "Yellow Lid - Recycling", "Green Lid - FOGO", "Drop-off at a battery collection point"],
+    correct: 3,
+    explanation: "<strong>Drop-off at a battery collection point.</strong> Batteries contain hazardous chemicals including mercury, cadmium, and lithium. Batteries in bins can cause fires in garbage trucks - this is a serious and growing problem nationally. NEVER put any type of battery in a kerbside bin. Instead, collect batteries and drop them at: Bunnings, Aldi, ALDI, or supermarket battery recycling bins near the entrance, or at AlburyCity transfer station. It is free and takes 30 seconds."
+  }
+];
+
+let qIndex = 0, score = 0;
+
+function startQuiz() {
+  qIndex = 0;
+  score  = 0;
+  document.getElementById('quiz-body').style.display = '';
+  document.getElementById('quiz-result').classList.remove('show');
+  document.getElementById('quiz-score-display').textContent = 'Score: 0';
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = QUESTIONS[qIndex];
+  document.getElementById('q-num').textContent   = 'Question ' + (qIndex + 1) + ' of ' + QUESTIONS.length;
+  document.getElementById('q-text').textContent  = q.q;
+  document.getElementById('quiz-progress-label').textContent = 'Question ' + (qIndex + 1) + ' of ' + QUESTIONS.length;
+  document.getElementById('quiz-progress-fill').style.width  = (qIndex / QUESTIONS.length * 100) + '%';
+
+  const ctx = document.getElementById('q-context');
+  if (q.context) { ctx.textContent = q.context; ctx.style.display = ''; }
+  else { ctx.style.display = 'none'; }
+
+  const letters = ['A','B','C','D'];
+  document.getElementById('q-options').innerHTML = q.options.map((opt, i) => `
+    <button class="quiz-option" onclick="selectAnswer(${i})" data-idx="${i}">
+      <span class="opt-letter">${letters[i]}</span>
+      <span>${opt}</span>
+    </button>
+  `).join('');
+
+  document.getElementById('q-explanation').classList.remove('show','wrong-exp');
+  document.getElementById('q-explanation').textContent = '';
+  document.getElementById('q-next').classList.remove('show');
+}
+
+function selectAnswer(chosen) {
+  const q = QUESTIONS[qIndex];
+  const buttons = document.querySelectorAll('.quiz-option');
+  buttons.forEach(b => { b.disabled = true; });
+
+  buttons[chosen].classList.add(chosen === q.correct ? 'correct' : 'wrong');
+  if (chosen !== q.correct) buttons[q.correct].classList.add('correct');
+
+  const exp = document.getElementById('q-explanation');
+  exp.innerHTML = q.explanation;
+  exp.classList.add('show');
+  if (chosen !== q.correct) exp.classList.add('wrong-exp');
+
+  if (chosen === q.correct) {
+    score++;
+    document.getElementById('quiz-score-display').textContent = 'Score: ' + score;
+  }
+
+  const nextBtn = document.getElementById('q-next');
+  nextBtn.textContent = (qIndex === QUESTIONS.length - 1) ? 'See My Result' : 'Next Question →';
+  nextBtn.classList.add('show');
+}
+
+function nextQuestion() {
+  qIndex++;
+  if (qIndex >= QUESTIONS.length) {
+    showResult();
+  } else {
+    showQuestion();
+  }
+}
+
+function showResult() {
+  document.getElementById('quiz-body').style.display = 'none';
+  document.getElementById('quiz-result').classList.add('show');
+  document.getElementById('quiz-progress-fill').style.width = '100%';
+  document.getElementById('quiz-progress-label').textContent = 'Complete!';
+
+  const pct  = score / QUESTIONS.length;
+  const circle = document.getElementById('score-circle');
+  document.getElementById('score-num').textContent   = score;
+  document.getElementById('score-denom').textContent = '/' + QUESTIONS.length;
+
+  if (pct >= 0.8) {
+    circle.className = 'quiz-score-circle great';
+    document.getElementById('result-title').textContent = 'Outstanding! You are a Waste Wizard!';
+    document.getElementById('result-msg').textContent   = 'You scored ' + score + ' out of ' + QUESTIONS.length + '. You clearly know your bins inside out. Share this quiz with friends and family to spread the knowledge - every household that gets it right reduces contamination in our community.';
+  } else if (pct >= 0.5) {
+    circle.className = 'quiz-score-circle good';
+    document.getElementById('result-title').textContent = 'Good Effort - You Are On the Right Track!';
+    document.getElementById('result-msg').textContent   = 'You scored ' + score + ' out of ' + QUESTIONS.length + '. There are a few tricky ones in there! Review the explanations for any you got wrong, then use the Bin Finder above to double-check items you are unsure about.';
+  } else {
+    circle.className = 'quiz-score-circle try';
+    document.getElementById('result-title').textContent = 'Keep Learning - Every Correct Bin Helps!';
+    document.getElementById('result-msg').textContent   = 'You scored ' + score + ' out of ' + QUESTIONS.length + '. Do not worry - these are genuinely tricky questions about common myths. Try again, and use the Bin Finder tool above to check items before you bin them. Together we can reduce contamination.';
+  }
+}
+
+// Init
+startQuiz();
+</script>
+</body>
+</html>
