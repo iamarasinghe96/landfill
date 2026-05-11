@@ -1114,225 +1114,18 @@
 </footer>
 
 <script>
-/* ============================================================
-   BIN FINDER DATABASE
-   ============================================================ */
-const ITEMS = [
-  // FOGO - Food
-  { name:"Apple core",           key:["apple","core","fruit"],                                bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All fruit scraps, cores, seeds and skins go in the FOGO bin.", tip:"No need to remove stickers first — do remove fruit stickers (plastic, go in red bin).", mistake:false },
-  { name:"Orange / citrus peel", key:["orange","lemon","lime","citrus","peel","grapefruit"],  bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Citrus is perfectly fine in commercial composting — it is a myth that citrus kills microbes. Industrial composting runs at high temperatures that break down all organic matter.", tip:"Put as much citrus as you like in the FOGO bin.", mistake:true, mistakeNote:"Common myth: citrus harms composting. NOT true for commercial FOGO facilities." },
-  { name:"Banana peel",          key:["banana","peel","skin"],                                bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All fruit peels and skins belong in the FOGO bin.", tip:"No need to break them up - just toss them in.", mistake:false },
-  { name:"Avocado (including seed)", key:["avocado","avo","seed","pit","stone"],              bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Avocado flesh, skin and the seed can all go in the FOGO bin. The seed takes longer to break down but is handled by commercial composting facilities.", tip:"No need to cut the seed up, but doing so speeds up composting.", mistake:false },
-  { name:"Meat scraps",          key:["meat","beef","lamb","pork","chicken","steak","mince"], bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All meat including raw and cooked scraps can go in the FOGO bin. Commercial composting handles meat safely, unlike home composting.", tip:"Unlike home compost, your FOGO bin accepts ALL meat - no restrictions.", mistake:true, mistakeNote:"Common myth: meat cannot be composted. NOT true for commercial FOGO." },
-  { name:"Chicken bones",        key:["chicken","bone","bones","wing","drumstick","carcass"], bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All bones including chicken, fish, and other meat bones go in the FOGO bin. Commercial composting facilities process bones.", tip:"No need to break them up. If bones are large (e.g. lamb leg), breaking them up helps.", mistake:true, mistakeNote:"Many residents put bones in the red bin — they should go in FOGO." },
-  { name:"Fish and seafood scraps", key:["fish","seafood","prawn","mussel","oyster","shrimp","crab","tuna"], bin:"fogo", label:"Green Lid - FOGO", icon:"🟢", why:"All seafood scraps including shells go in the FOGO bin.", tip:"Rinse shells if possible to reduce odour.", mistake:false },
-  { name:"Eggshells",            key:["egg","eggs","eggshell","shell","shells"],              bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Eggshells are organic and break down well in composting.", tip:"Crush shells to speed up decomposition.", mistake:false },
-  { name:"Bread and toast",      key:["bread","toast","roll","loaf","stale","sourdough"],     bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All bread and baked goods go in the FOGO bin.", tip:"Mouldy bread is fine — the composting process kills pathogens.", mistake:false },
-  { name:"Pasta and rice",       key:["pasta","rice","noodle","noodles","spaghetti","grain"], bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Cooked or uncooked pasta and rice belong in the FOGO bin.", tip:"Both plain and sauced leftovers can go in FOGO.", mistake:false },
-  { name:"Dairy (cheese, yogurt)", key:["dairy","cheese","yogurt","milk","cream","butter"],  bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Dairy products including cheese, yogurt, and milk go in the FOGO bin. Commercial composting handles dairy safely.", tip:"Scrape dairy containers into the FOGO bin, then recycle the clean container in the yellow bin.", mistake:false },
-  { name:"Coffee grounds",       key:["coffee","grounds","espresso","percolator","filter"],   bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Coffee grounds are a valuable nitrogen-rich compost ingredient.", tip:"Paper coffee filters can also go in FOGO.", mistake:false },
-  { name:"Tea bags (paper only)", key:["tea","teabag","tea bag","tea leaves"],               bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Paper tea bags and loose-leaf tea go in the FOGO bin. However, tea bags with plastic mesh or staples should go in the red bin.", tip:"Squeeze out the bag and check for a plastic mesh tag before putting in FOGO.", mistake:false },
-  { name:"Fruit stickers",       key:["sticker","stickers","fruit sticker","produce sticker"], bin:"red",  label:"Red Lid - General Waste", icon:"🔴", why:"Produce stickers are made from plastic or PVC and are not compostable or recyclable. Remove them before putting fruit in the FOGO bin.", tip:"Always peel off produce stickers before composting fruit skins.", mistake:true, mistakeNote:"Often accidentally composted — always remove stickers before putting fruit in FOGO." },
-  { name:"Vegetable peelings",   key:["vegetable","peel","peelings","potato","carrot","onion","garlic"], bin:"fogo", label:"Green Lid - FOGO", icon:"🟢", why:"All vegetable scraps and peelings go in the FOGO bin.", tip:"No need to separate peelings from other food scraps.", mistake:false },
-  { name:"Greasy pizza box",     key:["pizza","box","greasy","cardboard","takeaway"],         bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Greasy cardboard cannot be recycled as oil contaminates the paper fibre. However it CAN go in the FOGO bin as an organic carbon source.", tip:"Tear off any clean (non-greasy) sections for the yellow recycling bin.", mistake:true, mistakeNote:"Most people put this in recycling. Greasy portions go FOGO, clean portions go recycling." },
-  { name:"Cooking oil (small amounts)", key:["oil","cooking oil","olive oil","vegetable oil"], bin:"fogo", label:"Green Lid - FOGO",       icon:"🟢", why:"Small amounts of cooking oil (up to a cup) can go in the FOGO bin, absorbed into food scraps. Large amounts should be disposed of at a cooking oil recycling point.", tip:"Soak oil into paper towel or cardboard, then put in FOGO.", mistake:false },
-  { name:"Soiled paper towels",  key:["paper towel","tissue","napkin","serviette"],           bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Food-soiled paper towels, tissues and paper napkins belong in the FOGO bin as they are organic.", tip:"Clean paper towels can also go in yellow recycling, but FOGO is always safe.", mistake:false },
-  { name:"Leftovers / cooked food", key:["leftovers","leftover","cooked","food","scraps","meal"], bin:"fogo", label:"Green Lid - FOGO",   icon:"🟢", why:"All food scraps including cooked meals, sauces, soups and leftovers go in the FOGO bin.", tip:"Pour liquid down the drain before adding to FOGO to reduce odour.", mistake:false },
-  { name:"Corn cobs and husks",  key:["corn","cob","husk","husks"],                           bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Corn cobs, husks, and silks all go in the FOGO bin.", tip:"Break corn cobs in half to help them break down faster.", mistake:false },
+let ITEMS = [], QUESTIONS = [];
 
-  // FOGO - Garden
-  { name:"Grass clippings",      key:["grass","lawn","clippings","mowing"],                   bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Grass clippings are a high-nitrogen organic material ideal for composting.", tip:"Avoid adding clippings from lawns treated with herbicides.", mistake:false },
-  { name:"Garden leaves",        key:["leaves","leaf","autumn","garden"],                      bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"All garden leaves go in the FOGO bin.", tip:"Wet leaves can be compacted - dry leaves can go loose.", mistake:false },
-  { name:"Small branches / prunings", key:["branch","branches","pruning","prunings","twigs","shrub"], bin:"fogo", label:"Green Lid - FOGO", icon:"🟢", why:"Small prunings and branches under 10cm diameter go in the FOGO bin.", tip:"Break or cut long branches so they fit in the bin without jamming the lid.", mistake:false },
-  { name:"Weeds",                key:["weed","weeds","pulled","dandelion"],                    bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Weeds without mature seed heads can go in the FOGO bin. Commercial composting temperatures kill most weed seeds.", tip:"Avoid putting weeds with mature seed heads in FOGO as there is a small risk of seeds surviving.", mistake:false },
-  { name:"Flowers and plants",   key:["flower","flowers","plant","plants","bouquet"],          bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Cut flowers, dead plants and garden waste all go in the FOGO bin.", tip:"Remove synthetic/plastic elements like foam backing from floral arrangements.", mistake:false },
-
-  // Yellow - Recycling
-  { name:"Glass bottles and jars (intact)", key:["glass","bottle","jar","wine","beer","sauce","intact"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Intact glass bottles and jars go in the yellow recycling bin. Rinse them out first.", tip:"Leave the lid on if it is metal or plastic - do not leave glass lids on.", mistake:false },
-  { name:"Broken glass",         key:["broken","smashed","glass","shattered","mirror"],        bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Broken glass is dangerous for MRF workers and cannot be sorted safely. Wrap broken glass in several layers of newspaper, tape securely, and place in the RED bin.", tip:"Write 'BROKEN GLASS' on the wrapped package to warn waste workers.", mistake:true, mistakeNote:"People put broken glass in the yellow bin — it is dangerous for workers. Red bin only." },
-  { name:"Plastic water bottle", key:["water","bottle","plastic","PET","drink","bottle"],      bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"Plastic bottles (PET #1) go in the yellow recycling bin. Squeeze and replace the lid.", tip:"Crush the bottle and replace the lid so the lid stays attached and is recyclable.", mistake:false },
-  { name:"Aluminium cans",       key:["can","cans","aluminium","aluminum","beer","soda","soft drink","tin"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Aluminium cans are highly recyclable and valuable. Rinse and place in the yellow bin.", tip:"Aluminium cans can be recycled endlessly without quality loss.", mistake:false },
-  { name:"Cardboard boxes",      key:["cardboard","box","boxes","carton","packaging","flat"],  bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"Clean and dry cardboard goes in the yellow bin. Flatten boxes to save space.", tip:"Remove and FOGO any food-soiled sections (e.g. greasy pizza box bottom).", mistake:false },
-  { name:"Newspaper",            key:["newspaper","paper","print","news","magazine"],          bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"All newspapers, magazines, and catalogues go in the yellow recycling bin.", tip:"Wet or soiled newspaper should go in the FOGO bin, not yellow.", mistake:false },
-  { name:"Aerosol cans (empty)", key:["aerosol","spray","can","hairspray","deodorant","empty"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Empty aerosol cans are recyclable. Make sure they are completely empty before recycling.", tip:"Remove the plastic cap and put it in the yellow bin too. Never puncture or crush aerosol cans.", mistake:false },
-  { name:"Milk cartons / tetra packs", key:["milk","carton","tetra","juice","pak","tetrapak"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Milk cartons and Tetra Pak containers go in the yellow bin once rinsed.", tip:"Rinse, open the top and flatten for more space.", mistake:false },
-  { name:"Clean aluminium foil", key:["foil","aluminium foil","aluminum foil","baking"],      bin:"yellow",  label:"Yellow Lid - Recycling", icon:"🟡", why:"Clean aluminium foil and trays go in the yellow bin. Foil must be clean of food - scrunch into a ball larger than your fist.", tip:"Scrunch all foil pieces into one large ball so they are not lost in MRF sorting machinery.", mistake:false },
-  { name:"Shampoo bottles (rinsed)", key:["shampoo","conditioner","bathroom","plastic","bottle"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Plastic bathroom product bottles (HDPE #2) go in the yellow bin once rinsed.", tip:"Rinse with a small amount of water to remove residue.", mistake:false },
-  { name:"Steel food tins (rinsed)", key:["tin","steel","can","baked beans","tomato","food tin"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Steel food tins go in the yellow recycling bin. Rinse them clean.", tip:"Labels can stay on - the recycling process removes them.", mistake:false },
-  { name:"Shredded paper",       key:["shredded","shredder","paper","confetti"],               bin:"fogo",    label:"Green Lid - FOGO",       icon:"🟢", why:"Shredded paper is too small for MRF sorting machinery and causes jams. It belongs in the FOGO bin as a 'brown' carbon material that helps composting.", tip:"Never put shredded paper in the yellow recycling bin - use FOGO or home compost.", mistake:true, mistakeNote:"Commonly put in yellow recycling. It jams MRF machinery - go FOGO instead." },
-  { name:"Takeaway plastic containers (rinsed)", key:["takeaway","container","plastic","clean","rinse"], bin:"yellow", label:"Yellow Lid - Recycling", icon:"🟡", why:"Clean plastic takeaway containers go in the yellow bin. They must be rinsed of food residue.", tip:"A quick rinse is enough - does not need to be spotless.", mistake:false },
-
-  // Red - General Waste
-  { name:"Nappies / diapers",    key:["nappy","nappies","diaper","diapers","baby"],            bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Nappies and sanitary items must go in the red general waste bin. They contain human waste and cannot be composted or recycled.", tip:"Wrap nappies in a bag to contain odours before placing in the red bin.", mistake:false },
-  { name:"Sanitary products",    key:["sanitary","pad","pads","tampon","tampon","incontinence"], bin:"red",   label:"Red Lid - General Waste", icon:"🔴", why:"All sanitary and personal hygiene products go in the red bin only.", tip:"Wrap before placing in the bin to reduce odours.", mistake:false },
-  { name:"Soft plastics (bread bags, pasta bags)", key:["soft plastic","plastic bag","bread bag","pasta","wrap","cling","film","bag"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Soft plastics jam MRF sorting machinery and cannot go in the yellow bin. They go in the red bin. Some supermarkets have soft plastic collection points.", tip:"Collect soft plastics and take them to Woolworths or Coles collection bins where available.", mistake:true, mistakeNote:"The biggest cause of recycling contamination. Soft plastics must NEVER go in the yellow bin." },
-  { name:"Coffee cups (disposable)", key:["coffee","cup","takeaway","cafe","paper cup","disposable"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Paper coffee cups have a thin plastic lining that bonds to the paper, making them impossible to recycle in standard facilities. They go in the red bin.", tip:"The plastic lid may be recyclable if clean - check for a recycling symbol. The cup itself goes red.", mistake:true, mistakeNote:"One of the most common mistakes. Despite looking like paper, coffee cups go in the RED bin." },
-  { name:"Polystyrene / Styrofoam", key:["polystyrene","styrofoam","foam","packing","takeaway box"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Polystyrene is not accepted in kerbside recycling. It breaks into small beads that contaminate other materials. It goes in the red bin.", tip:"Some specialist recyclers accept polystyrene. Check with AlburyCity for current drop-off options.", mistake:false },
-  { name:"Cling wrap / plastic wrap", key:["cling wrap","plastic wrap","glad wrap","saran wrap"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Cling wrap is a soft plastic that jams MRF machinery. It goes in the red bin.", tip:"Try to minimise cling wrap use - beeswax wraps and reusable containers are great alternatives.", mistake:false },
-  { name:"Broken ceramics / crockery", key:["ceramic","crockery","plate","mug","cup","bowl","broken","pottery"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Broken crockery and ceramics cannot be recycled. They go in the red bin wrapped for safety.", tip:"Consider donating usable crockery to charity before binning.", mistake:false },
-  { name:"Pyrex / ovenware",     key:["pyrex","ovenware","casserole","baking dish","heat"],    bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Pyrex and heat-tempered glass has a different melting point to regular glass and contaminates glass recycling. Always goes in the red bin.", tip:"Even intact Pyrex must go in the red bin - it cannot mix with bottle/jar glass recycling.", mistake:true, mistakeNote:"People assume all intact glass goes in yellow. Pyrex/ovenware goes RED." },
-  { name:"Chip packets / confectionery wrappers", key:["chip","chips","lolly","lollies","confectionery","wrapper","packet","snack"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Chip packets and lolly wrappers are multilayer soft plastics that cannot be recycled in the yellow bin.", tip:"Collect these along with other soft plastics for supermarket soft plastic collection points.", mistake:false },
-  { name:"Toothbrush",           key:["toothbrush","brush","dental"],                          bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Toothbrushes are made from multiple materials that cannot be separated for recycling. They go in the red bin.", tip:"Look for bamboo toothbrushes or brands with recycling programmes (e.g. TerraCycle).", mistake:false },
-  { name:"Garden hose",          key:["garden hose","hose","pipe","rubber"],                   bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Garden hoses tangle in MRF conveyor belts and cause dangerous shutdowns. They must never go in the yellow recycling bin.", tip:"Cut the hose into short pieces (under 30cm) before placing in the red bin to prevent tangling.", mistake:true, mistakeNote:"Hoses in yellow bins cause dangerous MRF machinery shutdowns." },
-  { name:"Pet waste / kitty litter", key:["pet","waste","poo","dog","cat","kitty litter","litter"], bin:"red", label:"Red Lid - General Waste", icon:"🔴", why:"Pet waste and kitty litter contain pathogens and go in the red bin only. Never in FOGO.", tip:"Use compostable bags for dog waste where available - but they still go in the red bin.", mistake:false },
-  { name:"Light bulbs (incandescent)", key:["light bulb","bulb","incandescent","globe"],       bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Incandescent light bulbs cannot be recycled and go in the red bin wrapped for safety.", tip:"LEDs and CFLs must NOT go in the red bin - they go to e-waste drop-off.", mistake:false },
-  { name:"Tea bags (with plastic mesh)", key:["tea bag","plastic mesh","tea","nylon","mesh"], bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Some tea bags contain a nylon or plastic mesh that does not compost. These go in the red bin.", tip:"Look for 100% paper tea bags or use loose-leaf tea, which can go in FOGO.", mistake:false },
-  { name:"Bubble wrap",          key:["bubble wrap","packing","soft plastic"],                  bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Bubble wrap is a soft plastic that jams MRF machinery. It goes in the red bin.", tip:"Collect bubble wrap and other soft plastics for supermarket soft plastic bins.", mistake:false },
-  { name:"Wax-coated cardboard", key:["wax","coated","waxed","cardboard","butchers","paper"],  bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Wax-coated cardboard cannot be recycled as the wax contaminates the paper fibre during the recycling process.", tip:"Do the 'scratch test' - if you can scratch a white waxy residue off the surface, it goes in the red bin.", mistake:true, mistakeNote:"Looks like cardboard but goes in red bin. Check for wax coating before recycling." },
-  { name:"Disposable razors",    key:["razor","shaving","disposable","blade"],                  bin:"red",     label:"Red Lid - General Waste", icon:"🔴", why:"Disposable razors are made from multiple plastics and metal that cannot be separated.", tip:"Consider switching to a safety razor with replaceable blades for less waste.", mistake:false },
-
-  // Drop-off / Special
-  { name:"AA / AAA batteries",   key:["battery","batteries","AA","AAA","alkaline","rechargeable"], bin:"dropoff", label:"Drop-off Required", icon:"🔵", why:"Batteries contain hazardous chemicals including mercury, cadmium, and lithium. NEVER put batteries in any kerbside bin. Take to AlburyCity transfer station or supermarket battery recycling bins.", tip:"Many Bunnings, Aldi, and supermarket stores have free battery drop-off bins near the entrance.", mistake:true, mistakeNote:"Batteries in bins can cause fires in garbage trucks. Always drop-off." },
-  { name:"Mobile phones",        key:["phone","mobile","smartphone","iphone","android","cell"], bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Mobile phones contain lithium batteries and valuable materials. Take to AlburyCity MobileMuster collection points or any Officeworks/Telstra store.", tip:"MobileMuster accepts all brands and models for free responsible recycling.", mistake:false },
-  { name:"Computers / laptops",  key:["computer","laptop","desktop","monitor","screen","PC"],   bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"E-waste contains hazardous materials and valuable metals. Take to AlburyCity's e-waste drop-off at the transfer station or TechCollect collection points.", tip:"Erase your data before dropping off. Many libraries and council offices accept e-waste for free.", mistake:false },
-  { name:"Fluorescent tubes / CFLs", key:["fluorescent","CFL","tube","compact","lamp"],         bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Fluorescent lights contain mercury and must be disposed of at a fluorescent lamp recycler. Never put in any kerbside bin.", tip:"Ikea stores accept old fluorescent bulbs for free recycling.", mistake:true, mistakeNote:"Many people put these in the red bin. They contain mercury - always drop-off." },
-  { name:"Paint (unused / old)", key:["paint","leftover","unused","interior","exterior"],       bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Unused paint can be donated or recycled through PaintBack collection points. Never pour paint down the drain or put in bins.", tip:"Visit paintback.com.au to find the nearest free drop-off point in Albury.", mistake:false },
-  { name:"Motor oil",            key:["oil","motor oil","engine","car oil","automotive"],        bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Used motor oil is a hazardous liquid. Take to AlburyCity transfer station or a participating auto parts store for free oil recycling.", tip:"Repco and Autobarn stores in Albury accept used motor oil free of charge.", mistake:false },
-  { name:"Medicines / pharmaceuticals", key:["medicine","medication","pills","tablets","prescription","pharmacy"], bin:"dropoff", label:"Return to Pharmacy", icon:"🔵", why:"Never put medicines in any kerbside bin or flush down the toilet. Return all medicines to your local pharmacy through the Return Unwanted Medicines (RUM) programme.", tip:"Any Australian pharmacy will accept your unwanted medicines for safe disposal - no questions asked.", mistake:false },
-  { name:"Tyres",                key:["tyre","tyres","tire","tires","car","wheel"],              bin:"dropoff",  label:"Drop-off Required",    icon:"🔵", why:"Tyres are banned from landfill in NSW. Take to AlburyCity transfer station or tyre retailers who accept old tyres under the Tyre Stewardship Australia scheme.", tip:"Most tyre shops will take your old tyres when fitting new ones.", mistake:false },
-  { name:"Gas cylinders",        key:["gas","cylinder","LPG","BBQ","propane","camping"],         bin:"dropoff",  label:"Hazardous - Drop-off", icon:"🔵", why:"Gas cylinders are pressurised and highly dangerous in waste collections. Return to place of purchase or take to a hazardous waste collection event.", tip:"Bunnings accepts empty gas cylinders for safe disposal at all stores.", mistake:false },
-];
-
-/* ============================================================
-   BIN FINDER LOGIC
-   ============================================================ */
-let currentFilter = 'all';
-
-function setActive(link) {
-  document.querySelectorAll('.nav-pill').forEach(el => el.classList.remove('active'));
-  link.classList.add('active');
-}
-
-function setFilter(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-tab').forEach(el => {
-    el.classList.remove('active');
+fetch('items.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    ITEMS     = data.items;
+    QUESTIONS = data.questions;
+    startQuiz();
+  })
+  .catch(() => {
+    document.getElementById('finder-placeholder').textContent = 'Could not load item database. Please refresh the page.';
   });
-  btn.classList.add('active');
-  doSearch();
-}
-
-function doSearch() {
-  const q = document.getElementById('bin-search').value.trim().toLowerCase();
-  const grid = document.getElementById('results-grid');
-  const noR  = document.getElementById('no-results');
-  const placeholder = document.getElementById('finder-placeholder');
-
-  let results = ITEMS;
-  if (currentFilter !== 'all') results = results.filter(i => i.bin === currentFilter);
-  if (q.length > 0) {
-    results = results.filter(i =>
-      i.name.toLowerCase().includes(q) ||
-      i.key.some(k => k.includes(q)) ||
-      (i.why && i.why.toLowerCase().includes(q))
-    );
-  }
-
-  placeholder.style.display = (q === '' && currentFilter === 'all') ? '' : 'none';
-
-  if (q === '' && currentFilter === 'all') {
-    grid.style.display = 'none';
-    noR.style.display = 'none';
-    return;
-  }
-
-  if (results.length === 0) {
-    grid.style.display = 'none';
-    noR.style.display  = '';
-    return;
-  }
-
-  noR.style.display  = 'none';
-  grid.style.display = '';
-  grid.innerHTML = results.slice(0, 30).map(item => `
-    <div class="result-card ${item.bin}">
-      <div class="result-bin-icon">${item.icon}</div>
-      <div class="result-body">
-        ${item.mistake ? '<span class="mistake-flag">Common Mistake</span>' : ''}
-        <h4>${item.name}</h4>
-        <div class="result-bin-label">${item.label}</div>
-        <p>${item.why}</p>
-        ${item.mistakeNote ? `<div class="result-tip">&#9888; ${item.mistakeNote}</div>` : ''}
-        ${item.tip ? `<div class="result-tip">Tip: ${item.tip}</div>` : ''}
-      </div>
-    </div>
-  `).join('');
-}
-
-/* ============================================================
-   QUIZ
-   ============================================================ */
-const QUESTIONS = [
-  {
-    q: "You have a disposable takeaway coffee cup. Which bin does it go in?",
-    context: "It looks like it is made of paper, but look closely at the inside...",
-    options: ["Yellow Lid - Recycling (it is made of cardboard)", "Red Lid - General Waste", "Green Lid - FOGO", "It depends on the brand"],
-    correct: 1,
-    explanation: "<strong>Red Lid - General Waste.</strong> Despite appearing to be made of paper, all takeaway coffee cups are lined with a thin plastic film that bonds to the paper fibres. This plastic lining makes them impossible to recycle in standard facilities. The plastic lid may be separately recyclable if clean - but the cup itself always goes in the red bin."
-  },
-  {
-    q: "A greasy pizza box - what is the correct bin?",
-    context: "There is leftover cheese and oil on the cardboard.",
-    options: ["Yellow Lid - Recycling (it is cardboard)", "Red Lid - General Waste", "Green Lid - FOGO", "Tear it up and split between yellow and FOGO"],
-    correct: 2,
-    explanation: "<strong>Green Lid - FOGO.</strong> This is one of the most common mistakes! Greasy cardboard CANNOT go in the yellow bin because oil residue contaminate the paper fibres and ruins the batch at the MRF. However, grease is organic material and CAN go in the FOGO bin where commercial composting handles food-soiled paper. Pro tip: tear off any clean parts of the box for the yellow bin and the greasy sections in FOGO."
-  },
-  {
-    q: "TRUE or FALSE: Citrus peel (lemon, orange, lime) harms the composting process and should NOT go in the FOGO bin.",
-    context: "You have heard that citrus kills the good bacteria in compost...",
-    options: ["TRUE - citrus is too acidic for composting", "FALSE - citrus is perfectly fine in the FOGO bin"],
-    correct: 1,
-    explanation: "<strong>FALSE - this is a myth!</strong> Citrus is perfectly fine in your FOGO bin. This myth originated from home composting, where very large amounts of citrus can temporarily slow things down. However, your FOGO bin goes to a commercial composting facility that operates at high temperatures (55-70°C) and processes enormous volumes. Commercial composting handles citrus, onions, garlic, and any other food scraps without issue. Put all citrus in the FOGO bin!"
-  },
-  {
-    q: "Which bin does shredded paper belong in?",
-    context: "You have shredded confidential documents at home.",
-    options: ["Yellow Lid - Recycling (it is paper)", "Green Lid - FOGO", "Red Lid - General Waste", "Bag it and put in yellow recycling"],
-    correct: 1,
-    explanation: "<strong>Green Lid - FOGO.</strong> Shredded paper is too small to be sorted by the machinery at Materials Recovery Facilities (MRFs). If put in the yellow bin, it falls through conveyor gaps, clogs machinery, and ends up in landfill anyway. Shredded paper is actually a great FOGO addition - it is a 'carbon brown' material that helps balance the nitrogen-rich food scraps, improving compost quality."
-  },
-  {
-    q: "Chicken bones from last night's roast - which bin?",
-    context: "Unlike home composting, your FOGO bin goes to an industrial facility.",
-    options: ["Red Lid - General Waste (bones do not compost)", "Green Lid - FOGO", "Yellow Lid - Recycling", "Wrap and put in red bin"],
-    correct: 1,
-    explanation: "<strong>Green Lid - FOGO.</strong> All meat, fish, and bones can go in your FOGO bin. Many people know this rule from home composting, where meat and bones are not recommended. But your FOGO bin goes to a commercial composting facility that operates at much higher temperatures and volumes, which safely breaks down all food scraps including meat, bones, fish, and dairy. Put all food scraps in FOGO!"
-  },
-  {
-    q: "You have an empty aerosol deodorant can. Where does it go?",
-    context: "The can is completely empty - no product left when you shake it.",
-    options: ["Red Lid - General Waste (it is pressurised)", "Yellow Lid - Recycling", "Drop-off / Hazardous waste facility", "Green Lid - FOGO"],
-    correct: 1,
-    explanation: "<strong>Yellow Lid - Recycling.</strong> Empty aerosol cans are made from steel or aluminium and are fully recyclable. The key requirement is that they must be completely empty - no liquid product remaining. Remove the plastic cap (also recyclable in yellow bin if clean) and place the empty can in the yellow bin. Do NOT puncture or attempt to crush aerosol cans."
-  },
-  {
-    q: "A bag of soft plastics (bread bags, chip packets, cling wrap) - which bin?",
-    context: "These are all flexible, squeezable plastics.",
-    options: ["Yellow Lid - Recycling (plastic goes in yellow)", "Red Lid - General Waste (or supermarket collection)", "Green Lid - FOGO", "Any bin - they are small"],
-    correct: 1,
-    explanation: "<strong>Red Lid - General Waste.</strong> Soft plastics are the single biggest cause of recycling contamination in Australia. They jam and tangle around conveyor belts and rollers in MRF facilities, causing dangerous shutdowns and costly damage. NEVER put soft plastics in the yellow recycling bin. Your best options: (1) Place in the red bin, or (2) collect soft plastics and take to Woolworths or Coles soft plastic collection bins at the front of stores."
-  },
-  {
-    q: "Your Pyrex baking dish has cracked. Which bin?",
-    context: "It is glass, but a different type to bottles and jars.",
-    options: ["Yellow Lid - Recycling (it is glass)", "Red Lid - General Waste (wrapped for safety)", "Green Lid - FOGO", "Glass recycling bank / drop-off"],
-    correct: 1,
-    explanation: "<strong>Red Lid - General Waste.</strong> Pyrex and heat-tempered ovenware glass has a significantly different melting point to regular container glass (bottles and jars). Even a small amount of Pyrex mixed into a glass recycling batch can cause the entire batch to fail - the result is unusable glass that goes to landfill. Pyrex must always go in the red bin, wrapped safely in newspaper for waste workers."
-  },
-  {
-    q: "Which of these does NOT go in the yellow recycling bin?",
-    options: ["Steel food tin (rinsed)", "Milk carton (rinsed)", "Garden hose (cut up)", "Cardboard toilet paper roll"],
-    correct: 2,
-    explanation: "<strong>Garden hose - Red Lid - General Waste.</strong> Garden hoses and flexible rubber or plastic pipes must NEVER go in the yellow recycling bin. They wrap around and tangle in conveyor belts and sorting machinery at MRFs, causing dangerous shutdowns that can take hours to clear and cost thousands of dollars in repairs and lost production. Cut the hose into short pieces (under 30cm) and put in the red bin. The other three items all belong in the yellow bin."
-  },
-  {
-    q: "AA batteries from your TV remote - what is the correct disposal?",
-    context: "You have a handful of old batteries that no longer hold charge.",
-    options: ["Red Lid - General Waste", "Yellow Lid - Recycling", "Green Lid - FOGO", "Drop-off at a battery collection point"],
-    correct: 3,
-    explanation: "<strong>Drop-off at a battery collection point.</strong> Batteries contain hazardous chemicals including mercury, cadmium, and lithium. Batteries in bins can cause fires in garbage trucks - this is a serious and growing problem nationally. NEVER put any type of battery in a kerbside bin. Instead, collect batteries and drop them at: Bunnings, Aldi, ALDI, or supermarket battery recycling bins near the entrance, or at AlburyCity transfer station. It is free and takes 30 seconds."
-  }
-];
 
 let qIndex = 0, score = 0;
 
@@ -1427,8 +1220,6 @@ function showResult() {
   }
 }
 
-// Init
-startQuiz();
 </script>
 </body>
 </html>
