@@ -464,7 +464,7 @@
     </div>
     <div class="ai-note" style="margin-top:12px">
       <strong>How it works</strong>
-      The AI model runs entirely in your browser - no photo is sent anywhere. It uses MobileNet, trained on 1,000 object categories. For best results use good lighting and a single item against a plain background.
+      Step 1 - MobileNet identifies what the object is (runs entirely in your browser, no photo is sent anywhere). Step 2 - the identified object is looked up in the AlburyCity Bin Finder database to get the correct bin, reason, and tip. For best results use good lighting with a single item against a plain background.
     </div>
   </div>
 
@@ -556,70 +556,24 @@
 
 <script>
 /* ============================================================
-   BIN RULES
-   Each rule: keywords matched against MobileNet class name (lowercase).
-   First match wins. Default fallback = red bin.
+   DATA - loaded from items.json (single source of truth)
    ============================================================ */
-const BIN_RULES = [
-  {
-    bin: 'fogo', label: 'Green Lid - FOGO', bandClass: 'band-fogo', icon: '🟢',
-    why: 'Food and garden organics belong in the green lid FOGO bin. Commercial composting handles ALL food scraps - meat, bones, dairy, and citrus are all accepted.',
-    tip: 'Line your kitchen caddy with newspaper or a certified compostable liner bag to reduce mess.',
-    keywords: [
-      'banana','pineapple','strawberry','orange','lemon','lime','fig','pomegranate',
-      'grapefruit','apple','pear','peach','plum','mango','avocado','grape','cherry',
-      'artichoke','broccoli','cauliflower','zucchini','cucumber','mushroom','squash',
-      'head cabbage','acorn','corn','potato','sweet potato','yam','turnip',
-      'pizza','cheeseburger','hot dog','burrito','guacamole','pretzel','bagel',
-      'french loaf','ice cream','chocolate','meat loaf','dumpling','taco','waffle',
-      'pancake','croissant','bun','egg','cheese','butter','cream','milk',
-      'meat','steak','pork chop','rib','drumstick','thigh','fillet','sushi',
-      'shrimp','crab','lobster','oyster','clam','sea urchin','fish',
-      'leaf','grass','flower','bouquet','plant','herb','weed','daisy','rose'
-    ]
-  },
-  {
-    bin: 'yellow', label: 'Yellow Lid - Recycling', bandClass: 'band-yellow', icon: '🟡',
-    why: 'This item belongs in the yellow lid recycling bin. Rinse out any food residue before placing it in - contamination from food scraps ruins entire recycling loads.',
-    tip: 'A quick rinse is enough - containers do not need to be spotless. Leave lids on plastic bottles.',
-    keywords: [
-      'water bottle','wine bottle','beer bottle','pop bottle','plastic bottle',
-      'wine glass','beer glass','drinking glass','glass jar','jar','mason jar',
-      'beer can','soda can','tin can','aluminium can','pop can',
-      'cardboard','carton','milk carton','juice box','cereal box',
-      'paper towel','toilet tissue','book jacket','envelope','magazine','newspaper','book',
-      'milk can','pitcher','jug','teapot','kettle'
-    ]
-  },
-  {
-    bin: 'dropoff', label: 'Drop-off Required', bandClass: 'band-dropoff', icon: '🔵',
-    why: 'This item contains hazardous materials or valuable recoverable components. It must never go in a kerbside bin - take it to AlburyCity Transfer Station or a retailer collection point.',
-    tip: 'Drop e-waste free at AlburyCity Transfer Station. Officeworks, Bunnings, and most electronics retailers also accept e-waste.',
-    keywords: [
-      'laptop','notebook computer','desktop computer','screen','monitor','computer',
-      'cellular telephone','mobile phone','pay phone','dial telephone','smartphone',
-      'television','remote control','joystick','radio',
-      'keyboard','computer keyboard','computer mouse',
-      'printer','scanner','iPod','headphone','earphone','speaker',
-      'electric fan','vacuum','toaster','microwave','blender',
-      'flashlight','torch','battery charger'
-    ]
-  }
-];
+let ITEMS = [];
 
-const DEFAULT_RULE = {
-  bin: 'red', label: 'Red Lid - General Waste', bandClass: 'band-red', icon: '🔴',
-  why: 'This item cannot be recycled through kerbside collection and goes in the red lid general waste bin.',
-  tip: 'Before binning, consider whether this item could be donated, repaired, or taken to a specialist drop-off facility.'
+const BIN_META = {
+  fogo:    { label: 'Green Lid - FOGO',       bandClass: 'band-fogo',    icon: '🟢' },
+  yellow:  { label: 'Yellow Lid - Recycling', bandClass: 'band-yellow',  icon: '🟡' },
+  red:     { label: 'Red Lid - General Waste', bandClass: 'band-red',    icon: '🔴' },
+  dropoff: { label: 'Drop-off Required',       bandClass: 'band-dropoff', icon: '🔵' }
 };
 
 /* ============================================================
    STATE
    ============================================================ */
-let mnModel       = null;
-let videoStream   = null;
-let facingMode    = 'environment';
-let capturedURL   = null;
+let mnModel     = null;
+let videoStream = null;
+let facingMode  = 'environment';
+let capturedURL = null;
 
 function setState(id) {
   document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
@@ -631,15 +585,20 @@ function dot(id, cls) {
 }
 
 /* ============================================================
-   INIT
+   INIT - load items.json and MobileNet in parallel
    ============================================================ */
 async function init() {
   try {
-    // TF.js already loaded via script tag
     dot('tf', 'done');
     dot('model', 'active');
 
-    mnModel = await mobilenet.load({ version: 2, alpha: 1.0 });
+    const [model, itemsData] = await Promise.all([
+      mobilenet.load({ version: 2, alpha: 1.0 }),
+      fetch('../community/items.json?t=' + Date.now()).then(r => r.json())
+    ]);
+
+    mnModel = model;
+    ITEMS   = itemsData.items;
 
     dot('model', 'done');
     dot('cam', 'active');
@@ -650,7 +609,6 @@ async function init() {
     setState('camera');
   } catch (err) {
     console.error('Init error:', err);
-    // Still show camera state so upload works
     dot('model', 'done');
     dot('cam', 'done');
     setState('camera');
@@ -736,62 +694,70 @@ async function runClassification(imageSource, dataURL) {
 }
 
 /* ============================================================
-   MATCH PREDICTIONS TO BIN
+   STEP 1: MobileNet identifies the object (what is it?)
+   STEP 2: Look up that object in items.json (which bin?)
    ============================================================ */
-function matchBin(predictions) {
-  for (const pred of predictions) {
-    const cn = pred.className.toLowerCase();
-    for (const rule of BIN_RULES) {
-      if (rule.keywords.some(kw => cn.includes(kw))) {
-        return { rule, confidence: pred.probability, label: pred.className };
-      }
+
+function lookupItem(objectName) {
+  const words = objectName.toLowerCase().split(/[\s,]+/);
+  for (const item of ITEMS) {
+    if (item.key.some(kw => words.some(w => w.includes(kw) || kw.includes(w)))) {
+      return item;
     }
   }
-  return {
-    rule: DEFAULT_RULE,
-    confidence: predictions[0]?.probability || 0,
-    label: predictions[0]?.className || 'Unknown item'
-  };
+  return null;
 }
 
-/* ============================================================
-   SHOW RESULT
-   ============================================================ */
 function showResult(predictions, dataURL) {
-  const UNCERTAIN_THRESHOLD = 0.12;
-  const LOW_CONF_THRESHOLD  = 0.30;
-
   document.getElementById('result-img').src = dataURL;
+  document.getElementById('low-conf-warn').style.display = 'none';
 
-  const hasResult = predictions.length > 0 && predictions[0].probability >= UNCERTAIN_THRESHOLD;
+  // Try each prediction in confidence order until one matches items.json
+  let matchedItem  = null;
+  let matchedPred  = null;
 
-  // Toggle cards
-  document.getElementById('result-card').style.display   = hasResult ? 'block' : 'none';
-  document.getElementById('uncertain-card').style.display = hasResult ? 'none'  : 'block';
-  document.getElementById('low-conf-warn').style.display  = 'none';
+  for (const pred of predictions) {
+    const item = lookupItem(pred.className);
+    if (item) {
+      matchedItem = item;
+      matchedPred = pred;
+      break;
+    }
+  }
 
-  if (hasResult) {
-    const { rule, confidence, label } = matchBin(predictions);
-    const pct = Math.round(confidence * 100);
+  const topPred    = predictions[0];
+  const hasVision  = topPred && topPred.probability >= 0.10;
+  const hasMatch   = matchedItem !== null;
 
-    document.getElementById('result-band').className   = 'result-band ' + rule.bandClass;
-    document.getElementById('r-icon').textContent      = rule.icon;
-    document.getElementById('r-name').textContent      = rule.label;
-    document.getElementById('conf-pill').textContent   = pct > 60 ? 'High confidence' : pct > 30 ? 'Medium confidence' : 'Low confidence';
-    document.getElementById('conf-pct').textContent    = pct + '%';
-    document.getElementById('r-detected').textContent  = label;
-    document.getElementById('r-why').textContent       = rule.why;
-    document.getElementById('r-tip').textContent       = rule.tip;
+  document.getElementById('result-card').style.display    = hasMatch  ? 'block' : 'none';
+  document.getElementById('uncertain-card').style.display = hasMatch  ? 'none'  : 'block';
 
-    if (confidence < LOW_CONF_THRESHOLD) {
+  if (hasMatch) {
+    const meta = BIN_META[matchedItem.bin] || BIN_META.red;
+    const pct  = Math.round(matchedPred.probability * 100);
+
+    document.getElementById('result-band').className  = 'result-band ' + meta.bandClass;
+    document.getElementById('r-icon').textContent     = meta.icon;
+    document.getElementById('r-name').textContent     = meta.label;
+    document.getElementById('conf-pill').textContent  = pct > 60 ? 'High confidence' : pct > 30 ? 'Medium confidence' : 'Low confidence';
+    document.getElementById('conf-pct').textContent   = pct + '%';
+    document.getElementById('r-detected').textContent = matchedItem.name + ' (AI saw: ' + matchedPred.className + ')';
+    document.getElementById('r-why').textContent      = matchedItem.why;
+    document.getElementById('r-tip').textContent      = matchedItem.tip;
+
+    if (matchedPred.probability < 0.30) {
       document.getElementById('low-conf-warn').style.display = 'block';
     }
   } else {
-    // Uncertain - populate top guesses list
+    // No items.json match - show what the AI saw and prompt Bin Finder
     const list = document.getElementById('top-guesses');
-    list.innerHTML = predictions.slice(0, 3).map(p =>
-      `<li><span>${p.className}</span><span class="g-pct">${Math.round(p.probability * 100)}%</span></li>`
-    ).join('') || '<li><span>Could not analyse image</span></li>';
+    if (hasVision) {
+      list.innerHTML = predictions.slice(0, 3).map(p =>
+        `<li><span>${p.className}</span><span class="g-pct">${Math.round(p.probability * 100)}%</span></li>`
+      ).join('');
+    } else {
+      list.innerHTML = '<li><span>Could not identify item from image</span></li>';
+    }
   }
 
   setState('result');
