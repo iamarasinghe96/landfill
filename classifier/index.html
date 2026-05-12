@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AI Waste Identifier - AlburyCity Council</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #1B3A6B;
+      --navy-dk: #122850;
+      --blue:    #2471A3;
+      --green:   #1E8449;
+      --amber:   #B7770D;
+      --red:     #C0392B;
+      --bg:      #F0F4F8;
+      --card:    #FFFFFF;
+      --text:    #1C2833;
+      --text-md: #4A5568;
+      --text-sm: #718096;
+      --border:  #D1DCE8;
+      --shadow:  0 2px 12px rgba(27,58,107,0.10);
+      --radius:  14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, var(--navy-dk) 0%, var(--navy) 60%, #2557A7 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .header-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-wrap img {
+      height: 52px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 5px 8px;
+      display: block;
+    }
+    .header-text { flex: 1; }
+    .header-text h1 { font-size: clamp(16px, 4vw, 22px); font-weight: 700; }
+    .header-text p  { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+    .btn-back {
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.22); }
+
+    main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+
+    /* STATE VISIBILITY */
+    .state { display: none; }
+    .state.active { display: block; }
+
+    /* ---- LOADING ---- */
+    .loading-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .loading-sub   { color: var(--text-md); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+    .loading-steps { list-style: none; text-align: left; max-width: 300px; margin: 0 auto; }
+    .loading-steps li {
+      padding: 7px 0;
+      font-size: 13px;
+      color: var(--text-sm);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .step-dot.done   { background: var(--green); }
+    .step-dot.active { background: var(--blue); animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    /* ---- CAMERA ---- */
+    .camera-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .camera-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
+    .camera-header h2 { font-size: 18px; font-weight: 700; color: var(--navy); }
+    .camera-header p  { font-size: 13px; color: var(--text-md); margin-top: 3px; }
+
+    .camera-viewport {
+      position: relative;
+      background: #111;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+    }
+    #camera-video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    #preview-canvas { display: none; }
+    .cam-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cam-frame {
+      width: min(260px, 72%);
+      aspect-ratio: 1;
+      border: 2.5px solid rgba(255,255,255,0.65);
+      border-radius: 16px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.32);
+    }
+    .cam-tip {
+      position: absolute;
+      bottom: 12px;
+      left: 0; right: 0;
+      text-align: center;
+      color: rgba(255,255,255,0.82);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .camera-controls { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .no-cam-note {
+      font-size: 13px;
+      color: var(--red);
+      text-align: center;
+      display: none;
+      padding: 4px 0;
+    }
+    .btn-capture {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.18s;
+    }
+    .btn-capture:hover   { background: var(--navy-dk); }
+    .btn-capture:disabled { opacity: 0.45; cursor: not-allowed; }
+    .upload-row { display: flex; gap: 10px; }
+    .btn-sec {
+      flex: 1;
+      background: var(--bg);
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background 0.18s;
+    }
+    .btn-sec:hover { background: var(--border); }
+    #file-input { display: none; }
+
+    /* ---- ANALYSING ---- */
+    .analysing-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    #analysing-img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      background: #111;
+      display: block;
+    }
+    .analysing-body { padding: 32px 24px; }
+    .analysing-body h2 { font-size: 20px; font-weight: 700; color: var(--navy); margin-top: 4px; }
+    .analysing-body p  { font-size: 14px; color: var(--text-md); margin-top: 6px; }
+
+    /* ---- RESULT ---- */
+    .result-photo {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    #result-img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      background: #111;
+      display: block;
+    }
+
+    .result-card {
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .result-band {
+      padding: 22px 24px 18px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .r-icon  { font-size: 46px; line-height: 1; flex-shrink: 0; }
+    .r-name  { font-size: 22px; font-weight: 800; line-height: 1.15; }
+    .r-sub   { font-size: 13px; opacity: 0.82; margin-top: 3px; }
+    .r-conf  { margin-left: auto; text-align: center; flex-shrink: 0; }
+    .conf-pill {
+      font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+      background: rgba(255,255,255,0.22);
+      letter-spacing: 0.5px; text-transform: uppercase;
+      display: block;
+    }
+    .conf-pct { font-size: 22px; font-weight: 800; display: block; margin-top: 3px; }
+
+    .result-body  { background: var(--card); padding: 18px 24px; }
+    .r-detected   { font-size: 12px; color: var(--text-sm); margin-bottom: 10px; }
+    .r-detected strong { color: var(--text); }
+    .r-why {
+      font-size: 15px; color: var(--text); line-height: 1.55;
+      margin-bottom: 14px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .r-tip { display: flex; gap: 10px; align-items: flex-start; }
+    .r-tip-icon { font-size: 18px; flex-shrink: 0; }
+    .r-tip-text { font-size: 13px; color: var(--text-md); line-height: 1.5; }
+
+    /* Low-confidence warning stripe */
+    .low-conf-warn {
+      background: #FEF9E7;
+      border: 1px solid #F39C12;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #7D6608;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .low-conf-warn strong { display: block; margin-bottom: 2px; }
+
+    /* Uncertain card */
+    .uncertain-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      display: none;
+    }
+    .uncertain-band {
+      background: #5D6D7E;
+      padding: 20px 24px;
+      color: #fff;
+    }
+    .uncertain-band h2 { font-size: 18px; font-weight: 700; margin-top: 6px; }
+    .uncertain-band p  { font-size: 13px; opacity: 0.82; margin-top: 3px; }
+    .uncertain-body { padding: 18px 24px; }
+    .top-guesses { list-style: none; margin: 10px 0; }
+    .top-guesses li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-guesses li:last-child { border-bottom: none; }
+    .g-pct { font-weight: 600; color: var(--text); }
+
+    /* Bin colours */
+    .band-fogo    { background: #1E8449; }
+    .band-yellow  { background: #B7770D; }
+    .band-red     { background: #C0392B; }
+    .band-dropoff { background: #1A5276; }
+
+    /* Action buttons */
+    .result-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .btn-again {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.18s;
+    }
+    .btn-again:hover { background: var(--navy-dk); }
+    .btn-finder {
+      background: var(--bg);
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-finder:hover { background: var(--border); }
+
+    /* AI note */
+    .ai-note {
+      background: #EBF5FB;
+      border: 1px solid #AED6F1;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 12px;
+      color: #1A5276;
+      line-height: 1.55;
+    }
+    .ai-note strong { display: block; margin-bottom: 3px; font-size: 13px; }
+
+    footer {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--text-sm);
+      font-size: 12px;
+    }
+    footer a { color: var(--blue); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <img src="https://www.alburycity.nsw.gov.au/__data/assets/image/0009/368064/AC-logo.png" alt="AlburyCity"
+           onerror="this.parentElement.innerHTML='<div style=\'height:52px;background:#fff;border-radius:8px;padding:6px 12px;display:flex;align-items:center;font-weight:800;font-size:18px;color:#1B3A6B\'>AlburyCity</div>'">
+    </div>
+    <div class="header-text">
+      <h1>AI Waste Identifier</h1>
+      <p>Point your camera at any item to find the right bin</p>
+    </div>
+    <a class="btn-back" href="../index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Dashboard
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- LOADING -->
+  <div id="state-loading" class="state active">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div class="loading-title">Loading AI Model</div>
+      <div class="loading-sub">Downloading vision model (~14 MB).<br>Takes a moment on first visit, then cached.</div>
+      <ul class="loading-steps">
+        <li><span class="step-dot done"   id="dot-tf"></span>    TensorFlow.js engine ready</li>
+        <li><span class="step-dot active" id="dot-model"></span> Loading MobileNet vision model</li>
+        <li><span class="step-dot"        id="dot-cam"></span>   Initialising camera</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- CAMERA -->
+  <div id="state-camera" class="state">
+    <div class="camera-card">
+      <div class="camera-header">
+        <h2>Point at the waste item</h2>
+        <p>Centre the item in the frame, then tap Identify</p>
+      </div>
+      <div class="camera-viewport">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <canvas id="preview-canvas"></canvas>
+        <div class="cam-overlay">
+          <div class="cam-frame"></div>
+          <div class="cam-tip">Centre the item in the frame</div>
+        </div>
+      </div>
+      <div class="camera-controls">
+        <p class="no-cam-note" id="no-cam-note">Camera not available or permission denied - upload a photo below.</p>
+        <button class="btn-capture" id="btn-capture" onclick="captureAndClassify()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M20 6h-2.18c-.27-.78-.9-1.34-1.68-1.64L15 4H9l-1.14.36C7.08 4.66 6.45 5.22 6.18 6H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+          Identify This Item
+        </button>
+        <div class="upload-row">
+          <button class="btn-sec" onclick="document.getElementById('file-input').click()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Photo
+          </button>
+          <button class="btn-sec" id="btn-flip" onclick="flipCamera()" style="display:none">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            Flip Camera
+          </button>
+        </div>
+        <input type="file" id="file-input" accept="image/*" onchange="handleUpload(event)">
+      </div>
+    </div>
+    <div class="ai-note" style="margin-top:12px">
+      <strong>How it works</strong>
+      The AI model runs entirely in your browser - no photo is sent anywhere. It uses MobileNet, trained on 1,000 object categories. For best results use good lighting and a single item against a plain background.
+    </div>
+  </div>
+
+  <!-- ANALYSING -->
+  <div id="state-analysing" class="state">
+    <div class="analysing-card">
+      <img id="analysing-img" alt="Captured image">
+      <div class="analysing-body">
+        <div class="spinner"></div>
+        <h2>Analysing...</h2>
+        <p>Running AI classification on your device</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="state-result" class="state">
+    <div class="result-photo">
+      <img id="result-img" alt="Identified waste">
+    </div>
+
+    <!-- confident result -->
+    <div class="result-card" id="result-card">
+      <div class="result-band" id="result-band">
+        <div class="r-icon" id="r-icon"></div>
+        <div>
+          <div class="r-name" id="r-name"></div>
+          <div class="r-sub">AlburyCity Council</div>
+        </div>
+        <div class="r-conf">
+          <span class="conf-pill" id="conf-pill"></span>
+          <span class="conf-pct" id="conf-pct"></span>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="r-detected">AI detected: <strong id="r-detected"></strong></div>
+        <div class="r-why" id="r-why"></div>
+        <div class="r-tip">
+          <div class="r-tip-icon">💡</div>
+          <div class="r-tip-text" id="r-tip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- low confidence warning (shown with confident result when conf < 30%) -->
+    <div class="low-conf-warn" id="low-conf-warn">
+      <strong>Low confidence</strong>
+      The AI is not very certain about this identification. Verify with the Bin Finder if unsure.
+    </div>
+
+    <!-- uncertain state -->
+    <div class="uncertain-card" id="uncertain-card">
+      <div class="uncertain-band">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <h2>Could not identify item</h2>
+        <p>AI confidence too low to give a reliable answer</p>
+      </div>
+      <div class="uncertain-body">
+        <p style="font-size:13px;color:var(--text-md);margin-bottom:8px">Top guesses:</p>
+        <ul class="top-guesses" id="top-guesses"></ul>
+        <p style="font-size:13px;color:var(--text-sm);margin-top:10px">Use the Bin Finder below to search by item name for a reliable answer.</p>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-again" onclick="resetToCamera()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Identify Another Item
+      </button>
+      <a class="btn-finder" href="../community/index.html#bin-finder">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Search Bin Finder Instead
+      </a>
+    </div>
+
+    <div class="ai-note">
+      <strong>AI Accuracy Note</strong>
+      This tool uses a general-purpose vision model and can make mistakes, especially with unusual items, poor lighting, or cluttered backgrounds. For certainty always cross-check with the Bin Finder or call AlburyCity Waste on 02 6023 8111.
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  AlburyCity Council - Waste Diversion Programme &nbsp;|&nbsp;
+  <a href="../index.html">Dashboard</a> &nbsp;|&nbsp;
+  <a href="../community/index.html">Community Hub</a>
+</footer>
+
+<script>
+/* ============================================================
+   BIN RULES
+   Each rule: keywords matched against MobileNet class name (lowercase).
+   First match wins. Default fallback = red bin.
+   ============================================================ */
+const BIN_RULES = [
+  {
+    bin: 'fogo', label: 'Green Lid - FOGO', bandClass: 'band-fogo', icon: '🟢',
+    why: 'Food and garden organics belong in the green lid FOGO bin. Commercial composting handles ALL food scraps - meat, bones, dairy, and citrus are all accepted.',
+    tip: 'Line your kitchen caddy with newspaper or a certified compostable liner bag to reduce mess.',
+    keywords: [
+      'banana','pineapple','strawberry','orange','lemon','lime','fig','pomegranate',
+      'grapefruit','apple','pear','peach','plum','mango','avocado','grape','cherry',
+      'artichoke','broccoli','cauliflower','zucchini','cucumber','mushroom','squash',
+      'head cabbage','acorn','corn','potato','sweet potato','yam','turnip',
+      'pizza','cheeseburger','hot dog','burrito','guacamole','pretzel','bagel',
+      'french loaf','ice cream','chocolate','meat loaf','dumpling','taco','waffle',
+      'pancake','croissant','bun','egg','cheese','butter','cream','milk',
+      'meat','steak','pork chop','rib','drumstick','thigh','fillet','sushi',
+      'shrimp','crab','lobster','oyster','clam','sea urchin','fish',
+      'leaf','grass','flower','bouquet','plant','herb','weed','daisy','rose'
+    ]
+  },
+  {
+    bin: 'yellow', label: 'Yellow Lid - Recycling', bandClass: 'band-yellow', icon: '🟡',
+    why: 'This item belongs in the yellow lid recycling bin. Rinse out any food residue before placing it in - contamination from food scraps ruins entire recycling loads.',
+    tip: 'A quick rinse is enough - containers do not need to be spotless. Leave lids on plastic bottles.',
+    keywords: [
+      'water bottle','wine bottle','beer bottle','pop bottle','plastic bottle',
+      'wine glass','beer glass','drinking glass','glass jar','jar','mason jar',
+      'beer can','soda can','tin can','aluminium can','pop can',
+      'cardboard','carton','milk carton','juice box','cereal box',
+      'paper towel','toilet tissue','book jacket','envelope','magazine','newspaper','book',
+      'milk can','pitcher','jug','teapot','kettle'
+    ]
+  },
+  {
+    bin: 'dropoff', label: 'Drop-off Required', bandClass: 'band-dropoff', icon: '🔵',
+    why: 'This item contains hazardous materials or valuable recoverable components. It must never go in a kerbside bin - take it to AlburyCity Transfer Station or a retailer collection point.',
+    tip: 'Drop e-waste free at AlburyCity Transfer Station. Officeworks, Bunnings, and most electronics retailers also accept e-waste.',
+    keywords: [
+      'laptop','notebook computer','desktop computer','screen','monitor','computer',
+      'cellular telephone','mobile phone','pay phone','dial telephone','smartphone',
+      'television','remote control','joystick','radio',
+      'keyboard','computer keyboard','computer mouse',
+      'printer','scanner','iPod','headphone','earphone','speaker',
+      'electric fan','vacuum','toaster','microwave','blender',
+      'flashlight','torch','battery charger'
+    ]
+  }
+];
+
+const DEFAULT_RULE = {
+  bin: 'red', label: 'Red Lid - General Waste', bandClass: 'band-red', icon: '🔴',
+  why: 'This item cannot be recycled through kerbside collection and goes in the red lid general waste bin.',
+  tip: 'Before binning, consider whether this item could be donated, repaired, or taken to a specialist drop-off facility.'
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let mnModel       = null;
+let videoStream   = null;
+let facingMode    = 'environment';
+let capturedURL   = null;
+
+function setState(id) {
+  document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+  document.getElementById('state-' + id).classList.add('active');
+}
+
+function dot(id, cls) {
+  document.getElementById('dot-' + id).className = 'step-dot ' + cls;
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function init() {
+  try {
+    // TF.js already loaded via script tag
+    dot('tf', 'done');
+    dot('model', 'active');
+
+    mnModel = await mobilenet.load({ version: 2, alpha: 1.0 });
+
+    dot('model', 'done');
+    dot('cam', 'active');
+
+    await startCamera();
+
+    dot('cam', 'done');
+    setState('camera');
+  } catch (err) {
+    console.error('Init error:', err);
+    // Still show camera state so upload works
+    dot('model', 'done');
+    dot('cam', 'done');
+    setState('camera');
+    document.getElementById('no-cam-note').style.display = 'block';
+    document.getElementById('btn-capture').disabled = true;
+  }
+}
+
+/* ============================================================
+   CAMERA
+   ============================================================ */
+async function startCamera() {
+  if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 960 } }
+  });
+  videoStream = stream;
+  document.getElementById('camera-video').srcObject = stream;
+
+  // Show flip button if multiple cameras exist
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    if (devices.filter(d => d.kind === 'videoinput').length > 1) {
+      document.getElementById('btn-flip').style.display = 'flex';
+    }
+  } catch (_) {}
+}
+
+async function flipCamera() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  try { await startCamera(); } catch (_) {}
+}
+
+/* ============================================================
+   CAPTURE & CLASSIFY
+   ============================================================ */
+function captureAndClassify() {
+  const video  = document.getElementById('camera-video');
+  const canvas = document.getElementById('preview-canvas');
+
+  const w = video.videoWidth  || 640;
+  const h = video.videoHeight || 480;
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+
+  capturedURL = canvas.toDataURL('image/jpeg', 0.92);
+  runClassification(canvas, capturedURL);
+}
+
+function handleUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      capturedURL = e.target.result;
+      runClassification(canvas, capturedURL);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runClassification(imageSource, dataURL) {
+  document.getElementById('analysing-img').src = dataURL;
+  setState('analysing');
+
+  try {
+    const predictions = await mnModel.classify(imageSource, 5);
+    showResult(predictions, dataURL);
+  } catch (err) {
+    console.error('Classification error:', err);
+    showResult([], dataURL);
+  }
+}
+
+/* ============================================================
+   MATCH PREDICTIONS TO BIN
+   ============================================================ */
+function matchBin(predictions) {
+  for (const pred of predictions) {
+    const cn = pred.className.toLowerCase();
+    for (const rule of BIN_RULES) {
+      if (rule.keywords.some(kw => cn.includes(kw))) {
+        return { rule, confidence: pred.probability, label: pred.className };
+      }
+    }
+  }
+  return {
+    rule: DEFAULT_RULE,
+    confidence: predictions[0]?.probability || 0,
+    label: predictions[0]?.className || 'Unknown item'
+  };
+}
+
+/* ============================================================
+   SHOW RESULT
+   ============================================================ */
+function showResult(predictions, dataURL) {
+  const UNCERTAIN_THRESHOLD = 0.12;
+  const LOW_CONF_THRESHOLD  = 0.30;
+
+  document.getElementById('result-img').src = dataURL;
+
+  const hasResult = predictions.length > 0 && predictions[0].probability >= UNCERTAIN_THRESHOLD;
+
+  // Toggle cards
+  document.getElementById('result-card').style.display   = hasResult ? 'block' : 'none';
+  document.getElementById('uncertain-card').style.display = hasResult ? 'none'  : 'block';
+  document.getElementById('low-conf-warn').style.display  = 'none';
+
+  if (hasResult) {
+    const { rule, confidence, label } = matchBin(predictions);
+    const pct = Math.round(confidence * 100);
+
+    document.getElementById('result-band').className   = 'result-band ' + rule.bandClass;
+    document.getElementById('r-icon').textContent      = rule.icon;
+    document.getElementById('r-name').textContent      = rule.label;
+    document.getElementById('conf-pill').textContent   = pct > 60 ? 'High confidence' : pct > 30 ? 'Medium confidence' : 'Low confidence';
+    document.getElementById('conf-pct').textContent    = pct + '%';
+    document.getElementById('r-detected').textContent  = label;
+    document.getElementById('r-why').textContent       = rule.why;
+    document.getElementById('r-tip').textContent       = rule.tip;
+
+    if (confidence < LOW_CONF_THRESHOLD) {
+      document.getElementById('low-conf-warn').style.display = 'block';
+    }
+  } else {
+    // Uncertain - populate top guesses list
+    const list = document.getElementById('top-guesses');
+    list.innerHTML = predictions.slice(0, 3).map(p =>
+      `<li><span>${p.className}</span><span class="g-pct">${Math.round(p.probability * 100)}%</span></li>`
+    ).join('') || '<li><span>Could not analyse image</span></li>';
+  }
+
+  setState('result');
+}
+
+function resetToCamera() {
+  document.getElementById('file-input').value = '';
+  setState('camera');
+}
+
+/* ============================================================
+   START
+   ============================================================ */
+init();
+</script>
+</body>
+</html>
