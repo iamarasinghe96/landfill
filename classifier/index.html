@@ -648,7 +648,7 @@
 
     <div class="ai-note">
       <strong>Data Source</strong>
-      Packaging data from Open Food Facts (openfoodfacts.org), a free open food product database. Bin guidance is specific to AlburyCity Council kerbside collection. Always verify unusual items with the Bin Finder or contact AlburyCity Waste on 02 6023 8111.
+      Packaging data from Open Food Facts (openfoodfacts.org). When packaging data is unavailable, bin guidance is estimated by Groq AI (Llama 3.3 70B). Always verify unusual items with the Bin Finder or contact AlburyCity Waste on 02 6023 8111.
     </div>
   </div>
 
@@ -814,6 +814,76 @@ const BIN_META = {
   red:     { label: 'Red Lid - General Waste', bandClass: 'band-red',     icon: '🔴' },
   dropoff: { label: 'Drop-off Required',        bandClass: 'band-dropoff', icon: '🔵' }
 };
+
+/* ============================================================
+   GROQ AI FALLBACK
+   Called when Open Food Facts has no packaging data for a product.
+   ============================================================ */
+const GROQ_KEY   = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+async function classifyWithGroq(product) {
+  const name  = product.product_name || 'Unknown product';
+  const brand = product.brands       || '';
+  const cats  = product.categories   || '';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    signal: controller.signal,
+    headers: {
+      'Authorization': 'Bearer ' + GROQ_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.1,
+      max_tokens: 220,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a waste classification assistant for AlburyCity Council, NSW Australia.
+Classify the PACKAGING of a supermarket product into exactly one bin:
+- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid hard plastic #1 or #2, cardboard boxes, paper, steel or aluminium cans (must be rinsed and clean)
+- "red": Red Lid General Waste — soft plastic packets/bags/chip packets, flexible film, mixed or multi-layer packaging, contaminated items, anything not recyclable kerbside
+- "fogo": Green Lid FOGO — food scraps, soiled compostable packaging (rare for packaged goods)
+- "dropoff": Special Drop-off Required — Tetra Pak/aseptic cartons, batteries, e-waste, medications, paint
+
+Respond ONLY with valid JSON:
+{"bin":"<bin>","type":"<short packaging type, e.g. Soft Plastic Packet>","why":"<one sentence reason for this bin>","tip":"<one sentence disposal tip>"}`
+        },
+        {
+          role: 'user',
+          content: `Product: "${name}"${brand ? ` by ${brand}` : ''}${cats ? `\nCategories: ${cats}` : ''}\n\nWhich AlburyCity kerbside bin does its packaging go in?`
+        }
+      ]
+    })
+  });
+
+  clearTimeout(timeout);
+  if (!res.ok) throw new Error('Groq ' + res.status);
+
+  const data = await res.json();
+  const parsed = JSON.parse(data.choices[0].message.content);
+  if (!['yellow','red','fogo','dropoff'].includes(parsed.bin)) parsed.bin = 'red';
+  return parsed;
+}
+
+function groqToRule(aiResult) {
+  const bin  = aiResult.bin;
+  const meta = BIN_META[bin];
+  return {
+    bin,
+    bandClass: meta.bandClass,
+    icon:      meta.icon,
+    type:      aiResult.type || 'AI Classification',
+    why:       aiResult.why  || 'Classification estimated by AI.',
+    tip:       aiResult.tip  || 'Verify with the Bin Finder if unsure.'
+  };
+}
 
 /* ============================================================
    STATE
@@ -990,12 +1060,25 @@ async function fetchOpenFoodFacts(barcode) {
     const rule = classifyPackaging(product);
 
     if (rule) {
-      showResult(barcode, product, rule);
+      showResult(barcode, product, rule, false);
+      setState('result');
     } else {
-      showNoPackaging(barcode, product);
+      // No packaging data in OFF — ask Groq AI
+      const pname = product.product_name || 'product';
+      document.getElementById('analysing-barcode').textContent = 'Found: ' + pname;
+      document.querySelector('#state-analysing .analysing-body h2').textContent  = 'Asking AI…';
+      document.querySelector('#state-analysing .analysing-body p').textContent   = 'Open Food Facts has no packaging data — checking with Groq AI';
+      try {
+        const aiResult = await classifyWithGroq(product);
+        showResult(barcode, product, groqToRule(aiResult), true);
+      } catch (_) {
+        showNoPackaging(barcode, product);
+      }
+      // reset analysing text for next scan
+      document.querySelector('#state-analysing .analysing-body h2').textContent  = 'Looking up product...';
+      document.querySelector('#state-analysing .analysing-body p').textContent   = 'Checking Open Food Facts database';
+      setState('result');
     }
-
-    setState('result');
   } catch (err) {
     if (err.name === 'AbortError') {
       showUncertain('Request Timed Out', 'Could not reach Open Food Facts. Check your internet connection and try again.', null);
@@ -1060,7 +1143,7 @@ function classifyPackaging(product) {
 /* ============================================================
    DISPLAY FUNCTIONS
    ============================================================ */
-function showResult(barcode, product, rule) {
+function showResult(barcode, product, rule, isAI = false) {
   // Product image
   if (product.image_url) {
     document.getElementById('result-img').src = product.image_url;
@@ -1072,7 +1155,15 @@ function showResult(barcode, product, rule) {
 
   document.getElementById('result-card').style.display    = 'block';
   document.getElementById('uncertain-card').style.display = 'none';
-  document.getElementById('low-conf-warn').style.display  = 'none';
+
+  // Show AI disclaimer when classification came from Groq
+  const warn = document.getElementById('low-conf-warn');
+  if (isAI) {
+    warn.style.display = 'block';
+    warn.innerHTML = '<strong>AI Estimated — Please Verify</strong>No packaging data was found in Open Food Facts. This bin was determined by Groq AI based on the product name and category. Confirm with the Bin Finder if in doubt.';
+  } else {
+    warn.style.display = 'none';
+  }
 
   const name   = product.product_name || 'Unknown product';
   const brand  = product.brands       || '';
@@ -1082,7 +1173,7 @@ function showResult(barcode, product, rule) {
   document.getElementById('r-icon').textContent    = rule.icon;
   document.getElementById('r-name').textContent    = BIN_META[rule.bin].label;
   document.getElementById('r-sub').textContent     = 'AlburyCity Council';
-  document.getElementById('conf-pill').textContent = 'Open Food Facts';
+  document.getElementById('conf-pill').textContent = isAI ? 'Groq AI' : 'Open Food Facts';
   document.getElementById('conf-pct').textContent  = barcode;
   document.getElementById('packaging-tag').textContent = rule.type;
   document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
