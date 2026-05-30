@@ -632,18 +632,54 @@
       background: #5D6D7E;
     }
 
+    /* ARL-style badge icons */
+    .arl-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      background: #1a1a1a;
+      border-radius: 9px;
+      padding: 5px 7px 7px;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .arl-label {
+      color: #fff;
+      font-size: 7px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .arl-label span { display: block; }
+    .arl-circle {
+      width: 42px;
+      height: 42px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .arl-circle svg { width: 26px; height: 26px; }
+    .arl-badge-sm { padding: 3px 5px 5px; gap: 2px; border-radius: 7px; }
+    .arl-badge-sm .arl-label { font-size: 6px; }
+    .arl-badge-sm .arl-circle { width: 28px; height: 28px; }
+    .arl-badge-sm .arl-circle svg { width: 17px; height: 17px; }
+
     /* Secondary bin strip */
     .r-secondary {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 11px 24px;
+      padding: 10px 20px;
       color: #fff;
       font-size: 13px;
       font-weight: 600;
       border-top: 2px solid rgba(255,255,255,0.15);
     }
-    .r-secondary-icon { font-size: 20px; flex-shrink: 0; }
+    .r-secondary-icon { flex-shrink: 0; }
     .r-secondary-label { opacity: 0.82; font-size: 11px; font-weight: 400; display: block; margin-top: 1px; }
 
     footer {
@@ -727,6 +763,10 @@
           <span id="btn-label">Scan Barcode</span>
         </button>
         <div class="upload-row">
+          <button class="btn-sec" id="btn-photo-id" onclick="startPhotoMode()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Identify by Photo
+          </button>
           <button class="btn-sec" id="btn-cancel-photo" onclick="cancelPhotoMode()" style="display:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Cancel Photo
@@ -1095,6 +1135,36 @@ const BIN_META = {
 };
 
 /* ============================================================
+   ARL-STYLE BADGE ICONS
+   ============================================================ */
+const BIN_ARL = {
+  yellow: {
+    lines: ['Recycle'],
+    path: 'M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z'
+  },
+  red: {
+    lines: ['General', 'Waste'],
+    path: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'
+  },
+  fogo: {
+    lines: ['FOGO'],
+    path: 'M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 5.25-13 6.25C5.91 9.82 4 10.75 4 10.75c.5.5 1.5 2 3 2.75C8.5 14 12 12 13.5 10 15 8 17 8z'
+  },
+  dropoff: {
+    lines: ['Check', 'Locally'],
+    path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'
+  }
+};
+
+function makeARLBadge(bin, small = false) {
+  const def = BIN_ARL[bin];
+  if (!def) return '';
+  const smCls = small ? ' arl-badge-sm' : '';
+  const label = def.lines.map(l => `<span>${l}</span>`).join('');
+  return `<div class="arl-badge${smCls}"><div class="arl-label">${label}</div><div class="arl-circle"><svg viewBox="0 0 24 24" fill="#111" xmlns="http://www.w3.org/2000/svg"><path d="${def.path}"/></svg></div></div>`;
+}
+
+/* ============================================================
    GROQ AI FALLBACK
    Called when Open Food Facts has no packaging data for a product.
    ============================================================ */
@@ -1249,6 +1319,7 @@ async function startPhotoMode() {
   document.getElementById('cam-tip').textContent = 'Point at the product, then tap the shutter';
   document.getElementById('btn-shutter').classList.add('visible');
   document.getElementById('btn-capture').style.display = 'none';
+  document.getElementById('btn-photo-id').style.display = 'none';
   document.getElementById('btn-cancel-photo').style.display = '';
 
   const deviceId = videoDevices[deviceIndex]?.deviceId || null;
@@ -1279,6 +1350,7 @@ function resetPhotoModeUI() {
   document.getElementById('cam-frame').classList.remove('photo-mode');
   document.getElementById('camera-viewport').classList.remove('photo-mode-vp');
   document.getElementById('btn-capture').style.display = '';
+  document.getElementById('btn-photo-id').style.display = '';
   document.getElementById('btn-cancel-photo').style.display = 'none';
   document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
 }
@@ -1678,7 +1750,7 @@ function showResult(identifier, product, rule, isAI = false) {
   const qty    = product.quantity     || '';
 
   document.getElementById('result-band').className = 'result-band ' + rule.bandClass;
-  document.getElementById('r-icon').textContent    = rule.icon;
+  document.getElementById('r-icon').innerHTML      = makeARLBadge(rule.bin);
   document.getElementById('r-name').textContent    = BIN_META[rule.bin].label;
   document.getElementById('r-sub').textContent     = 'AlburyCity Council';
   document.getElementById('packaging-tag').textContent = rule.type;
@@ -1704,7 +1776,7 @@ function showResult(identifier, product, rule, isAI = false) {
   if (rule.secondary) {
     const s = rule.secondary;
     sec.className = 'r-secondary ' + s.bandClass;
-    document.getElementById('r-secondary-icon').textContent = s.icon;
+    document.getElementById('r-secondary-icon').innerHTML   = makeARLBadge(s.bin, true);
     document.getElementById('r-secondary-part').textContent = s.part;
     document.getElementById('r-secondary-label').textContent = s.label;
     sec.style.display = 'flex';
