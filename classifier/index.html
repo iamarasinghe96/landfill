@@ -556,6 +556,68 @@
     }
     .ai-note strong { display: block; margin-bottom: 3px; font-size: 13px; }
 
+    /* ---- PHOTO MODE ---- */
+    .btn-shutter {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      border: 3px solid rgba(255,255,255,0.85);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      pointer-events: all;
+      transition: transform 0.1s, background 0.1s;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.45);
+    }
+    .btn-shutter.visible { display: flex; }
+    .btn-shutter:active { transform: translateX(-50%) scale(0.88); background: rgba(255,255,255,0.38); }
+    .btn-shutter-inner {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .cam-flash {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s;
+      z-index: 30;
+    }
+    /* Square frame for photo mode */
+    .cam-frame.photo-mode {
+      width: min(250px, 78%);
+      height: min(250px, 78%);
+    }
+    /* Photo button */
+    .btn-photo {
+      background: linear-gradient(135deg, #6C3483, #8E44AD);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      transition: opacity 0.18s;
+      width: 100%;
+    }
+    .btn-photo:hover { opacity: 0.88; }
+    .btn-photo.cancel-mode {
+      background: #5D6D7E;
+    }
+
     footer {
       text-align: center;
       padding: 24px 16px;
@@ -610,11 +672,17 @@
         <video id="camera-video" autoplay playsinline muted></video>
         <canvas id="preview-canvas"></canvas>
         <div class="cam-overlay">
-          <div class="cam-frame">
+          <div class="cam-frame" id="cam-frame">
             <div class="scan-line"></div>
           </div>
           <div class="cam-tip" id="cam-tip">Align barcode within the frame</div>
         </div>
+        <!-- Shutter button — shown only in photo mode -->
+        <button class="btn-shutter" id="btn-shutter" onclick="capturePhoto()">
+          <div class="btn-shutter-inner"></div>
+        </button>
+        <!-- Flash overlay for shutter effect -->
+        <div class="cam-flash" id="cam-flash"></div>
         <!-- Torch button — shown only while scanning, hidden if device has no torch -->
         <button class="btn-torch" id="btn-torch" onclick="toggleTorch()" title="Toggle flashlight">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -626,6 +694,10 @@
       </div>
       <div class="camera-controls">
         <p class="no-cam-note" id="no-cam-note">Camera not available or permission denied - upload a product photo or enter barcode manually below.</p>
+        <button class="btn-photo" id="btn-photo" onclick="startPhotoMode()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Take Photo of Product
+        </button>
         <button class="btn-capture" id="btn-capture" onclick="toggleScanning()">
           <svg id="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h2v2H7zM7 11h2v2H7zM7 15h2v2H7zM11 7h6v2h-6zM11 11h6v2h-6zM11 15h6v2h-6z"/></svg>
           <span id="btn-label">Scan Barcode</span>
@@ -668,7 +740,7 @@
     </div>
     <div class="ai-note" style="margin-top:12px">
       <strong>How it works</strong>
-      Scan or upload a product barcode — packaging info is looked up from Open Food Facts. If no packaging data exists, Groq AI classifies the product. No barcode? Use the name search below the scanner.
+      Scan a barcode or take a photo of the product. Barcodes are looked up in Open Food Facts; if no packaging data exists, Groq AI fills in the gap. For items without a barcode, photograph the product or type its name — Groq Vision AI identifies and classifies it instantly.
     </div>
   </div>
 
@@ -983,6 +1055,166 @@ function groqToRule(aiResult) {
     why:       aiResult.why  || 'Classification estimated by AI.',
     tip:       aiResult.tip  || 'Verify with the Bin Finder if unsure.'
   };
+}
+
+/* ============================================================
+   GROQ VISION — identify product from a photo
+   ============================================================ */
+async function classifyWithGroqVision(base64Image) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    signal: controller.signal,
+    headers: {
+      'Authorization': 'Bearer ' + GROQ_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'llama-3.2-11b-vision-preview',
+      temperature: 0.1,
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `You are a waste classification expert for AlburyCity Council, NSW Australia.
+Look at this image and identify the product or item shown, then classify which bin it goes in.
+
+Bins:
+- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid hard plastic (#1 PET, #2 HDPE), clean cardboard/paper, metal cans (must be rinsed)
+- "red": Red Lid General Waste — soft plastic packets/bags/film/chip packets, mixed/flexible packaging, nappies, broken ceramics, contaminated items
+- "fogo": Green Lid FOGO — food scraps, garden organics, soiled compostable packaging
+- "dropoff": Special Drop-off — batteries, e-waste, medicines, paint, chemicals, Tetra Pak cartons, blister packs, light globes
+
+Respond ONLY with valid JSON:
+{"name":"identified item or product name","bin":"yellow|red|fogo|dropoff","type":"short packaging/material type","why":"one sentence reason","tip":"one sentence tip for drop-off items, empty string otherwise"}`
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/jpeg;base64,' + base64Image }
+          }
+        ]
+      }]
+    })
+  });
+
+  clearTimeout(timeout);
+  if (!res.ok) throw new Error('Groq vision ' + res.status);
+  const data = await res.json();
+  const parsed = JSON.parse(data.choices[0].message.content);
+  if (!['yellow','red','fogo','dropoff'].includes(parsed.bin)) parsed.bin = 'red';
+  return parsed;
+}
+
+/* ============================================================
+   PHOTO MODE — open camera, show shutter, capture + analyse
+   ============================================================ */
+let photoStream = null;
+
+async function startPhotoMode() {
+  // Stop barcode scanning if active
+  if (isScanning) await stopScanning(false);
+
+  // Show camera viewport
+  document.getElementById('camera-viewport').style.display = 'block';
+
+  try {
+    const deviceId = videoDevices[deviceIndex]?.deviceId;
+    const constraints = deviceId
+      ? { video: { deviceId: { exact: deviceId }, facingMode: 'environment' } }
+      : { video: { facingMode: 'environment' } };
+
+    photoStream = await navigator.mediaDevices.getUserMedia(constraints);
+    const video = document.getElementById('camera-video');
+    video.srcObject = photoStream;
+
+    // Switch to square frame + shutter UI
+    document.getElementById('cam-frame').classList.add('photo-mode');
+    document.getElementById('cam-tip').textContent = 'Point at the product, then tap the shutter';
+    document.getElementById('btn-shutter').classList.add('visible');
+    document.getElementById('btn-capture').style.display = 'none';
+    document.getElementById('btn-photo').classList.add('cancel-mode');
+    document.getElementById('btn-photo').innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Cancel Photo`;
+    document.getElementById('btn-photo').onclick = cancelPhotoMode;
+
+    showTorchIfAvailable();
+  } catch (_) {
+    document.getElementById('camera-viewport').style.display = 'none';
+    document.getElementById('no-cam-note').style.display = 'block';
+  }
+}
+
+function cancelPhotoMode() {
+  stopPhotoStream();
+  document.getElementById('btn-shutter').classList.remove('visible');
+  document.getElementById('cam-frame').classList.remove('photo-mode');
+  document.getElementById('camera-viewport').style.display = 'none';
+  document.getElementById('btn-capture').style.display = '';
+  document.getElementById('btn-photo').classList.remove('cancel-mode');
+  document.getElementById('btn-photo').innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Take Photo of Product`;
+  document.getElementById('btn-photo').onclick = startPhotoMode;
+  document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
+  hideTorch();
+}
+
+function stopPhotoStream() {
+  if (photoStream) {
+    photoStream.getTracks().forEach(t => t.stop());
+    photoStream = null;
+    const video = document.getElementById('camera-video');
+    if (video.srcObject === photoStream || !isScanning) video.srcObject = null;
+  }
+}
+
+async function capturePhoto() {
+  const video = document.getElementById('camera-video');
+  if (!video.srcObject) return;
+
+  // Resize to max 800px to keep payload small
+  const MAX = 800;
+  let w = video.videoWidth  || 640;
+  let h = video.videoHeight || 480;
+  if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+
+  // Flash animation
+  const flash = document.getElementById('cam-flash');
+  flash.style.opacity = '1';
+  setTimeout(() => { flash.style.opacity = '0'; }, 180);
+
+  const base64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+
+  cancelPhotoMode();
+
+  document.querySelector('#state-analysing .analysing-body h2').textContent = 'Analysing photo…';
+  document.querySelector('#state-analysing .analysing-body p').textContent  = 'Groq Vision AI is identifying the product';
+  document.getElementById('analysing-barcode').textContent = 'Photo capture';
+  setState('analysing');
+
+  try {
+    const aiResult = await classifyWithGroqVision(base64);
+    const mockProduct = {
+      product_name: aiResult.name || 'Photographed item',
+      brands: '', image_url: null, quantity: ''
+    };
+    showResult(aiResult.name || 'Photo', mockProduct, groqToRule(aiResult), true);
+  } catch (_) {
+    showUncertain('Photo Analysis Failed', 'Could not identify the product from the photo. Try the name search below instead.', null);
+  }
+
+  document.querySelector('#state-analysing .analysing-body h2').textContent = 'Looking up product...';
+  document.querySelector('#state-analysing .analysing-body p').textContent  = 'Checking Open Food Facts database';
+  setState('result');
 }
 
 /* ============================================================
@@ -1414,6 +1646,7 @@ function showUncertain(heading, body, detail) {
    ============================================================ */
 async function resetToCamera() {
   if (isScanning) await stopScanning(true);
+  if (photoStream) cancelPhotoMode();
   codeReader.reset();
   document.getElementById('file-input').value = '';
   document.getElementById('manual-barcode').value = '';
