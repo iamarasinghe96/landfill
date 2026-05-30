@@ -427,8 +427,9 @@
       gap: 14px;
     }
     .r-icon  { flex-shrink: 0; }
-    .r-name  { font-size: 22px; font-weight: 800; line-height: 1.15; }
-    .r-sub   { font-size: 13px; opacity: 0.82; margin-top: 3px; }
+    .rb-info { flex: 1; min-width: 0; }
+    .r-name  { font-size: 17px; font-weight: 800; line-height: 1.2; }
+    .r-sub   { font-size: 12px; opacity: 0.8; margin-top: 3px; font-weight: 500; }
     .r-conf  { margin-left: auto; text-align: center; flex-shrink: 0; }
     .conf-pill {
       font-size: 10px; font-weight: 700;
@@ -664,19 +665,18 @@
     }
     .arl-circle svg { width: 20px; height: 20px; }
 
-    /* Secondary bin strip */
+    /* Secondary bin strip — mirrors main band structure */
     .r-secondary {
       display: flex;
       align-items: center;
       gap: 14px;
       padding: 16px 20px;
       color: #fff;
-      font-size: 13px;
-      font-weight: 600;
       border-top: 2px solid rgba(255,255,255,0.15);
     }
     .r-secondary-icon { flex-shrink: 0; }
-    .r-secondary-label { opacity: 0.82; font-size: 11px; font-weight: 400; display: block; margin-top: 3px; }
+    .r-secondary-part  { font-size: 17px; font-weight: 800; line-height: 1.2; display: block; }
+    .r-secondary-label { font-size: 12px; opacity: 0.8; font-weight: 500; display: block; margin-top: 3px; }
 
     footer {
       text-align: center;
@@ -833,8 +833,9 @@
     <div class="result-card" id="result-card">
       <div class="result-band" id="result-band">
         <div class="r-icon" id="r-icon"></div>
-        <div>
+        <div class="rb-info">
           <div class="r-name" id="r-name"></div>
+          <div class="r-sub"  id="r-sub"></div>
         </div>
         <div class="r-conf" id="r-conf">
           <span class="conf-pill" id="conf-pill">Open Food Facts</span>
@@ -843,13 +844,12 @@
       </div>
       <div class="r-secondary" id="r-secondary" style="display:none">
         <div class="r-secondary-icon" id="r-secondary-icon"></div>
-        <div>
-          <span id="r-secondary-part"></span>
-          <span class="r-secondary-label" id="r-secondary-label"></span>
+        <div class="rb-info">
+          <div class="r-secondary-part"  id="r-secondary-part"></div>
+          <div class="r-secondary-label" id="r-secondary-label"></div>
         </div>
       </div>
       <div class="result-body">
-        <div class="packaging-tag" id="packaging-tag"></div>
         <div class="r-detected">Product: <strong id="r-detected"></strong></div>
         <div class="r-why" id="r-why"></div>
         <div class="r-tip" id="r-tip-wrap" style="display:none">
@@ -915,7 +915,7 @@ const PACKAGING_RULES = [
     bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
     why: 'Empty aerosol cans are accepted in the yellow recycling bin in Australia. The metal can body is fully recyclable once completely empty.',
     tip: 'Make sure the can is completely empty before recycling — never puncture. The plastic cap goes in the red general waste bin.',
-    secondary: { part: 'Plastic cap → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+    secondary: { part: 'Plastic cap', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
   },
   {
     pattern: /twist.?off|metal.?cap|tin.?lid/i,
@@ -996,7 +996,7 @@ const PACKAGING_RULES = [
     bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
     why: 'Tetra Pak cartons are made from layers of paperboard, plastic, and aluminium that cannot be separated in standard kerbside MRF machinery. They are not accepted in the yellow recycling bin.',
     tip: 'Take Tetra Pak cartons to a dedicated Tetra Pak recycling drop-off point. Check RecyclingNearYou.com.au for the nearest location in Albury-Wodonga.',
-    secondary: { part: 'Plastic straw / cap → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+    secondary: { part: 'Plastic straw / cap', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
   },
   {
     pattern: /\bcork\b/i,
@@ -1013,7 +1013,7 @@ const PACKAGING_RULES = [
     bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
     why: 'Blister packs are made from bonded layers of aluminium and PVC that standard kerbside recycling cannot separate or process. They must not go in the yellow recycling bin or the red general waste bin.',
     tip: 'PharmaCycle recovers blister pack materials. Drop empty packs at any Chemist Warehouse or participating pharmacy — all accept them across Australia. Find your nearest drop-off at pharmacycle.com.au/find-a-location. Tip: keep a small jar at home to collect packs so you can drop them off on your next chemist visit.',
-    secondary: { part: 'Cardboard box → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
+    secondary: { part: 'Cardboard outer box', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
     pattern: /crown.?seal|crown.?cap|crown.?cork|bottle.?top/i,
@@ -1062,7 +1062,7 @@ const PACKAGING_RULES = [
     bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
     why: 'Clean, grease-free cardboard sections of a pizza box are recyclable in the yellow bin. Grease soaks into the fibres and contaminates other recyclables.',
     tip: 'Tear off the clean dry lid for the yellow bin. Put the greasy base in the FOGO green bin — food-soiled cardboard composts well.',
-    secondary: { part: 'Greasy base → FOGO Green Lid', bin: 'fogo', bandClass: 'band-fogo', icon: '🟢', label: 'Green Lid - FOGO' }
+    secondary: { part: 'Greasy base', bin: 'fogo', bandClass: 'band-fogo', icon: '🟢', label: 'Green Lid - FOGO' }
   },
   {
     pattern: /cereal|corn.?flakes|muesli|granola|weetbix|weet-bix|rolled.?oats|cracker.*box|biscuit.*box/i,
@@ -1071,7 +1071,7 @@ const PACKAGING_RULES = [
     bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
     why: 'The outer cardboard cereal or cracker box is clean dry cardboard — fully recyclable in the yellow bin. Flatten it before placing in the bin.',
     tip: 'Remove the inner plastic bag liner before recycling the box — it is soft plastic and must go in the red general waste bin.',
-    secondary: { part: 'Plastic inner bag → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+    secondary: { part: 'Plastic inner bag', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
   },
   {
     pattern: /yogurt|yoghurt|fromage.?frais/i,
@@ -1080,7 +1080,7 @@ const PACKAGING_RULES = [
     bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
     why: 'Yogurt tubs are usually polypropylene (PP #5) — accepted in the yellow recycling bin when rinsed.',
     tip: 'Peel off the foil lid and discard it in the red general waste bin (too small and thin for sorting machinery). Rinse the tub and recycle.',
-    secondary: { part: 'Foil peel lid → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+    secondary: { part: 'Foil peel lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
   },
   {
     pattern: /frozen.?meal|ready.?meal|microwave.?meal|frozen.?dinner|frozen.?lasagne|frozen.?pasta/i,
@@ -1089,7 +1089,7 @@ const PACKAGING_RULES = [
     bin: 'red', bandClass: 'band-red', icon: '🔴',
     why: 'Frozen meal trays are often multi-layer plastic or foam that cannot be recycled kerbside. The plastic film seal and plastic tray go in the red general waste bin.',
     tip: 'Tear off and flatten the printed cardboard sleeve — it goes in the yellow recycling bin.',
-    secondary: { part: 'Cardboard sleeve → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
+    secondary: { part: 'Cardboard sleeve', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
     pattern: /pringles|composite.*tube|oats.*canister|canister.*oats|powdered.*drink.*tin|hot.?choc.*tin/i,
@@ -1098,7 +1098,7 @@ const PACKAGING_RULES = [
     bin: 'red', bandClass: 'band-red', icon: '🔴',
     why: 'Composite tubes bond cardboard, metal foil, and plastic into a single inseparable material. They cannot be recycled and go in the red general waste bin.',
     tip: 'The separate plastic lid can go in the yellow recycling bin — remove it before disposing of the tube.',
-    secondary: { part: 'Plastic lid → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
+    secondary: { part: 'Plastic lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
     pattern: /takeaway.?cup|coffee.?cup|disposable.?cup|paper.?cup|hot.?drink.?cup/i,
@@ -1107,7 +1107,7 @@ const PACKAGING_RULES = [
     bin: 'red', bandClass: 'band-red', icon: '🔴',
     why: 'Takeaway coffee cups have a plastic inner lining heat-fused to the paper that cannot be separated, making them non-recyclable in kerbside bins.',
     tip: 'Snap off the plastic lid and place it in the yellow recycling bin. The cardboard sleeve (if any) also goes in the yellow bin.',
-    secondary: { part: 'Plastic lid → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
+    secondary: { part: 'Plastic lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
     pattern: /cardboard|paperboard|paper.?box|carton.?box/i,
@@ -1746,8 +1746,8 @@ function showResult(identifier, product, rule, isAI = false) {
 
   document.getElementById('result-band').className = 'result-band ' + rule.bandClass;
   document.getElementById('r-icon').innerHTML      = makeARLBadge(rule.bin);
-  document.getElementById('r-name').textContent    = BIN_META[rule.bin].label;
-  document.getElementById('packaging-tag').textContent = rule.type;
+  document.getElementById('r-name').textContent    = rule.type;
+  document.getElementById('r-sub').textContent     = BIN_META[rule.bin].label;
   document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
   document.getElementById('r-why').textContent = rule.why;
 
