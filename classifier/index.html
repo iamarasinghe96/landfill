@@ -699,6 +699,10 @@
           <span id="btn-label">Scan Barcode</span>
         </button>
         <div class="upload-row">
+          <button class="btn-sec" id="btn-cancel-photo" onclick="cancelPhotoMode()" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Cancel Photo
+          </button>
           <button class="btn-sec" id="btn-flip" onclick="flipCamera()" style="display:none">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
             Flip Camera
@@ -1114,76 +1118,55 @@ Respond ONLY with valid JSON:
 }
 
 /* ============================================================
-   PHOTO MODE — open camera, show shutter, capture + analyse
+   PHOTO MODE — reuses ZXing's camera stream to avoid iOS getUserMedia conflicts
    ============================================================ */
-let photoStream = null;
+let photoModeActive = false;
 
 async function startPhotoMode() {
-  // Stop barcode scanning if active and give iOS time to release the camera
-  if (isScanning) await stopScanning(false);
   document.getElementById('no-cam-note').style.display = 'none';
-
-  // Show camera viewport
   document.getElementById('camera-viewport').style.display = 'block';
+  document.getElementById('cam-frame').classList.add('photo-mode');
+  document.getElementById('cam-tip').textContent = 'Point at the product, then tap the shutter';
+  document.getElementById('btn-shutter').classList.add('visible');
+  document.getElementById('btn-capture').style.display = 'none';
+  document.getElementById('btn-cancel-photo').style.display = '';
 
-  // Brief pause so ZXing fully releases the stream before getUserMedia
-  await new Promise(r => setTimeout(r, 400));
-
+  const deviceId = videoDevices[deviceIndex]?.deviceId || null;
   try {
-    // Keep constraints simple — iOS rejects deviceId: exact when switching streams
-    const constraints = { video: { facingMode: { ideal: 'environment' } } };
-
-    photoStream = await navigator.mediaDevices.getUserMedia(constraints);
-    const video = document.getElementById('camera-video');
-    video.srcObject = photoStream;
-
-    // Switch to square frame + shutter UI
-    document.getElementById('cam-frame').classList.add('photo-mode');
-    document.getElementById('cam-tip').textContent = 'Point at the product, then tap the shutter';
-    document.getElementById('btn-shutter').classList.add('visible');
-    document.getElementById('btn-capture').style.display = 'none';
-    document.getElementById('btn-photo').classList.add('cancel-mode');
-    document.getElementById('btn-photo').innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      Cancel Photo`;
-    document.getElementById('btn-photo').onclick = cancelPhotoMode;
-
+    photoModeActive = true;
+    await codeReader.decodeFromVideoDevice(deviceId, 'camera-video', () => {
+      /* photo mode — ignore any barcodes detected by ZXing */
+    });
     showTorchIfAvailable();
   } catch (_) {
+    photoModeActive = false;
     document.getElementById('camera-viewport').style.display = 'none';
     document.getElementById('no-cam-note').style.display = 'block';
+    resetPhotoModeUI();
   }
 }
 
 function cancelPhotoMode() {
-  stopPhotoStream();
-  document.getElementById('btn-shutter').classList.remove('visible');
-  document.getElementById('cam-frame').classList.remove('photo-mode');
-  document.getElementById('camera-viewport').style.display = 'none';
-  document.getElementById('btn-capture').style.display = '';
-  document.getElementById('btn-photo').classList.remove('cancel-mode');
-  document.getElementById('btn-photo').innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    Take Photo of Product`;
-  document.getElementById('btn-photo').onclick = startPhotoMode;
-  document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
+  photoModeActive = false;
+  codeReader.reset();
   hideTorch();
+  document.getElementById('camera-viewport').style.display = 'none';
+  resetPhotoModeUI();
 }
 
-function stopPhotoStream() {
-  if (photoStream) {
-    photoStream.getTracks().forEach(t => t.stop());
-    photoStream = null;
-    const video = document.getElementById('camera-video');
-    if (video.srcObject === photoStream || !isScanning) video.srcObject = null;
-  }
+function resetPhotoModeUI() {
+  document.getElementById('btn-shutter').classList.remove('visible');
+  document.getElementById('cam-frame').classList.remove('photo-mode');
+  document.getElementById('btn-capture').style.display = '';
+  document.getElementById('btn-cancel-photo').style.display = 'none';
+  document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
 }
 
 async function capturePhoto() {
+  if (!photoModeActive) return;
   const video = document.getElementById('camera-video');
   if (!video.srcObject) return;
 
-  // Resize to max 800px to keep payload small
   const MAX = 800;
   let w = video.videoWidth  || 640;
   let h = video.videoHeight || 480;
@@ -1192,13 +1175,11 @@ async function capturePhoto() {
   canvas.width = w; canvas.height = h;
   canvas.getContext('2d').drawImage(video, 0, 0, w, h);
 
-  // Flash animation
   const flash = document.getElementById('cam-flash');
   flash.style.opacity = '1';
   setTimeout(() => { flash.style.opacity = '0'; }, 180);
 
   const base64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
-
   cancelPhotoMode();
 
   document.querySelector('#state-analysing .analysing-body h2').textContent = 'Analysing photo…';
@@ -1208,10 +1189,7 @@ async function capturePhoto() {
 
   try {
     const aiResult = await classifyWithGroqVision(base64);
-    const mockProduct = {
-      product_name: aiResult.name || 'Photographed item',
-      brands: '', image_url: null, quantity: ''
-    };
+    const mockProduct = { product_name: aiResult.name || 'Photographed item', brands: '', image_url: null, quantity: '' };
     showResult(aiResult.name || 'Photo', mockProduct, groqToRule(aiResult), true);
   } catch (_) {
     showUncertain('Photo Analysis Failed', 'Could not identify the product from the photo. Try the name search below instead.', null);
@@ -1656,7 +1634,7 @@ async function tryPhotoFromResult() {
    ============================================================ */
 async function resetToCamera() {
   if (isScanning) await stopScanning(true);
-  if (photoStream) cancelPhotoMode();
+  if (photoModeActive) cancelPhotoMode();
   codeReader.reset();
   document.getElementById('file-input').value = '';
   document.getElementById('manual-barcode').value = '';
