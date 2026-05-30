@@ -699,16 +699,12 @@
           <span id="btn-label">Scan Barcode</span>
         </button>
         <div class="upload-row">
-          <button class="btn-sec" onclick="document.getElementById('file-input').click()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Product Photo
-          </button>
           <button class="btn-sec" id="btn-flip" onclick="flipCamera()" style="display:none">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
             Flip Camera
           </button>
         </div>
-        <input type="file" id="file-input" accept="image/*" onchange="handleUpload(event)">
+        <input type="file" id="file-input" accept="image/*" onchange="handleUpload(event)" style="display:none">
         <div class="manual-entry">
           <button class="manual-toggle" onclick="toggleManual()">Enter barcode number manually</button>
           <div class="manual-input-row" id="manual-input-row">
