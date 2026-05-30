@@ -748,6 +748,13 @@
         <h2>Looking up product...</h2>
         <p>Checking Open Food Facts database</p>
         <div class="analysing-barcode" id="analysing-barcode"></div>
+        <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px">
+          <p style="font-size:12.5px;color:var(--text-sm);margin-bottom:12px">Barcode not working? Identify by photo instead.</p>
+          <button class="btn-photo" onclick="tryPhotoFromResult()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Try Photo Identification
+          </button>
+        </div>
       </div>
     </div>
   </div>
