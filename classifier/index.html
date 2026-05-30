@@ -632,6 +632,20 @@
       background: #5D6D7E;
     }
 
+    /* Secondary bin strip */
+    .r-secondary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 24px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border-top: 2px solid rgba(255,255,255,0.15);
+    }
+    .r-secondary-icon { font-size: 20px; flex-shrink: 0; }
+    .r-secondary-label { opacity: 0.82; font-size: 11px; font-weight: 400; display: block; margin-top: 1px; }
+
     footer {
       text-align: center;
       padding: 24px 16px;
@@ -792,6 +806,13 @@
           <span class="conf-pct" id="conf-pct"></span>
         </div>
       </div>
+      <div class="r-secondary" id="r-secondary" style="display:none">
+        <div class="r-secondary-icon" id="r-secondary-icon"></div>
+        <div>
+          <span id="r-secondary-part"></span>
+          <span class="r-secondary-label" id="r-secondary-label"></span>
+        </div>
+      </div>
       <div class="result-body">
         <div class="packaging-tag" id="packaging-tag"></div>
         <div class="r-detected">Product: <strong id="r-detected"></strong></div>
@@ -852,6 +873,15 @@
    First match wins. Each rule maps to an AlburyCity bin.
    ============================================================ */
 const PACKAGING_RULES = [
+  {
+    pattern: /aerosol|spray.?can|deodorant.*spray|hairspray|air.*freshener|pressurised.?can|pressurized.?can/i,
+    tags: ['aerosol-can','aerosol','spray-can','pressurised-can'],
+    type: 'Aerosol Can',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Empty aerosol cans are accepted in the yellow recycling bin in Australia. The metal can body is fully recyclable once completely empty.',
+    tip: 'Make sure the can is completely empty before recycling — never puncture. The plastic cap goes in the red general waste bin.',
+    secondary: { part: 'Plastic cap → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+  },
   {
     pattern: /twist.?off|metal.?cap|tin.?lid/i,
     tags: ['metal-screw-cap','twist-off-cap','metal-cap','tin-lid'],
@@ -1040,10 +1070,12 @@ async function classifyWithGroq(product) {
           role: 'system',
           content: `You are a waste classification assistant for AlburyCity Council, NSW Australia.
 Classify the PACKAGING of a supermarket product into exactly one bin:
-- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid hard plastic #1 or #2, cardboard boxes, paper, steel or aluminium cans (must be rinsed and clean)
-- "red": Red Lid General Waste — soft plastic packets/bags/chip packets, flexible film, mixed or multi-layer packaging, contaminated items, anything not recyclable kerbside
+- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid hard plastic #1 or #2, cardboard boxes, paper, steel/aluminium cans, empty aerosol cans (must be rinsed and clean)
+- "red": Red Lid General Waste — soft plastic packets/bags/chip packets, flexible film, mixed or multi-layer packaging, plastic caps/lids, contaminated items
 - "fogo": Green Lid FOGO — food scraps, soiled compostable packaging (rare for packaged goods)
 - "dropoff": Special Drop-off Required — Tetra Pak/aseptic cartons, batteries, e-waste, medications, paint
+
+IMPORTANT: For aerosol cans, the EMPTY CAN goes in "yellow" (recyclable metal). Classify by the main container, not the cap.
 
 Respond ONLY with valid JSON:
 {"bin":"<bin>","type":"<short packaging type, e.g. Soft Plastic Packet>","why":"<one sentence reason for this bin>","tip":"<one sentence disposal tip>"}`
@@ -1573,8 +1605,7 @@ function showResult(identifier, product, rule, isAI = false) {
   document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
   document.getElementById('r-why').textContent = rule.why;
 
-  // Show 💡 tip only for drop-off items — these need special disposal instructions.
-  // For red/yellow/fogo the bin is clear and no extra action tip is needed.
+  // Show 💡 tip only for drop-off items
   const tipWrap = document.getElementById('r-tip-wrap');
   if (rule.bin === 'dropoff') {
     tipWrap.style.display = 'flex';
@@ -1583,6 +1614,19 @@ function showResult(identifier, product, rule, isAI = false) {
       : rule.tip;
   } else {
     tipWrap.style.display = 'none';
+  }
+
+  // Secondary bin strip — shown when a product has separable parts going in different bins
+  const sec = document.getElementById('r-secondary');
+  if (rule.secondary) {
+    const s = rule.secondary;
+    sec.className = 'r-secondary ' + s.bandClass;
+    document.getElementById('r-secondary-icon').textContent = s.icon;
+    document.getElementById('r-secondary-part').textContent = s.part;
+    document.getElementById('r-secondary-label').textContent = s.label;
+    sec.style.display = 'flex';
+  } else {
+    sec.style.display = 'none';
   }
 }
 
