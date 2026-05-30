@@ -336,6 +336,36 @@
       color: var(--text-sm);
     }
     .no-results .emoji { font-size: 36px; margin-bottom: 10px; }
+    .ai-badge {
+      display: inline-block;
+      background: #EBF5FB;
+      color: #1A5276;
+      border: 1px solid #AED6F1;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 5px;
+      vertical-align: middle;
+      letter-spacing: 0.5px;
+      margin-left: 4px;
+    }
+    .ai-search-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 28px 20px;
+      color: var(--text-sm);
+      font-size: 13px;
+    }
+    .ai-search-loading .mini-spin {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
 
     /* Bin quick guide */
     .bin-quick-guide {
@@ -900,8 +930,13 @@
         <div class="results-grid" id="results-grid" style="display:none"></div>
         <div class="no-results" id="no-results" style="display:none">
           <div class="emoji">🤔</div>
-          <p>No results found. Try a simpler search term, or contact AlburyCity Waste Services on <strong>02 6023 8111</strong> for guidance.</p>
+          <p>No exact match found — asking AI for guidance…</p>
         </div>
+        <div class="ai-search-loading" id="ai-searching" style="display:none">
+          <div class="mini-spin"></div>
+          <span>Asking AI for guidance on this item…</span>
+        </div>
+        <div id="ai-result-wrap" style="display:none"></div>
       </div>
 
       <!-- Quick Bin Guide -->
@@ -1193,6 +1228,124 @@
 
 <script>
 let ITEMS = [], QUESTIONS = [];
+let activeFilter = 'all';
+let groqDebounce = null;
+
+const BIN_LABELS = {
+  fogo:    'Green Lid - FOGO',
+  yellow:  'Yellow Lid - Recycling',
+  red:     'Red Lid - General Waste',
+  dropoff: 'Drop-off Required'
+};
+
+function setActive(el) {
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setFilter(bin, el) {
+  activeFilter = bin;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  doSearch();
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderCard(item, isAI) {
+  const binLabel = BIN_LABELS[item.bin] || item.bin;
+  const aiTag    = isAI ? '<span class="ai-badge">AI</span>' : '';
+  const mistake  = item.mistake  ? `<span class="mistake-flag">⚠️ Common mistake: ${escHtml(item.mistake)}</span>` : '';
+  const tip      = item.tip      ? `<div class="result-tip">💡 ${escHtml(item.tip)}</div>` : '';
+  return `
+    <div class="result-card ${escHtml(item.bin)}">
+      <div class="result-bin-icon">${item.icon || '📦'}</div>
+      <div class="result-body">
+        <h4>${escHtml(item.name)}${aiTag}</h4>
+        <div class="result-bin-label">${escHtml(binLabel)}</div>
+        ${mistake}
+        <p>${escHtml(item.why || '')}</p>
+        ${tip}
+      </div>
+    </div>`;
+}
+
+function showSearchState(state) {
+  document.getElementById('finder-placeholder').style.display  = state === 'placeholder' ? '' : 'none';
+  document.getElementById('results-grid').style.display        = state === 'results'     ? '' : 'none';
+  document.getElementById('no-results').style.display          = state === 'empty'       ? '' : 'none';
+  document.getElementById('ai-searching').style.display        = state === 'loading'     ? 'flex' : 'none';
+  document.getElementById('ai-result-wrap').style.display      = state === 'ai'          ? '' : 'none';
+}
+
+function doSearch() {
+  const query = (document.getElementById('bin-search').value || '').trim().toLowerCase();
+  clearTimeout(groqDebounce);
+
+  if (!query && activeFilter === 'all') {
+    showSearchState('placeholder');
+    return;
+  }
+
+  const filtered = ITEMS.filter(item => {
+    if (activeFilter !== 'all' && item.bin !== activeFilter) return false;
+    if (!query) return true;
+    return [item.name, ...(item.key || [])].join(' ').toLowerCase().includes(query);
+  });
+
+  if (filtered.length > 0) {
+    document.getElementById('results-grid').innerHTML = filtered.map(i => renderCard(i, false)).join('');
+    showSearchState('results');
+  } else if (query.length >= 3) {
+    showSearchState('empty');
+    groqDebounce = setTimeout(() => askGroqBinFinder(query), 900);
+  } else {
+    showSearchState('empty');
+  }
+}
+
+async function askGroqBinFinder(query) {
+  const GROQ_KEY = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
+  showSearchState('loading');
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an Australian waste sorting expert for AlburyCity Council, NSW. The council runs four streams: fogo (green lid – food scraps and garden organics), yellow (yellow lid – clean recyclables: glass bottles/jars, hard plastics rinsed, cardboard, paper, metal cans), red (red lid – general waste to landfill, e.g. soft plastics, nappies, broken ceramics), dropoff (special drop-off required – batteries, e-waste, medicines, paint, chemicals, blister packs, light globes, motor oil). Respond ONLY with a JSON object: {"bin":"fogo|yellow|red|dropoff","why":"one concise sentence","tip":"short tip for drop-off items, empty string otherwise"}'
+          },
+          {
+            role: 'user',
+            content: 'Which bin does "' + query + '" go in for AlburyCity Council, NSW?'
+          }
+        ]
+      })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const ai   = JSON.parse(data.choices[0].message.content);
+    const bin  = ['fogo','yellow','red','dropoff'].includes(ai.bin) ? ai.bin : 'red';
+    const item = {
+      name: query.charAt(0).toUpperCase() + query.slice(1),
+      bin,
+      icon:    { fogo:'🟢', yellow:'🟡', red:'🔴', dropoff:'🔵' }[bin],
+      why:     ai.why  || '',
+      tip:     bin === 'dropoff' ? (ai.tip || 'Take to an AlburyCity drop-off point or call 02 6023 8111.') : ''
+    };
+    document.getElementById('ai-result-wrap').innerHTML = renderCard(item, true);
+    showSearchState('ai');
+  } catch {
+    showSearchState('empty');
+  }
+}
 
 fetch('items.json?t=' + Date.now())
   .then(r => r.json())
