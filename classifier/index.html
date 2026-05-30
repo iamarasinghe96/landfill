@@ -560,14 +560,11 @@
     .camera-viewport.photo-mode-vp {
       aspect-ratio: 3/5;
     }
-    /* Frame in photo mode: tall, leaves room for shutter button */
-    .cam-frame.photo-mode {
-      width: min(88%, 310px);
-      height: 62%;
-    }
+    /* Hide the guide frame entirely in photo mode — no box needed */
+    .cam-frame.photo-mode { display: none; }
     /* Tip lifted above shutter button in photo mode */
     .camera-viewport.photo-mode-vp .cam-tip {
-      bottom: 90px;
+      bottom: 134px;
       background: rgba(0,0,0,0.38);
       border-radius: 20px;
       padding: 5px 14px;
@@ -576,7 +573,7 @@
     /* ---- PHOTO MODE ---- */
     .btn-shutter {
       position: absolute;
-      bottom: 18px;
+      bottom: 52px;
       left: 50%;
       transform: translateX(-50%);
       width: 72px; height: 72px;
