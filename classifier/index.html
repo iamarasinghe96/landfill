@@ -134,6 +134,7 @@
     .camera-header p  { font-size: 13px; color: var(--text-md); margin-top: 3px; }
 
     .camera-viewport {
+      display: none;              /* hidden until user taps Scan */
       position: relative;
       background: #111;
       aspect-ratio: 4/3;
@@ -817,8 +818,7 @@ const BIN_META = {
 /* ============================================================
    STATE
    ============================================================ */
-const codeReader  = new ZXing.BrowserMultiFormatReader();
-let videoStream   = null;
+const codeReader = new ZXing.BrowserMultiFormatReader();
 let videoDevices  = [];
 let deviceIndex   = 0;
 let isScanning    = false;
@@ -833,107 +833,57 @@ function dot(id, cls) {
 }
 
 /* ============================================================
-   INIT
+   INIT — enumerate devices only, do NOT open camera yet
    ============================================================ */
 async function init() {
+  dot('zxing', 'done');
+  dot('cam', 'active');
   try {
-    dot('zxing', 'done');
-    dot('cam', 'active');
-
     videoDevices = await codeReader.listVideoInputDevices();
-
-    // Prefer rear-facing camera
     const rearIdx = videoDevices.findIndex(d => /back|rear|environment/i.test(d.label));
-    deviceIndex = rearIdx >= 0 ? rearIdx : videoDevices.length - 1;
+    deviceIndex = rearIdx >= 0 ? rearIdx : Math.max(0, videoDevices.length - 1);
+    if (videoDevices.length > 1) document.getElementById('btn-flip').style.display = 'flex';
+  } catch (_) { /* no camera listed yet; ZXing will use facingMode fallback */ }
+  dot('cam', 'done');
+  setState('camera');
+}
 
-    await startPreview();
+/* ============================================================
+   BARCODE SCANNING — camera opens only when user taps Scan
+   ============================================================ */
+async function toggleScanning() {
+  isScanning ? await stopScanning() : await startScanning();
+}
 
-    dot('cam', 'done');
-    setState('camera');
+async function startScanning() {
+  // Reveal viewport then let ZXing open the camera
+  document.getElementById('camera-viewport').style.display = 'block';
 
-    if (videoDevices.length > 1) {
-      document.getElementById('btn-flip').style.display = 'flex';
-    }
+  isScanning = true;
+  const btn = document.getElementById('btn-capture');
+  btn.classList.add('scanning');
+  document.getElementById('btn-label').textContent = 'Scanning… (tap to cancel)';
+  document.getElementById('btn-icon').innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+  document.getElementById('cam-tip').textContent = 'Hold steady — looking for barcode…';
+  document.getElementById('camera-viewport').classList.add('scanning-active');
+
+  const deviceId = videoDevices[deviceIndex]?.deviceId || null;
+  try {
+    await codeReader.decodeFromVideoDevice(deviceId, 'camera-video', (result) => {
+      if (!isScanning || !result) return;
+      const code = result.getText();
+      stopScanning(false); // keep viewport hidden handled by transition to analysing
+      handleBarcode(code);
+    });
   } catch (err) {
-    console.error('Init error:', err);
-    dot('cam', 'done');
-    setState('camera');
+    console.error('ZXing error:', err);
+    await stopScanning();
     document.getElementById('no-cam-note').style.display = 'block';
     document.getElementById('btn-capture').disabled = true;
   }
 }
 
-/* ============================================================
-   CAMERA PREVIEW (getUserMedia - no scanning)
-   ============================================================ */
-async function startPreview() {
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-  }
-  const deviceId = videoDevices[deviceIndex]?.deviceId;
-  const constraints = {
-    video: deviceId
-      ? { deviceId: { exact: deviceId } }
-      : { facingMode: { ideal: 'environment' } }
-  };
-  videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-  document.getElementById('camera-video').srcObject = videoStream;
-}
-
-async function flipCamera() {
-  if (isScanning) await stopScanning();
-  deviceIndex = (deviceIndex + 1) % videoDevices.length;
-  await startPreview();
-}
-
-/* ============================================================
-   BARCODE SCANNING (ZXing - takes over camera)
-   ============================================================ */
-async function toggleScanning() {
-  if (isScanning) {
-    await stopScanning();
-  } else {
-    await startScanning();
-  }
-}
-
-async function startScanning() {
-  // Stop preview stream so ZXing can open camera
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-  }
-
-  isScanning = true;
-
-  // Update UI
-  const btn = document.getElementById('btn-capture');
-  btn.classList.add('scanning');
-  document.getElementById('btn-label').textContent = 'Scanning... (tap to cancel)';
-  document.getElementById('btn-icon').innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
-  document.getElementById('cam-tip').textContent = 'Hold steady - looking for barcode...';
-  document.getElementById('camera-viewport').classList.add('scanning-active');
-
-  const deviceId = videoDevices[deviceIndex]?.deviceId;
-
-  try {
-    await codeReader.decodeFromVideoDevice(deviceId, 'camera-video', (result, err) => {
-      if (!isScanning) return;
-      if (result) {
-        const code = result.getText();
-        stopScanning(false); // don't restart preview - going to analysing state
-        handleBarcode(code);
-      }
-      // NotFoundException is normal (no barcode in frame yet) - ZXing retries automatically
-    });
-  } catch (err) {
-    console.error('ZXing error:', err);
-    await stopScanning();
-  }
-}
-
-async function stopScanning(restartPreview = true) {
+async function stopScanning(hideViewport = true) {
   isScanning = false;
   codeReader.reset();
 
@@ -944,9 +894,13 @@ async function stopScanning(restartPreview = true) {
   document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
   document.getElementById('camera-viewport').classList.remove('scanning-active');
 
-  if (restartPreview) {
-    try { await startPreview(); } catch (_) {}
-  }
+  if (hideViewport) document.getElementById('camera-viewport').style.display = 'none';
+}
+
+async function flipCamera() {
+  if (isScanning) await stopScanning(true);
+  deviceIndex = (deviceIndex + 1) % videoDevices.length;
+  // New device used on next scan
 }
 
 /* ============================================================
@@ -1012,7 +966,8 @@ function handleBarcode(code) {
    OPEN FOOD FACTS API
    ============================================================ */
 async function fetchOpenFoodFacts(barcode) {
-  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}?fields=product_name,brands,packaging,packaging_tags,categories,quantity,image_url`;
+  const fields = 'product_name,brands,packaging,packaging_tags,packaging_materials_tags,categories,quantity,image_url,labels_tags';
+  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}?fields=${fields}`;
 
   try {
     const controller = new AbortController();
@@ -1053,21 +1008,52 @@ async function fetchOpenFoodFacts(barcode) {
 
 /* ============================================================
    PACKAGING CLASSIFICATION
-   Matches packaging text + tags against PACKAGING_RULES.
+   Pass 1 — text + packaging_tags (most specific)
+   Pass 2 — packaging_materials_tags (fallback for many OFF products)
    ============================================================ */
+function normTags(arr) {
+  return (arr || []).map(t => t.replace(/^[a-z]{2}:/, '').toLowerCase());
+}
+
 function classifyPackaging(product) {
+  // Pass 1: free-text packaging field + packaging_tags
   const text = (product.packaging || '').toLowerCase();
-  const tags = (product.packaging_tags || []).map(t => t.replace(/^[a-z]{2}:/, '').toLowerCase());
+  const tags  = normTags(product.packaging_tags);
   const combined = text + ' ' + tags.join(' ');
 
-  if (!combined.trim()) return null;
-
-  for (const rule of PACKAGING_RULES) {
-    const tagMatch = rule.tags.some(rt => tags.some(pt => pt.includes(rt)));
-    if (rule.pattern.test(combined) || tagMatch) {
-      return rule;
+  if (combined.trim()) {
+    for (const rule of PACKAGING_RULES) {
+      const tagMatch = rule.tags.some(rt => tags.some(pt => pt.includes(rt)));
+      if (rule.pattern.test(combined) || tagMatch) return rule;
     }
   }
+
+  // Pass 2: packaging_materials_tags — physical material list
+  const mat = normTags(product.packaging_materials_tags);
+  if (mat.length) {
+    const has = (...kw) => kw.some(k => mat.some(t => t.includes(k)));
+    const find = type => PACKAGING_RULES.find(r => r.type === type);
+
+    if (has('tetra-pak','tetrapak'))
+      return find('Tetra Pak / Aseptic Carton');
+    if (has('aluminium-can','aluminum-can','steel-can','tin-can','beverage-can'))
+      return find('Metal Can');
+    if (has('glass-bottle','glass-jar','glass-container') || (has('glass') && !has('fibre','fiber')))
+      return find('Glass Jar / Bottle');
+    if (has('pet-bottle','hdpe-bottle','plastic-bottle','pp-bottle'))
+      return find('Plastic Bottle');
+    if (has('cardboard','paperboard','paper-box','corrugated','paper-carton'))
+      return find('Cardboard / Paperboard');
+    if (has('flexible','film','pouch','sachet','soft-plastic','doypack'))
+      return find('Flexible Pouch / Sachet');
+    if (has('aluminium','aluminum') && !has('can'))
+      return find('Metal Can');              // foil trays etc. → yellow
+    if (has('steel','iron','tin'))
+      return find('Metal Can');
+    if (has('plastic','pet','hdpe','pp','ldpe','pvc'))
+      return find('Plastic Bottle');
+  }
+
   return null;
 }
 
@@ -1094,7 +1080,7 @@ function showResult(barcode, product, rule) {
 
   document.getElementById('result-band').className = 'result-band ' + rule.bandClass;
   document.getElementById('r-icon').textContent    = rule.icon;
-  document.getElementById('r-name').textContent    = rule.label;
+  document.getElementById('r-name').textContent    = BIN_META[rule.bin].label;
   document.getElementById('r-sub').textContent     = 'AlburyCity Council';
   document.getElementById('conf-pill').textContent = 'Open Food Facts';
   document.getElementById('conf-pct').textContent  = barcode;
@@ -1157,13 +1143,12 @@ function showUncertain(heading, body, detail) {
    RESET
    ============================================================ */
 async function resetToCamera() {
-  if (isScanning) await stopScanning(false);
+  if (isScanning) await stopScanning(true);
   codeReader.reset();
   document.getElementById('file-input').value = '';
   document.getElementById('manual-barcode').value = '';
   document.getElementById('manual-input-row').classList.remove('open');
   document.getElementById('product-detail').style.display = 'none';
-  await startPreview().catch(() => {});
   setState('camera');
 }
 
