@@ -159,6 +159,30 @@
     .state-box.error { color: var(--red); }
     .state-box.error h3 { margin-bottom: 8px; }
 
+    /* TOOL NAV TABS */
+    .tool-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tool-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: filter 0.18s;
+    }
+    .tool-tab:hover { filter: brightness(1.06); }
+    .tool-tab-scanner  { background: #1A5276; color: #fff; }
+    .tool-tab-community { background: #1E8449; color: #fff; }
+
     /* SECTION TITLES */
     .section-title {
       font-size: 18px;
@@ -678,18 +702,6 @@
         <div class="period-badge-label">Current Reporting Period</div>
         <div class="period-badge-value" id="header-period">Loading...</div>
       </div>
-      <a class="btn btn-outline" href="classifier/index.html" style="background:rgba(36,113,163,0.25);border-color:rgba(36,113,163,0.6);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/></svg>
-        Barcode Scanner
-      </a>
-      <a class="btn btn-outline" href="community/index.html" style="background:rgba(30,132,73,0.25);border-color:rgba(39,174,96,0.6);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Community Hub
-      </a>
-      <button class="btn btn-outline" onclick="loadData(true)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        Refresh
-      </button>
     </div>
   </div>
 </header>
@@ -707,20 +719,16 @@
 
   <div id="content" style="display:none">
 
-    <!-- HERO -->
-    <div class="section-title">Current Reporting Period</div>
-
-    <!-- Download bar -->
-    <div class="download-bar">
-      <span>Download Report</span>
-      <button class="btn-dl btn-dl-csv" onclick="downloadCSV()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Download CSV
-      </button>
-      <button class="btn-dl btn-dl-pdf" onclick="downloadPDF()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15v-4M12 11v4M15 13h-6"/></svg>
-        Download PDF
-      </button>
+    <!-- Tool nav tabs -->
+    <div class="tool-nav">
+      <a class="tool-tab tool-tab-scanner" href="classifier/index.html">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h2v2H7zM7 11h2v2H7zM7 15h2v2H7zM11 7h6v2h-6zM11 11h6v2h-6zM11 15h6v2h-6z"/></svg>
+        Barcode Scanner
+      </a>
+      <a class="tool-tab tool-tab-community" href="community/index.html">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Community Hub
+      </a>
     </div>
 
     <div class="hero-grid">
@@ -904,6 +912,19 @@
           <p>Reduce recycling contamination, compost food scraps, use the e-waste drop-off, and participate in hard waste collections to boost our community's rate.</p>
         </div>
       </div>
+    </div>
+
+    <!-- Download bar - moved to bottom -->
+    <div class="download-bar">
+      <span>Download Report</span>
+      <button class="btn-dl btn-dl-csv" onclick="downloadCSV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Download CSV
+      </button>
+      <button class="btn-dl btn-dl-pdf" onclick="downloadPDF()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15v-4M12 11v4M15 13h-6"/></svg>
+        Download PDF
+      </button>
     </div>
 
   </div><!-- /content -->
