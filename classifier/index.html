@@ -960,7 +960,8 @@ const PACKAGING_RULES = [
     type: 'Tetra Pak / Aseptic Carton',
     bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
     why: 'Tetra Pak cartons are made from layers of paperboard, plastic, and aluminium that cannot be separated in standard kerbside MRF machinery. They are not accepted in the yellow recycling bin.',
-    tip: 'Take Tetra Pak cartons to a dedicated Tetra Pak recycling drop-off point. Check RecyclingNearYou.com.au for the nearest location in Albury-Wodonga.'
+    tip: 'Take Tetra Pak cartons to a dedicated Tetra Pak recycling drop-off point. Check RecyclingNearYou.com.au for the nearest location in Albury-Wodonga.',
+    secondary: { part: 'Plastic straw / cap → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
   },
   {
     pattern: /\bcork\b/i,
@@ -976,7 +977,8 @@ const PACKAGING_RULES = [
     type: 'Blister Pack',
     bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
     why: 'Blister packs are made from bonded layers of aluminium and PVC that standard kerbside recycling cannot separate or process. They must not go in the yellow recycling bin or the red general waste bin.',
-    tip: 'PharmaCycle recovers blister pack materials. Drop empty packs at any Chemist Warehouse or participating pharmacy — all accept them across Australia. Find your nearest drop-off at pharmacycle.com.au/find-a-location. Tip: keep a small jar at home to collect packs so you can drop them off on your next chemist visit.'
+    tip: 'PharmaCycle recovers blister pack materials. Drop empty packs at any Chemist Warehouse or participating pharmacy — all accept them across Australia. Find your nearest drop-off at pharmacycle.com.au/find-a-location. Tip: keep a small jar at home to collect packs so you can drop them off on your next chemist visit.',
+    secondary: { part: 'Cardboard box → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
     pattern: /crown.?seal|crown.?cap|crown.?cork|bottle.?top/i,
@@ -1017,6 +1019,60 @@ const PACKAGING_RULES = [
     bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
     why: 'Aluminium and steel cans are highly recyclable and valuable. Rinse the can and place directly in the yellow lid recycling bin.',
     tip: 'Crush the can to save space. Leave the ring-pull tab attached so it does not get lost in sorting.'
+  },
+  {
+    pattern: /pizza.?box|pizza.?carton|pizza.?packaging/i,
+    tags: ['pizza-box','pizza-carton'],
+    type: 'Pizza Box',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Clean, grease-free cardboard sections of a pizza box are recyclable in the yellow bin. Grease soaks into the fibres and contaminates other recyclables.',
+    tip: 'Tear off the clean dry lid for the yellow bin. Put the greasy base in the FOGO green bin — food-soiled cardboard composts well.',
+    secondary: { part: 'Greasy base → FOGO Green Lid', bin: 'fogo', bandClass: 'band-fogo', icon: '🟢', label: 'Green Lid - FOGO' }
+  },
+  {
+    pattern: /cereal|corn.?flakes|muesli|granola|weetbix|weet-bix|rolled.?oats|cracker.*box|biscuit.*box/i,
+    tags: ['cereal','breakfast-cereal','cereal-box','cracker-box'],
+    type: 'Cereal / Cracker Box',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'The outer cardboard cereal or cracker box is clean dry cardboard — fully recyclable in the yellow bin. Flatten it before placing in the bin.',
+    tip: 'Remove the inner plastic bag liner before recycling the box — it is soft plastic and must go in the red general waste bin.',
+    secondary: { part: 'Plastic inner bag → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+  },
+  {
+    pattern: /yogurt|yoghurt|fromage.?frais/i,
+    tags: ['yogurt','yoghurt','dairy-tub'],
+    type: 'Yogurt Tub',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Yogurt tubs are usually polypropylene (PP #5) — accepted in the yellow recycling bin when rinsed.',
+    tip: 'Peel off the foil lid and discard it in the red general waste bin (too small and thin for sorting machinery). Rinse the tub and recycle.',
+    secondary: { part: 'Foil peel lid → Red Lid', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
+  },
+  {
+    pattern: /frozen.?meal|ready.?meal|microwave.?meal|frozen.?dinner|frozen.?lasagne|frozen.?pasta/i,
+    tags: ['frozen-meal','ready-meal','microwave-meal'],
+    type: 'Frozen Meal',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Frozen meal trays are often multi-layer plastic or foam that cannot be recycled kerbside. The plastic film seal and plastic tray go in the red general waste bin.',
+    tip: 'Tear off and flatten the printed cardboard sleeve — it goes in the yellow recycling bin.',
+    secondary: { part: 'Cardboard sleeve → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
+  },
+  {
+    pattern: /pringles|composite.*tube|oats.*canister|canister.*oats|powdered.*drink.*tin|hot.?choc.*tin/i,
+    tags: ['composite-tube','pringles','oats-canister'],
+    type: 'Composite Tube / Canister',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Composite tubes bond cardboard, metal foil, and plastic into a single inseparable material. They cannot be recycled and go in the red general waste bin.',
+    tip: 'The separate plastic lid can go in the yellow recycling bin — remove it before disposing of the tube.',
+    secondary: { part: 'Plastic lid → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
+  },
+  {
+    pattern: /takeaway.?cup|coffee.?cup|disposable.?cup|paper.?cup|hot.?drink.?cup/i,
+    tags: ['coffee-cup','takeaway-cup','disposable-cup','paper-cup'],
+    type: 'Takeaway Coffee Cup',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Takeaway coffee cups have a plastic inner lining heat-fused to the paper that cannot be separated, making them non-recyclable in kerbside bins.',
+    tip: 'Snap off the plastic lid and place it in the yellow recycling bin. The cardboard sleeve (if any) also goes in the yellow bin.',
+    secondary: { part: 'Plastic lid → Yellow Lid', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
     pattern: /cardboard|paperboard|paper.?box|carton.?box/i,
@@ -1063,22 +1119,32 @@ async function classifyWithGroq(product) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       temperature: 0.1,
-      max_tokens: 220,
+      max_tokens: 340,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
           content: `You are a waste classification assistant for AlburyCity Council, NSW Australia.
-Classify the PACKAGING of a supermarket product into exactly one bin:
-- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid hard plastic #1 or #2, cardboard boxes, paper, steel/aluminium cans, empty aerosol cans (must be rinsed and clean)
-- "red": Red Lid General Waste — soft plastic packets/bags/chip packets, flexible film, mixed or multi-layer packaging, plastic caps/lids, contaminated items
-- "fogo": Green Lid FOGO — food scraps, soiled compostable packaging (rare for packaged goods)
-- "dropoff": Special Drop-off Required — Tetra Pak/aseptic cartons, batteries, e-waste, medications, paint
+Classify the PACKAGING of a supermarket product into exactly one bin for its PRIMARY/LARGEST component:
+- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid plastic #1 or #2, cardboard boxes, paper, steel/aluminium cans, empty aerosol cans
+- "red": Red Lid General Waste — soft plastic packets/bags, chip packets, flexible film, multi-layer composite packaging, contaminated items
+- "fogo": Green Lid FOGO — food scraps, soiled compostable packaging
+- "dropoff": Special Drop-off Required — Tetra Pak/aseptic cartons, batteries, e-waste, medications/blister packs, paint
 
-IMPORTANT: For aerosol cans, the EMPTY CAN goes in "yellow" (recyclable metal). Classify by the main container, not the cap.
+IMPORTANT RULES:
+- Aerosol cans: EMPTY CAN → "yellow" (recyclable metal). The plastic cap is secondary → "red".
+- Cereal/cracker boxes: cardboard box → "yellow". Inner plastic bag liner is secondary → "red".
+- Yogurt/dairy tubs: plastic tub → "yellow". Foil peel lid is secondary → "red".
+- Pizza boxes: clean cardboard → "yellow". Greasy base is secondary → "fogo".
+- Takeaway coffee cups: paper cup → "red" (plastic-lined). Plastic lid is secondary → "yellow".
+- Composite tubes (Pringles, oat canisters): tube → "red". Plastic lid is secondary → "yellow".
+- Frozen meal trays: plastic tray → "red". Cardboard sleeve is secondary → "yellow".
+- Blister packs: blisters → "dropoff" (PharmaCycle). Cardboard outer box is secondary → "yellow".
+- Tetra Pak cartons: carton → "dropoff". Plastic straw/cap is secondary → "red".
 
+If a product has a SEPARABLE component that goes in a DIFFERENT bin, include a "secondary" field.
 Respond ONLY with valid JSON:
-{"bin":"<bin>","type":"<short packaging type, e.g. Soft Plastic Packet>","why":"<one sentence reason for this bin>","tip":"<one sentence disposal tip>"}`
+{"bin":"<bin>","type":"<short packaging type>","why":"<one sentence>","tip":"<one sentence>","secondary":{"part":"<e.g. Plastic cap → Red Lid>","bin":"<bin>"}}`
         },
         {
           role: 'user',
@@ -1100,7 +1166,7 @@ Respond ONLY with valid JSON:
 function groqToRule(aiResult) {
   const bin  = aiResult.bin;
   const meta = BIN_META[bin];
-  return {
+  const rule = {
     bin,
     bandClass: meta.bandClass,
     icon:      meta.icon,
@@ -1108,6 +1174,17 @@ function groqToRule(aiResult) {
     why:       aiResult.why  || 'Classification estimated by AI.',
     tip:       aiResult.tip  || 'Verify with the Bin Finder if unsure.'
   };
+  if (aiResult.secondary && BIN_META[aiResult.secondary.bin]) {
+    const sMeta = BIN_META[aiResult.secondary.bin];
+    rule.secondary = {
+      part:      aiResult.secondary.part  || '',
+      bin:       aiResult.secondary.bin,
+      bandClass: sMeta.bandClass,
+      icon:      sMeta.icon,
+      label:     sMeta.label
+    };
+  }
+  return rule;
 }
 
 /* ============================================================
@@ -1130,12 +1207,15 @@ async function classifyWithGroqVision(base64Image) {
         content: [
           {
             type: 'text',
-            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Look at this image, identify the item, and classify which bin it belongs in.
+            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Look at this image, identify the item, and classify which bin its PRIMARY component goes in.
 
-Bins: yellow (Yellow Lid - glass, rigid plastic #1/#2, clean cardboard, metal cans), red (Red Lid - soft plastics, chip packets, mixed packaging, nappies), fogo (Green Lid - food scraps, garden organics), dropoff (Special drop-off - batteries, e-waste, medicines, paint, blister packs).
+Bins: yellow (Yellow Lid - glass, rigid plastic #1/#2, clean cardboard, metal cans, empty aerosol cans), red (Red Lid - soft plastics, composite packaging, chip packets, coffee cup bodies, frozen meal trays), fogo (Green Lid - food scraps, soiled cardboard), dropoff (Special drop-off - batteries, e-waste, medicines, blister packs, Tetra Pak).
 
+Multi-part rules: aerosol can→yellow, cap→red | cereal box→yellow, inner bag→red | yogurt tub→yellow, foil lid→red | coffee cup body→red, lid→yellow | pizza clean lid→yellow, greasy base→fogo | composite tube (Pringles)→red, lid→yellow | frozen meal tray→red, cardboard sleeve→yellow.
+
+If the item has a separable component going in a DIFFERENT bin, include "secondary".
 Reply with ONLY a raw JSON object on one line, no markdown, no code block:
-{"name":"item name","bin":"yellow or red or fogo or dropoff","type":"packaging type","why":"one sentence","tip":"drop-off tip or empty string"}`
+{"name":"item name","bin":"yellow|red|fogo|dropoff","type":"packaging type","why":"one sentence","tip":"one sentence or empty string","secondary":{"part":"component → Bin Name","bin":"yellow|red|fogo|dropoff"}}`
           },
           {
             type: 'image_url',
@@ -1605,13 +1685,16 @@ function showResult(identifier, product, rule, isAI = false) {
   document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
   document.getElementById('r-why').textContent = rule.why;
 
-  // Show 💡 tip only for drop-off items
+  // Show 💡 tip for drop-off items and multi-part items
   const tipWrap = document.getElementById('r-tip-wrap');
   if (rule.bin === 'dropoff') {
     tipWrap.style.display = 'flex';
     document.getElementById('r-tip').textContent = isAI
       ? 'Do not place in any kerbside bin. Take to an AlburyCity Council drop-off point or call 02 6023 8111 for drop-off locations near you.'
       : rule.tip;
+  } else if (rule.secondary && rule.tip) {
+    tipWrap.style.display = 'flex';
+    document.getElementById('r-tip').textContent = rule.tip;
   } else {
     tipWrap.style.display = 'none';
   }
