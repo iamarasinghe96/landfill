@@ -299,6 +299,52 @@
       cursor: pointer;
     }
 
+    /* Name search */
+    .name-search-section {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 4px;
+    }
+    .name-search-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-md);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .name-search-row {
+      display: flex;
+      gap: 8px;
+    }
+    #name-search-input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+    }
+    #name-search-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(30,132,73,0.10); }
+    .btn-name-search {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-name-search:hover { background: var(--navy); }
+
     /* ---- ANALYSING ---- */
     .analysing-card {
       background: var(--card);
@@ -566,11 +612,27 @@
             <button class="btn-manual-go" onclick="submitManual()">Look Up</button>
           </div>
         </div>
+
+        <!-- Name-based search - no barcode needed -->
+        <div class="name-search-section">
+          <div class="name-search-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            No barcode? Search by item name
+          </div>
+          <div class="name-search-row">
+            <input type="text" id="name-search-input" placeholder="e.g. glass bottle, AA battery, fridge magnet…">
+            <button class="btn-name-search" onclick="searchByName()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Search
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
     <div class="ai-note" style="margin-top:12px">
       <strong>How it works</strong>
-      Scans the product barcode using your camera, then looks up packaging information from the Open Food Facts database to determine which AlburyCity bin the packaging belongs in. Works with most barcoded supermarket products.
+      Scan or upload a product barcode — packaging info is looked up from Open Food Facts. If no packaging data exists, Groq AI classifies the product. No barcode? Use the name search below the scanner.
     </div>
   </div>
 
@@ -600,7 +662,7 @@
           <div class="r-name" id="r-name"></div>
           <div class="r-sub" id="r-sub">AlburyCity Council</div>
         </div>
-        <div class="r-conf">
+        <div class="r-conf" id="r-conf">
           <span class="conf-pill" id="conf-pill">Open Food Facts</span>
           <span class="conf-pct" id="conf-pct"></span>
         </div>
@@ -609,17 +671,11 @@
         <div class="packaging-tag" id="packaging-tag"></div>
         <div class="r-detected">Product: <strong id="r-detected"></strong></div>
         <div class="r-why" id="r-why"></div>
-        <div class="r-tip">
+        <div class="r-tip" id="r-tip-wrap" style="display:none">
           <div class="r-tip-icon">💡</div>
           <div class="r-tip-text" id="r-tip"></div>
         </div>
       </div>
-    </div>
-
-    <!-- Verify note - shown when no packaging rule matched but category used -->
-    <div class="low-conf-warn" id="low-conf-warn">
-      <strong>Verify with Bin Finder</strong>
-      Bin determined from product category - no specific packaging data was available. Confirm using the Bin Finder for certainty.
     </div>
 
     <!-- Not found / no packaging data -->
@@ -1018,10 +1074,38 @@ function submitManual() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.activeElement.id === 'manual-barcode') {
-    submitManual();
-  }
+  if (e.key === 'Enter' && document.activeElement.id === 'manual-barcode') submitManual();
+  if (e.key === 'Enter' && document.activeElement.id === 'name-search-input') searchByName();
 });
+
+/* ============================================================
+   NAME SEARCH — no barcode, ask Groq directly
+   ============================================================ */
+async function searchByName() {
+  const query = (document.getElementById('name-search-input').value || '').trim();
+  if (!query) {
+    document.getElementById('name-search-input').focus();
+    return;
+  }
+
+  const mockProduct = { product_name: query, brands: '', categories: '', image_url: null, quantity: '' };
+
+  document.getElementById('analysing-barcode').textContent = '"' + query + '"';
+  document.querySelector('#state-analysing .analysing-body h2').textContent = 'Asking AI…';
+  document.querySelector('#state-analysing .analysing-body p').textContent  = 'Groq AI is classifying this item for AlburyCity Council';
+  setState('analysing');
+
+  try {
+    const aiResult = await classifyWithGroq(mockProduct);
+    showResult(query, mockProduct, groqToRule(aiResult), true);
+  } catch (_) {
+    showUncertain('Search Failed', 'Could not get a result from AI. Check your internet connection and try again.', null);
+  }
+
+  document.querySelector('#state-analysing .analysing-body h2').textContent = 'Looking up product...';
+  document.querySelector('#state-analysing .analysing-body p').textContent  = 'Checking Open Food Facts database';
+  setState('result');
+}
 
 /* ============================================================
    BARCODE HANDLER - show analysing state and fetch OFF
@@ -1065,9 +1149,9 @@ async function fetchOpenFoodFacts(barcode) {
     } else {
       // No packaging data in OFF — ask Groq AI
       const pname = product.product_name || 'product';
-      document.getElementById('analysing-barcode').textContent = 'Found: ' + pname;
+      document.getElementById('analysing-barcode').textContent = pname;
       document.querySelector('#state-analysing .analysing-body h2').textContent  = 'Asking AI…';
-      document.querySelector('#state-analysing .analysing-body p').textContent   = 'Open Food Facts has no packaging data — checking with Groq AI';
+      document.querySelector('#state-analysing .analysing-body p').textContent   = 'No packaging data in Open Food Facts — checking with Groq AI';
       try {
         const aiResult = await classifyWithGroq(product);
         showResult(barcode, product, groqToRule(aiResult), true);
@@ -1143,7 +1227,7 @@ function classifyPackaging(product) {
 /* ============================================================
    DISPLAY FUNCTIONS
    ============================================================ */
-function showResult(barcode, product, rule, isAI = false) {
+function showResult(identifier, product, rule, isAI = false) {
   // Product image
   if (product.image_url) {
     document.getElementById('result-img').src = product.image_url;
@@ -1156,14 +1240,10 @@ function showResult(barcode, product, rule, isAI = false) {
   document.getElementById('result-card').style.display    = 'block';
   document.getElementById('uncertain-card').style.display = 'none';
 
-  // Show AI disclaimer when classification came from Groq
-  const warn = document.getElementById('low-conf-warn');
-  if (isAI) {
-    warn.style.display = 'block';
-    warn.innerHTML = '<strong>AI Estimated — Please Verify</strong>No packaging data was found in Open Food Facts. This bin was determined by Groq AI based on the product name and category. Confirm with the Bin Finder if in doubt.';
-  } else {
-    warn.style.display = 'none';
-  }
+  // Hide source badge for AI results — no noisy "GROQ AI" label
+  document.getElementById('r-conf').style.display = isAI ? 'none' : '';
+  document.getElementById('conf-pill').textContent = 'Open Food Facts';
+  document.getElementById('conf-pct').textContent  = identifier;
 
   const name   = product.product_name || 'Unknown product';
   const brand  = product.brands       || '';
@@ -1173,12 +1253,21 @@ function showResult(barcode, product, rule, isAI = false) {
   document.getElementById('r-icon').textContent    = rule.icon;
   document.getElementById('r-name').textContent    = BIN_META[rule.bin].label;
   document.getElementById('r-sub').textContent     = 'AlburyCity Council';
-  document.getElementById('conf-pill').textContent = isAI ? 'Groq AI' : 'Open Food Facts';
-  document.getElementById('conf-pct').textContent  = barcode;
   document.getElementById('packaging-tag').textContent = rule.type;
   document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
-  document.getElementById('r-why').textContent     = rule.why;
-  document.getElementById('r-tip').textContent     = rule.tip;
+  document.getElementById('r-why').textContent = rule.why;
+
+  // Show 💡 tip only for drop-off items — these need special disposal instructions.
+  // For red/yellow/fogo the bin is clear and no extra action tip is needed.
+  const tipWrap = document.getElementById('r-tip-wrap');
+  if (rule.bin === 'dropoff') {
+    tipWrap.style.display = 'flex';
+    document.getElementById('r-tip').textContent = isAI
+      ? 'Do not place in any kerbside bin. Take to an AlburyCity Council drop-off point or call 02 6023 8111 for drop-off locations near you.'
+      : rule.tip;
+  } else {
+    tipWrap.style.display = 'none';
+  }
 }
 
 function showNoPackaging(barcode, product) {
