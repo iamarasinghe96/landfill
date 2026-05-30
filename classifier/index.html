@@ -204,6 +204,33 @@
       font-weight: 500;
     }
 
+    /* Torch / flashlight overlay button */
+    .btn-torch {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.35);
+      border: 1.5px solid rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.2s;
+      backdrop-filter: blur(3px);
+      flex-shrink: 0;
+    }
+    .btn-torch.visible { display: flex; }
+    .btn-torch.torch-on {
+      background: rgba(255,210,0,0.30);
+      border-color: rgba(255,210,0,0.7);
+      color: #FFD700;
+      box-shadow: 0 0 12px rgba(255,210,0,0.4);
+    }
+
     .camera-controls { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
     .no-cam-note {
       font-size: 13px;
@@ -587,6 +614,14 @@
           </div>
           <div class="cam-tip" id="cam-tip">Align barcode within the frame</div>
         </div>
+        <!-- Torch button — shown only while scanning, hidden if device has no torch -->
+        <button class="btn-torch" id="btn-torch" onclick="toggleTorch()" title="Toggle flashlight">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M18 6l-6 6-6-6"/>
+            <rect x="6" y="12" width="12" height="8" rx="2"/>
+            <line x1="12" y1="4" x2="12" y2="2"/>
+          </svg>
+        </button>
       </div>
       <div class="camera-controls">
         <p class="no-cam-note" id="no-cam-note">Camera not available or permission denied - upload a product photo or enter barcode manually below.</p>
@@ -812,6 +847,14 @@ const PACKAGING_RULES = [
     tip: 'Collect corks and drop them at participating bottle shops or wine retailers. Cork is recycled into flooring, insulation, and sporting goods.'
   },
   {
+    pattern: /blister.?pack|blister.?card|pill.?pack|tablet.?pack|capsule.?pack|push.?through|carded.?pack/i,
+    tags: ['blister-pack','blister-card','pill-pack','tablet-pack','carded-packaging'],
+    type: 'Blister Pack',
+    bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
+    why: 'Blister packs are made from bonded layers of aluminium and PVC that standard kerbside recycling cannot separate or process. They must not go in the yellow recycling bin or the red general waste bin.',
+    tip: 'PharmaCycle recovers blister pack materials. Drop empty packs at any Chemist Warehouse or participating pharmacy — all accept them across Australia. Find your nearest drop-off at pharmacycle.com.au/find-a-location. Tip: keep a small jar at home to collect packs so you can drop them off on your next chemist visit.'
+  },
+  {
     pattern: /crown.?seal|crown.?cap|crown.?cork|bottle.?top/i,
     tags: ['crown-seal','crown-cap','crown-cork'],
     type: 'Crown Seal (Bottle Cap)',
@@ -824,8 +867,8 @@ const PACKAGING_RULES = [
     tags: ['sachet','pouch','doypack','flexible-packaging','stand-up-pouch','flexible-pouch'],
     type: 'Flexible Pouch / Sachet',
     bin: 'red', bandClass: 'band-red', icon: '🔴',
-    why: 'Flexible pouches and sachets are soft plastics that jam and tangle in MRF sorting machinery. They cannot go in the yellow recycling bin. Place in the red bin or take to a REDcycle soft plastic collection point.',
-    tip: 'Collect soft plastics (pouches, sachets, bread bags, chip packets) and take them to the REDcycle bin at Woolworths or Coles for specialist soft plastic recycling.'
+    why: 'Flexible pouches and sachets are soft plastics that jam and tangle in MRF sorting machinery. They cannot go in the yellow recycling bin.',
+    tip: 'Place soft plastics in the red general waste bin. The REDcycle programme has closed. Some supermarkets may have replacement soft plastic collection points — check with your local store.'
   },
   {
     pattern: /\btube\b|squeeze.?tube|toothpaste.?tube|laminate.?tube/i,
@@ -948,6 +991,7 @@ const codeReader = new ZXing.BrowserMultiFormatReader();
 let videoDevices  = [];
 let deviceIndex   = 0;
 let isScanning    = false;
+let torchOn       = false;
 
 function setState(id) {
   document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
@@ -998,9 +1042,10 @@ async function startScanning() {
     await codeReader.decodeFromVideoDevice(deviceId, 'camera-video', (result) => {
       if (!isScanning || !result) return;
       const code = result.getText();
-      stopScanning(false); // keep viewport hidden handled by transition to analysing
+      stopScanning(false);
       handleBarcode(code);
     });
+    showTorchIfAvailable(); // show torch button once ZXing has opened the camera
   } catch (err) {
     console.error('ZXing error:', err);
     await stopScanning();
@@ -1020,13 +1065,57 @@ async function stopScanning(hideViewport = true) {
   document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
   document.getElementById('camera-viewport').classList.remove('scanning-active');
 
-  if (hideViewport) document.getElementById('camera-viewport').style.display = 'none';
+  if (hideViewport) {
+    document.getElementById('camera-viewport').style.display = 'none';
+    hideTorch();
+  }
 }
 
 async function flipCamera() {
   if (isScanning) await stopScanning(true);
   deviceIndex = (deviceIndex + 1) % videoDevices.length;
-  // New device used on next scan
+}
+
+/* ============================================================
+   TORCH / FLASHLIGHT
+   ============================================================ */
+async function toggleTorch() {
+  const video = document.getElementById('camera-video');
+  if (!video.srcObject) return;
+  const track = video.srcObject.getVideoTracks()[0];
+  if (!track) return;
+  torchOn = !torchOn;
+  try {
+    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+    document.getElementById('btn-torch').classList.toggle('torch-on', torchOn);
+  } catch (_) {
+    torchOn = !torchOn; // revert if unsupported
+  }
+}
+
+function hideTorch() {
+  torchOn = false;
+  const btn = document.getElementById('btn-torch');
+  btn.classList.remove('visible', 'torch-on');
+  // Make sure torch is off
+  const video = document.getElementById('camera-video');
+  if (video.srcObject) {
+    const track = video.srcObject.getVideoTracks()[0];
+    if (track) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
+  }
+}
+
+function showTorchIfAvailable() {
+  setTimeout(() => {
+    const video = document.getElementById('camera-video');
+    if (!video.srcObject) return;
+    const track = video.srcObject.getVideoTracks()[0];
+    if (!track || !track.getCapabilities) return;
+    const cap = track.getCapabilities();
+    if (cap.torch) document.getElementById('btn-torch').classList.add('visible');
+  }, 700);
 }
 
 /* ============================================================
