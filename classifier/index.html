@@ -672,15 +672,15 @@
     .r-secondary {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 20px;
+      gap: 16px;
+      padding: 22px 24px 18px;
       color: #fff;
       font-size: 13px;
       font-weight: 600;
       border-top: 2px solid rgba(255,255,255,0.15);
     }
     .r-secondary-icon { flex-shrink: 0; }
-    .r-secondary-label { opacity: 0.82; font-size: 11px; font-weight: 400; display: block; margin-top: 1px; }
+    .r-secondary-label { opacity: 0.82; font-size: 11px; font-weight: 400; display: block; margin-top: 3px; }
 
     footer {
       text-align: center;
@@ -1776,7 +1776,7 @@ function showResult(identifier, product, rule, isAI = false) {
   if (rule.secondary) {
     const s = rule.secondary;
     sec.className = 'r-secondary ' + s.bandClass;
-    document.getElementById('r-secondary-icon').innerHTML   = makeARLBadge(s.bin, true);
+    document.getElementById('r-secondary-icon').innerHTML   = makeARLBadge(s.bin);
     document.getElementById('r-secondary-part').textContent = s.part;
     document.getElementById('r-secondary-label').textContent = s.label;
     sec.style.display = 'flex';
