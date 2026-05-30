@@ -1090,7 +1090,7 @@ async function classifyWithGroqVision(base64Image) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       temperature: 0.1,
       max_tokens: 320,
       messages: [{
@@ -1600,7 +1600,6 @@ function showNoPackaging(barcode, product) {
   }
 
   document.getElementById('result-card').style.display    = 'none';
-  document.getElementById('low-conf-warn').style.display  = 'none';
 
   const detail = document.getElementById('product-detail');
   detail.style.display = 'block';
@@ -1619,7 +1618,6 @@ function showNoPackaging(barcode, product) {
 
 function showUncertain(heading, body, detail) {
   document.getElementById('result-card').style.display    = 'none';
-  document.getElementById('low-conf-warn').style.display  = 'none';
   document.getElementById('uncertain-card').style.display = 'block';
   document.getElementById('result-photo').style.display   = 'none';
 
