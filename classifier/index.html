@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AI Waste Identifier - AlburyCity Council</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+  <title>Barcode Waste Scanner - AlburyCity Council</title>
+  <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -154,13 +153,46 @@
       align-items: center;
       justify-content: center;
     }
+
+    /* Landscape barcode frame instead of square */
     .cam-frame {
-      width: min(260px, 72%);
-      aspect-ratio: 1;
+      width: min(320px, 86%);
+      height: 110px;
       border: 2.5px solid rgba(255,255,255,0.65);
-      border-radius: 16px;
-      box-shadow: 0 0 0 9999px rgba(0,0,0,0.32);
+      border-radius: 10px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.38);
+      position: relative;
+      overflow: hidden;
     }
+    /* Corner accents */
+    .cam-frame::before, .cam-frame::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: var(--blue);
+      border-style: solid;
+    }
+    .cam-frame::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .cam-frame::after  { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+    /* Scan line - only visible while scanning */
+    .scan-line {
+      display: none;
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--blue), transparent);
+      box-shadow: 0 0 6px var(--blue);
+      top: 50%;
+      animation: scanmove 1.8s ease-in-out infinite;
+    }
+    @keyframes scanmove {
+      0%   { transform: translateY(-44px); opacity: 0.6; }
+      50%  { transform: translateY(0);     opacity: 1;   }
+      100% { transform: translateY(44px);  opacity: 0.6; }
+    }
+    .scanning-active .scan-line { display: block; }
+
     .cam-tip {
       position: absolute;
       bottom: 12px;
@@ -194,8 +226,14 @@
       gap: 10px;
       transition: background 0.18s;
     }
-    .btn-capture:hover   { background: var(--navy-dk); }
+    .btn-capture:hover    { background: var(--navy-dk); }
     .btn-capture:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-capture.scanning {
+      background: #C0392B;
+      animation: btn-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes btn-pulse { 0%,100%{opacity:1} 50%{opacity:0.75} }
+
     .upload-row { display: flex; gap: 10px; }
     .btn-sec {
       flex: 1;
@@ -216,6 +254,50 @@
     .btn-sec:hover { background: var(--border); }
     #file-input { display: none; }
 
+    /* Manual barcode entry */
+    .manual-entry {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .manual-toggle {
+      background: none;
+      border: none;
+      color: var(--blue);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      display: block;
+      margin: 0 auto;
+    }
+    .manual-input-row {
+      display: none;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .manual-input-row.open { display: flex; }
+    #manual-barcode {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+    }
+    #manual-barcode:focus { border-color: var(--blue); }
+    .btn-manual-go {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
     /* ---- ANALYSING ---- */
     .analysing-card {
       background: var(--card);
@@ -224,16 +306,21 @@
       box-shadow: var(--shadow);
       text-align: center;
     }
-    #analysing-img {
-      width: 100%;
-      max-height: 300px;
-      object-fit: contain;
-      background: #111;
-      display: block;
-    }
-    .analysing-body { padding: 32px 24px; }
+    .analysing-body { padding: 48px 24px; }
     .analysing-body h2 { font-size: 20px; font-weight: 700; color: var(--navy); margin-top: 4px; }
-    .analysing-body p  { font-size: 14px; color: var(--text-md); margin-top: 6px; }
+    .analysing-body p  { font-size: 14px; color: var(--text-md); margin-top: 8px; }
+    .analysing-barcode {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-family: monospace;
+      font-size: 16px;
+      color: var(--navy);
+      margin-top: 10px;
+      letter-spacing: 1px;
+    }
 
     /* ---- RESULT ---- */
     .result-photo {
@@ -247,7 +334,7 @@
       width: 100%;
       max-height: 280px;
       object-fit: contain;
-      background: #111;
+      background: #f8f8f8;
       display: block;
     }
 
@@ -275,7 +362,7 @@
       letter-spacing: 0.5px; text-transform: uppercase;
       display: block;
     }
-    .conf-pct { font-size: 22px; font-weight: 800; display: block; margin-top: 3px; }
+    .conf-pct { font-size: 13px; font-weight: 700; display: block; margin-top: 4px; opacity: 0.88; font-family: monospace; letter-spacing: 0.5px; }
 
     .result-body  { background: var(--card); padding: 18px 24px; }
     .r-detected   { font-size: 12px; color: var(--text-sm); margin-bottom: 10px; }
@@ -288,6 +375,19 @@
     .r-tip { display: flex; gap: 10px; align-items: flex-start; }
     .r-tip-icon { font-size: 18px; flex-shrink: 0; }
     .r-tip-text { font-size: 13px; color: var(--text-md); line-height: 1.5; }
+
+    /* Packaging-type tag shown in result */
+    .packaging-tag {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-md);
+      margin-bottom: 12px;
+    }
 
     /* Low-confidence warning stripe */
     .low-conf-warn {
@@ -319,18 +419,15 @@
     .uncertain-band h2 { font-size: 18px; font-weight: 700; margin-top: 6px; }
     .uncertain-band p  { font-size: 13px; opacity: 0.82; margin-top: 3px; }
     .uncertain-body { padding: 18px 24px; }
-    .top-guesses { list-style: none; margin: 10px 0; }
-    .top-guesses li {
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-      color: var(--text-md);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .product-detail {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
     }
-    .top-guesses li:last-child { border-bottom: none; }
-    .g-pct { font-weight: 600; color: var(--text); }
+    .product-detail .pd-name  { font-size: 15px; font-weight: 700; color: var(--text); }
+    .product-detail .pd-brand { font-size: 13px; color: var(--text-md); margin-top: 2px; }
+    .product-detail .pd-code  { font-size: 12px; color: var(--text-sm); margin-top: 4px; font-family: monospace; }
 
     /* Bin colours */
     .band-fogo    { background: #1E8449; }
@@ -402,8 +499,8 @@
            onerror="this.parentElement.innerHTML='<div style=\'height:52px;background:#fff;border-radius:8px;padding:6px 12px;display:flex;align-items:center;font-weight:800;font-size:18px;color:#1B3A6B\'>AlburyCity</div>'">
     </div>
     <div class="header-text">
-      <h1>AI Waste Identifier</h1>
-      <p>Point your camera at any item to find the right bin</p>
+      <h1>Barcode Waste Scanner</h1>
+      <p>Scan a product barcode to find the right bin</p>
     </div>
     <a class="btn-back" href="../index.html">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -418,12 +515,11 @@
   <div id="state-loading" class="state active">
     <div class="loading-card">
       <div class="spinner"></div>
-      <div class="loading-title">Loading AI Model</div>
-      <div class="loading-sub">Downloading vision model (~14 MB).<br>Takes a moment on first visit, then cached.</div>
+      <div class="loading-title">Starting Scanner</div>
+      <div class="loading-sub">Initialising barcode reader and camera.</div>
       <ul class="loading-steps">
-        <li><span class="step-dot done"   id="dot-tf"></span>    TensorFlow.js engine ready</li>
-        <li><span class="step-dot active" id="dot-model"></span> Loading MobileNet vision model</li>
-        <li><span class="step-dot"        id="dot-cam"></span>   Initialising camera</li>
+        <li><span class="step-dot done"   id="dot-zxing"></span> Barcode scanner ready</li>
+        <li><span class="step-dot active" id="dot-cam"></span>   Starting camera</li>
       </ul>
     </div>
   </div>
@@ -432,27 +528,29 @@
   <div id="state-camera" class="state">
     <div class="camera-card">
       <div class="camera-header">
-        <h2>Point at the waste item</h2>
-        <p>Centre the item in the frame, then tap Identify</p>
+        <h2>Scan product barcode</h2>
+        <p>Align the barcode inside the frame and tap Scan</p>
       </div>
-      <div class="camera-viewport">
+      <div class="camera-viewport" id="camera-viewport">
         <video id="camera-video" autoplay playsinline muted></video>
         <canvas id="preview-canvas"></canvas>
         <div class="cam-overlay">
-          <div class="cam-frame"></div>
-          <div class="cam-tip">Centre the item in the frame</div>
+          <div class="cam-frame">
+            <div class="scan-line"></div>
+          </div>
+          <div class="cam-tip" id="cam-tip">Align barcode within the frame</div>
         </div>
       </div>
       <div class="camera-controls">
-        <p class="no-cam-note" id="no-cam-note">Camera not available or permission denied - upload a photo below.</p>
-        <button class="btn-capture" id="btn-capture" onclick="captureAndClassify()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M20 6h-2.18c-.27-.78-.9-1.34-1.68-1.64L15 4H9l-1.14.36C7.08 4.66 6.45 5.22 6.18 6H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-          Identify This Item
+        <p class="no-cam-note" id="no-cam-note">Camera not available or permission denied - upload a product photo or enter barcode manually below.</p>
+        <button class="btn-capture" id="btn-capture" onclick="toggleScanning()">
+          <svg id="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h2v2H7zM7 11h2v2H7zM7 15h2v2H7zM11 7h6v2h-6zM11 11h6v2h-6zM11 15h6v2h-6z"/></svg>
+          <span id="btn-label">Scan Barcode</span>
         </button>
         <div class="upload-row">
           <button class="btn-sec" onclick="document.getElementById('file-input').click()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Photo
+            Upload Product Photo
           </button>
           <button class="btn-sec" id="btn-flip" onclick="flipCamera()" style="display:none">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
@@ -460,47 +558,55 @@
           </button>
         </div>
         <input type="file" id="file-input" accept="image/*" onchange="handleUpload(event)">
+        <div class="manual-entry">
+          <button class="manual-toggle" onclick="toggleManual()">Enter barcode number manually</button>
+          <div class="manual-input-row" id="manual-input-row">
+            <input type="number" id="manual-barcode" placeholder="e.g. 9300675022023" inputmode="numeric">
+            <button class="btn-manual-go" onclick="submitManual()">Look Up</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="ai-note" style="margin-top:12px">
       <strong>How it works</strong>
-      Step 1 - MobileNet identifies what the object is (runs entirely in your browser, no photo is sent anywhere). Step 2 - the identified object is looked up in the AlburyCity Bin Finder database to get the correct bin, reason, and tip. For best results use good lighting with a single item against a plain background.
+      Scans the product barcode using your camera, then looks up packaging information from the Open Food Facts database to determine which AlburyCity bin the packaging belongs in. Works with most barcoded supermarket products.
     </div>
   </div>
 
   <!-- ANALYSING -->
   <div id="state-analysing" class="state">
     <div class="analysing-card">
-      <img id="analysing-img" alt="Captured image">
       <div class="analysing-body">
         <div class="spinner"></div>
-        <h2>Analysing...</h2>
-        <p>Running AI classification on your device</p>
+        <h2>Looking up product...</h2>
+        <p>Checking Open Food Facts database</p>
+        <div class="analysing-barcode" id="analysing-barcode"></div>
       </div>
     </div>
   </div>
 
   <!-- RESULT -->
   <div id="state-result" class="state">
-    <div class="result-photo">
-      <img id="result-img" alt="Identified waste">
+    <div class="result-photo" id="result-photo">
+      <img id="result-img" alt="Product image">
     </div>
 
-    <!-- confident result -->
+    <!-- Confident result -->
     <div class="result-card" id="result-card">
       <div class="result-band" id="result-band">
         <div class="r-icon" id="r-icon"></div>
         <div>
           <div class="r-name" id="r-name"></div>
-          <div class="r-sub">AlburyCity Council</div>
+          <div class="r-sub" id="r-sub">AlburyCity Council</div>
         </div>
         <div class="r-conf">
-          <span class="conf-pill" id="conf-pill"></span>
+          <span class="conf-pill" id="conf-pill">Open Food Facts</span>
           <span class="conf-pct" id="conf-pct"></span>
         </div>
       </div>
       <div class="result-body">
-        <div class="r-detected">AI detected: <strong id="r-detected"></strong></div>
+        <div class="packaging-tag" id="packaging-tag"></div>
+        <div class="r-detected">Product: <strong id="r-detected"></strong></div>
         <div class="r-why" id="r-why"></div>
         <div class="r-tip">
           <div class="r-tip-icon">💡</div>
@@ -509,30 +615,29 @@
       </div>
     </div>
 
-    <!-- low confidence warning (shown with confident result when conf < 30%) -->
+    <!-- Verify note - shown when no packaging rule matched but category used -->
     <div class="low-conf-warn" id="low-conf-warn">
-      <strong>Low confidence</strong>
-      The AI is not very certain about this identification. Verify with the Bin Finder if unsure.
+      <strong>Verify with Bin Finder</strong>
+      Bin determined from product category - no specific packaging data was available. Confirm using the Bin Finder for certainty.
     </div>
 
-    <!-- uncertain state -->
+    <!-- Not found / no packaging data -->
     <div class="uncertain-card" id="uncertain-card">
       <div class="uncertain-band">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <h2>Could not identify item</h2>
-        <p>AI confidence too low to give a reliable answer</p>
+        <h2 id="uncertain-h2">Product Not Found</h2>
+        <p id="uncertain-p">This barcode was not found in the Open Food Facts database.</p>
       </div>
       <div class="uncertain-body">
-        <p style="font-size:13px;color:var(--text-md);margin-bottom:8px">Top guesses:</p>
-        <ul class="top-guesses" id="top-guesses"></ul>
-        <p style="font-size:13px;color:var(--text-sm);margin-top:10px">Use the Bin Finder below to search by item name for a reliable answer.</p>
+        <div class="product-detail" id="product-detail" style="display:none"></div>
+        <p style="font-size:13px;color:var(--text-sm)">Use the Bin Finder to search by item name, or call AlburyCity Waste on 02 6023 8111.</p>
       </div>
     </div>
 
     <div class="result-actions">
       <button class="btn-again" onclick="resetToCamera()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        Identify Another Item
+        Scan Another Item
       </button>
       <a class="btn-finder" href="../community/index.html#bin-finder">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -541,8 +646,8 @@
     </div>
 
     <div class="ai-note">
-      <strong>AI Accuracy Note</strong>
-      This tool uses a general-purpose vision model and can make mistakes, especially with unusual items, poor lighting, or cluttered backgrounds. For certainty always cross-check with the Bin Finder or call AlburyCity Waste on 02 6023 8111.
+      <strong>Data Source</strong>
+      Packaging data from Open Food Facts (openfoodfacts.org), a free open food product database. Bin guidance is specific to AlburyCity Council kerbside collection. Always verify unusual items with the Bin Finder or contact AlburyCity Waste on 02 6023 8111.
     </div>
   </div>
 
@@ -556,24 +661,167 @@
 
 <script>
 /* ============================================================
-   DATA - loaded from items.json (single source of truth)
+   PACKAGING RULES
+   Match against combined packaging text + packaging_tags from OFF API.
+   First match wins. Each rule maps to an AlburyCity bin.
    ============================================================ */
-let ITEMS = [];
+const PACKAGING_RULES = [
+  {
+    pattern: /twist.?off|metal.?cap|tin.?lid/i,
+    tags: ['metal-screw-cap','twist-off-cap','metal-cap','tin-lid'],
+    type: 'Metal Screw-top Lid',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Metal screw-top lids and glass jars are both recyclable in the yellow bin. Separate the metal lid from the glass jar - each goes in the yellow lid recycling bin separately.',
+    tip: 'Remove the lid, rinse both the jar and lid, and place them separately in the yellow bin. Metal lids too small alone can be collected inside a larger steel can.'
+  },
+  {
+    pattern: /glass.?jar|glass.?bottle/i,
+    tags: ['glass-jar','glass-bottle','glass-container'],
+    type: 'Glass Jar / Bottle',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Glass jars and bottles are fully recyclable in the yellow lid recycling bin. Remove and separately recycle any metal or plastic lid.',
+    tip: 'Give it a quick rinse. Remove the lid and recycle separately. Broken glass must go in the red bin, wrapped safely in newspaper.'
+  },
+  {
+    pattern: /screw.?cap|plastic.?cap|plastic.?lid|plastic.?screw/i,
+    tags: ['plastic-cap','screw-cap','plastic-lid','plastic-screw-cap'],
+    type: 'Plastic Screw Cap',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Plastic screw caps are recyclable. Leave the cap on the bottle when placing in the yellow lid recycling bin - this prevents the small cap from being lost in sorting machinery.',
+    tip: 'Rinse the bottle, replace the cap firmly, and recycle in the yellow bin. Caps left off are often lost and end up in landfill.'
+  },
+  {
+    pattern: /pump.?dispenser|pump.?top|lotion.?pump|soap.?pump/i,
+    tags: ['pump-dispenser','pump-top','lotion-pump'],
+    type: 'Pump Dispenser',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Pump dispensers contain mixed materials - plastic body, metal spring, and rubber gasket - that cannot be separated for recycling. The whole pump assembly goes in the red general waste bin.',
+    tip: 'Remove the pump top and place in the red bin. The bottle body may be recyclable if it is HDPE or PET plastic - check the resin code on the base.'
+  },
+  {
+    pattern: /flip.?top|sports.?cap|sport.?cap|flip.?cap/i,
+    tags: ['flip-top','sports-cap','flip-cap'],
+    type: 'Flip-top / Sports Cap',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Flip-top sports caps contain mixed plastic hinge components. Remove the flip-top cap and place it in the red general waste bin.',
+    tip: 'Unclip and discard the flip-top cap in the red bin. The clean bottle body can go in the yellow recycling bin.'
+  },
+  {
+    pattern: /trigger.?spray|spray.?trigger|spray.?pump|spray.?bottle/i,
+    tags: ['trigger-spray','spray-bottle','trigger-head'],
+    type: 'Trigger Spray Head',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Trigger spray heads contain mixed materials including metal springs and rubber seals that cannot be recycled. Remove the trigger head and place it in the red general waste bin.',
+    tip: 'Unscrew the trigger head (red bin). Rinse the bottle - if it is HDPE or PET plastic, it can go in the yellow recycling bin.'
+  },
+  {
+    pattern: /foil.?seal|peel.?off.?seal|foil.?lid|induction.?seal|peel.?seal/i,
+    tags: ['foil-seal','peel-off-seal','induction-seal','foil-lid'],
+    type: 'Foil Peel Seal',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Foil peel-off seals are too small and thin for MRF sorting machinery. They contaminate other materials and go in the red general waste bin.',
+    tip: 'The jar or bottle underneath may still be recyclable once the foil seal is removed and it is rinsed out.'
+  },
+  {
+    pattern: /ring.?pull|easy.?open|pull.?tab|ring.?tab/i,
+    tags: ['ring-pull','easy-open','pull-tab','ring-tab'],
+    type: 'Ring Pull Can',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Ring pull cans are made from aluminium or steel and are highly recyclable. Leave the ring pull tab attached to the can - placing both together in the yellow recycling bin.',
+    tip: 'Crush the empty can and leave the tab in place. Rinse out any remaining liquid before recycling.'
+  },
+  {
+    pattern: /snap.?on|press.?on|press.?fit|reseal.?lid|resealable/i,
+    tags: ['snap-on-lid','resealable','press-on-lid','press-fit'],
+    type: 'Snap-on / Resealable Lid',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Snap-on and resealable lids are often made from mixed plastic-foil composites that cannot be recycled in standard MRF machinery. Place them in the red general waste bin.',
+    tip: 'Remove the snap-on lid (red bin) and check if the container itself has a resin code - it may be separately recyclable.'
+  },
+  {
+    pattern: /tetra.?pak|tetra.?pack|tetrapak|aseptic.?carton|uht.?carton|long.?life.*carton/i,
+    tags: ['tetra-pak','aseptic-carton','carton','tetrapak'],
+    type: 'Tetra Pak / Aseptic Carton',
+    bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
+    why: 'Tetra Pak cartons are made from layers of paperboard, plastic, and aluminium that cannot be separated in standard kerbside MRF machinery. They are not accepted in the yellow recycling bin.',
+    tip: 'Take Tetra Pak cartons to a dedicated Tetra Pak recycling drop-off point. Check RecyclingNearYou.com.au for the nearest location in Albury-Wodonga.'
+  },
+  {
+    pattern: /\bcork\b/i,
+    tags: ['cork','natural-cork'],
+    type: 'Cork',
+    bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
+    why: 'Natural wine corks cannot go in kerbside recycling bins. They are accepted through specialist cork collection programmes at participating bottle shops.',
+    tip: 'Collect corks and drop them at participating bottle shops or wine retailers. Cork is recycled into flooring, insulation, and sporting goods.'
+  },
+  {
+    pattern: /crown.?seal|crown.?cap|crown.?cork|bottle.?top/i,
+    tags: ['crown-seal','crown-cap','crown-cork'],
+    type: 'Crown Seal (Bottle Cap)',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Steel crown seals are recyclable but too small for MRF sorting machinery on their own. Collect them inside a larger steel can before recycling.',
+    tip: 'Drop crown seals into a steel can. When about half full, crimp or fold the open end to trap the caps inside, then place the whole can in the yellow recycling bin.'
+  },
+  {
+    pattern: /sachet|doy.?pack|stand.?up.?pouch|flexible.?pouch|\bpouch\b/i,
+    tags: ['sachet','pouch','doypack','flexible-packaging','stand-up-pouch','flexible-pouch'],
+    type: 'Flexible Pouch / Sachet',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Flexible pouches and sachets are soft plastics that jam and tangle in MRF sorting machinery. They cannot go in the yellow recycling bin. Place in the red bin or take to a REDcycle soft plastic collection point.',
+    tip: 'Collect soft plastics (pouches, sachets, bread bags, chip packets) and take them to the REDcycle bin at Woolworths or Coles for specialist soft plastic recycling.'
+  },
+  {
+    pattern: /\btube\b|squeeze.?tube|toothpaste.?tube|laminate.?tube/i,
+    tags: ['tube','squeeze-tube','laminate-tube'],
+    type: 'Squeeze Tube',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Squeeze tubes (toothpaste, condiment, cream) are made from multiple bonded layers of plastic and aluminium that cannot be separated for recycling. They go in the red general waste bin.',
+    tip: 'Cut the tube open to extract the last 10-20% of product that typically remains. Wipe clean before disposal.'
+  },
+  {
+    pattern: /plastic.?bottle|hdpe|pet.?bottle|polyethylene/i,
+    tags: ['plastic-bottle','pet-bottle','hdpe-bottle','plastic-container'],
+    type: 'Plastic Bottle',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Plastic bottles (PET #1, HDPE #2) are recyclable in the yellow lid recycling bin. Leave the plastic cap on to keep it from being lost in sorting.',
+    tip: 'Give it a quick rinse, replace the cap, and squeeze to flatten before placing in the yellow bin.'
+  },
+  {
+    pattern: /aluminium.?can|aluminum.?can|steel.?can|tin.?can|metal.?can/i,
+    tags: ['aluminium-can','steel-can','tin-can','metal-can','beverage-can'],
+    type: 'Metal Can',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Aluminium and steel cans are highly recyclable and valuable. Rinse the can and place directly in the yellow lid recycling bin.',
+    tip: 'Crush the can to save space. Leave the ring-pull tab attached so it does not get lost in sorting.'
+  },
+  {
+    pattern: /cardboard|paperboard|paper.?box|carton.?box/i,
+    tags: ['cardboard','paperboard','paper-box'],
+    type: 'Cardboard / Paperboard',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Clean and dry cardboard and paperboard packaging goes in the yellow lid recycling bin. Flatten boxes to save space.',
+    tip: 'If the cardboard is greasy (e.g. pizza box), separate the clean sections for yellow recycling and the greasy sections for the FOGO green bin.'
+  }
+];
 
+/* ============================================================
+   BIN META
+   ============================================================ */
 const BIN_META = {
-  fogo:    { label: 'Green Lid - FOGO',       bandClass: 'band-fogo',    icon: '🟢' },
-  yellow:  { label: 'Yellow Lid - Recycling', bandClass: 'band-yellow',  icon: '🟡' },
-  red:     { label: 'Red Lid - General Waste', bandClass: 'band-red',    icon: '🔴' },
-  dropoff: { label: 'Drop-off Required',       bandClass: 'band-dropoff', icon: '🔵' }
+  fogo:    { label: 'Green Lid - FOGO',        bandClass: 'band-fogo',    icon: '🟢' },
+  yellow:  { label: 'Yellow Lid - Recycling',  bandClass: 'band-yellow',  icon: '🟡' },
+  red:     { label: 'Red Lid - General Waste', bandClass: 'band-red',     icon: '🔴' },
+  dropoff: { label: 'Drop-off Required',        bandClass: 'band-dropoff', icon: '🔵' }
 };
 
 /* ============================================================
    STATE
    ============================================================ */
-let mnModel     = null;
-let videoStream = null;
-let facingMode  = 'environment';
-let capturedURL = null;
+const codeReader  = new ZXing.BrowserMultiFormatReader();
+let videoStream   = null;
+let videoDevices  = [];
+let deviceIndex   = 0;
+let isScanning    = false;
 
 function setState(id) {
   document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
@@ -585,31 +833,29 @@ function dot(id, cls) {
 }
 
 /* ============================================================
-   INIT - load items.json and MobileNet in parallel
+   INIT
    ============================================================ */
 async function init() {
   try {
-    dot('tf', 'done');
-    dot('model', 'active');
-
-    const [model, itemsData] = await Promise.all([
-      mobilenet.load({ version: 2, alpha: 1.0 }),
-      fetch('../community/items.json?t=' + Date.now()).then(r => r.json())
-    ]);
-
-    mnModel = model;
-    ITEMS   = itemsData.items;
-
-    dot('model', 'done');
+    dot('zxing', 'done');
     dot('cam', 'active');
 
-    await startCamera();
+    videoDevices = await codeReader.listVideoInputDevices();
+
+    // Prefer rear-facing camera
+    const rearIdx = videoDevices.findIndex(d => /back|rear|environment/i.test(d.label));
+    deviceIndex = rearIdx >= 0 ? rearIdx : videoDevices.length - 1;
+
+    await startPreview();
 
     dot('cam', 'done');
     setState('camera');
+
+    if (videoDevices.length > 1) {
+      document.getElementById('btn-flip').style.display = 'flex';
+    }
   } catch (err) {
     console.error('Init error:', err);
-    dot('model', 'done');
     dot('cam', 'done');
     setState('camera');
     document.getElementById('no-cam-note').style.display = 'block';
@@ -618,153 +864,306 @@ async function init() {
 }
 
 /* ============================================================
-   CAMERA
+   CAMERA PREVIEW (getUserMedia - no scanning)
    ============================================================ */
-async function startCamera() {
-  if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 960 } }
-  });
-  videoStream = stream;
-  document.getElementById('camera-video').srcObject = stream;
-
-  // Show flip button if multiple cameras exist
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    if (devices.filter(d => d.kind === 'videoinput').length > 1) {
-      document.getElementById('btn-flip').style.display = 'flex';
-    }
-  } catch (_) {}
+async function startPreview() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+  }
+  const deviceId = videoDevices[deviceIndex]?.deviceId;
+  const constraints = {
+    video: deviceId
+      ? { deviceId: { exact: deviceId } }
+      : { facingMode: { ideal: 'environment' } }
+  };
+  videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+  document.getElementById('camera-video').srcObject = videoStream;
 }
 
 async function flipCamera() {
-  facingMode = facingMode === 'environment' ? 'user' : 'environment';
-  try { await startCamera(); } catch (_) {}
+  if (isScanning) await stopScanning();
+  deviceIndex = (deviceIndex + 1) % videoDevices.length;
+  await startPreview();
 }
 
 /* ============================================================
-   CAPTURE & CLASSIFY
+   BARCODE SCANNING (ZXing - takes over camera)
    ============================================================ */
-function captureAndClassify() {
-  const video  = document.getElementById('camera-video');
-  const canvas = document.getElementById('preview-canvas');
-
-  const w = video.videoWidth  || 640;
-  const h = video.videoHeight || 480;
-  canvas.width = w;
-  canvas.height = h;
-  canvas.getContext('2d').drawImage(video, 0, 0, w, h);
-
-  capturedURL = canvas.toDataURL('image/jpeg', 0.92);
-  runClassification(canvas, capturedURL);
+async function toggleScanning() {
+  if (isScanning) {
+    await stopScanning();
+  } else {
+    await startScanning();
+  }
 }
 
-function handleUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+async function startScanning() {
+  // Stop preview stream so ZXing can open camera
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+  }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width  = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      capturedURL = e.target.result;
-      runClassification(canvas, capturedURL);
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
+  isScanning = true;
 
-async function runClassification(imageSource, dataURL) {
-  document.getElementById('analysing-img').src = dataURL;
-  setState('analysing');
+  // Update UI
+  const btn = document.getElementById('btn-capture');
+  btn.classList.add('scanning');
+  document.getElementById('btn-label').textContent = 'Scanning... (tap to cancel)';
+  document.getElementById('btn-icon').innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+  document.getElementById('cam-tip').textContent = 'Hold steady - looking for barcode...';
+  document.getElementById('camera-viewport').classList.add('scanning-active');
+
+  const deviceId = videoDevices[deviceIndex]?.deviceId;
 
   try {
-    const predictions = await mnModel.classify(imageSource, 5);
-    showResult(predictions, dataURL);
+    await codeReader.decodeFromVideoDevice(deviceId, 'camera-video', (result, err) => {
+      if (!isScanning) return;
+      if (result) {
+        const code = result.getText();
+        stopScanning(false); // don't restart preview - going to analysing state
+        handleBarcode(code);
+      }
+      // NotFoundException is normal (no barcode in frame yet) - ZXing retries automatically
+    });
   } catch (err) {
-    console.error('Classification error:', err);
-    showResult([], dataURL);
+    console.error('ZXing error:', err);
+    await stopScanning();
+  }
+}
+
+async function stopScanning(restartPreview = true) {
+  isScanning = false;
+  codeReader.reset();
+
+  const btn = document.getElementById('btn-capture');
+  btn.classList.remove('scanning');
+  document.getElementById('btn-label').textContent = 'Scan Barcode';
+  document.getElementById('btn-icon').innerHTML = '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h2v2H7zM7 11h2v2H7zM7 15h2v2H7zM11 7h6v2h-6zM11 11h6v2h-6zM11 15h6v2h-6z"/>';
+  document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
+  document.getElementById('camera-viewport').classList.remove('scanning-active');
+
+  if (restartPreview) {
+    try { await startPreview(); } catch (_) {}
   }
 }
 
 /* ============================================================
-   STEP 1: MobileNet identifies the object (what is it?)
-   STEP 2: Look up that object in items.json (which bin?)
+   FILE UPLOAD - decode barcode from image
    ============================================================ */
+async function handleUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-function lookupItem(objectName) {
-  const words = objectName.toLowerCase().split(/[\s,]+/);
-  for (const item of ITEMS) {
-    if (item.key.some(kw => words.some(w => w.includes(kw) || kw.includes(w)))) {
-      return item;
+  const objectURL = URL.createObjectURL(file);
+  setState('analysing');
+  document.getElementById('analysing-barcode').textContent = 'Reading image...';
+
+  try {
+    const result = await codeReader.decodeFromImageUrl(objectURL);
+    URL.revokeObjectURL(objectURL);
+    handleBarcode(result.getText());
+  } catch (err) {
+    URL.revokeObjectURL(objectURL);
+    setState('camera');
+    showUncertain(
+      'No Barcode Found in Image',
+      'Could not detect a barcode in the uploaded photo. Try a clearer, well-lit photo or enter the barcode number manually.',
+      null
+    );
+    setState('result');
+  }
+}
+
+/* ============================================================
+   MANUAL ENTRY
+   ============================================================ */
+function toggleManual() {
+  const row = document.getElementById('manual-input-row');
+  row.classList.toggle('open');
+  if (row.classList.contains('open')) {
+    document.getElementById('manual-barcode').focus();
+  }
+}
+
+function submitManual() {
+  const code = document.getElementById('manual-barcode').value.trim();
+  if (!code) return;
+  handleBarcode(code);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.id === 'manual-barcode') {
+    submitManual();
+  }
+});
+
+/* ============================================================
+   BARCODE HANDLER - show analysing state and fetch OFF
+   ============================================================ */
+function handleBarcode(code) {
+  document.getElementById('analysing-barcode').textContent = code;
+  setState('analysing');
+  fetchOpenFoodFacts(code);
+}
+
+/* ============================================================
+   OPEN FOOD FACTS API
+   ============================================================ */
+async function fetchOpenFoodFacts(barcode) {
+  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}?fields=product_name,brands,packaging,packaging_tags,categories,quantity,image_url`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const data = await res.json();
+
+    if (data.status === 0 || !data.product) {
+      showUncertain('Product Not Found', 'Barcode ' + barcode + ' was not found in the Open Food Facts database.', null);
+      setState('result');
+      return;
+    }
+
+    const product = data.product;
+    const rule = classifyPackaging(product);
+
+    if (rule) {
+      showResult(barcode, product, rule);
+    } else {
+      showNoPackaging(barcode, product);
+    }
+
+    setState('result');
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      showUncertain('Request Timed Out', 'Could not reach Open Food Facts. Check your internet connection and try again.', null);
+    } else {
+      showUncertain('Lookup Failed', 'Could not retrieve product data. Check your connection or enter the barcode manually.', null);
+    }
+    setState('result');
+  }
+}
+
+/* ============================================================
+   PACKAGING CLASSIFICATION
+   Matches packaging text + tags against PACKAGING_RULES.
+   ============================================================ */
+function classifyPackaging(product) {
+  const text = (product.packaging || '').toLowerCase();
+  const tags = (product.packaging_tags || []).map(t => t.replace(/^[a-z]{2}:/, '').toLowerCase());
+  const combined = text + ' ' + tags.join(' ');
+
+  if (!combined.trim()) return null;
+
+  for (const rule of PACKAGING_RULES) {
+    const tagMatch = rule.tags.some(rt => tags.some(pt => pt.includes(rt)));
+    if (rule.pattern.test(combined) || tagMatch) {
+      return rule;
     }
   }
   return null;
 }
 
-function showResult(predictions, dataURL) {
-  document.getElementById('result-img').src = dataURL;
-  document.getElementById('low-conf-warn').style.display = 'none';
-
-  // Try each prediction in confidence order until one matches items.json
-  let matchedItem  = null;
-  let matchedPred  = null;
-
-  for (const pred of predictions) {
-    const item = lookupItem(pred.className);
-    if (item) {
-      matchedItem = item;
-      matchedPred = pred;
-      break;
-    }
-  }
-
-  const topPred    = predictions[0];
-  const hasVision  = topPred && topPred.probability >= 0.10;
-  const hasMatch   = matchedItem !== null;
-
-  document.getElementById('result-card').style.display    = hasMatch  ? 'block' : 'none';
-  document.getElementById('uncertain-card').style.display = hasMatch  ? 'none'  : 'block';
-
-  if (hasMatch) {
-    const meta = BIN_META[matchedItem.bin] || BIN_META.red;
-    const pct  = Math.round(matchedPred.probability * 100);
-
-    document.getElementById('result-band').className  = 'result-band ' + meta.bandClass;
-    document.getElementById('r-icon').textContent     = meta.icon;
-    document.getElementById('r-name').textContent     = meta.label;
-    document.getElementById('conf-pill').textContent  = pct > 60 ? 'High confidence' : pct > 30 ? 'Medium confidence' : 'Low confidence';
-    document.getElementById('conf-pct').textContent   = pct + '%';
-    document.getElementById('r-detected').textContent = matchedItem.name + ' (AI saw: ' + matchedPred.className + ')';
-    document.getElementById('r-why').textContent      = matchedItem.why;
-    document.getElementById('r-tip').textContent      = matchedItem.tip;
-
-    if (matchedPred.probability < 0.30) {
-      document.getElementById('low-conf-warn').style.display = 'block';
-    }
+/* ============================================================
+   DISPLAY FUNCTIONS
+   ============================================================ */
+function showResult(barcode, product, rule) {
+  // Product image
+  if (product.image_url) {
+    document.getElementById('result-img').src = product.image_url;
+    document.getElementById('result-img').onerror = () => { document.getElementById('result-photo').style.display = 'none'; };
+    document.getElementById('result-photo').style.display = 'block';
   } else {
-    // No items.json match - show what the AI saw and prompt Bin Finder
-    const list = document.getElementById('top-guesses');
-    if (hasVision) {
-      list.innerHTML = predictions.slice(0, 3).map(p =>
-        `<li><span>${p.className}</span><span class="g-pct">${Math.round(p.probability * 100)}%</span></li>`
-      ).join('');
-    } else {
-      list.innerHTML = '<li><span>Could not identify item from image</span></li>';
-    }
+    document.getElementById('result-photo').style.display = 'none';
   }
 
-  setState('result');
+  document.getElementById('result-card').style.display    = 'block';
+  document.getElementById('uncertain-card').style.display = 'none';
+  document.getElementById('low-conf-warn').style.display  = 'none';
+
+  const name   = product.product_name || 'Unknown product';
+  const brand  = product.brands       || '';
+  const qty    = product.quantity     || '';
+
+  document.getElementById('result-band').className = 'result-band ' + rule.bandClass;
+  document.getElementById('r-icon').textContent    = rule.icon;
+  document.getElementById('r-name').textContent    = rule.label;
+  document.getElementById('r-sub').textContent     = 'AlburyCity Council';
+  document.getElementById('conf-pill').textContent = 'Open Food Facts';
+  document.getElementById('conf-pct').textContent  = barcode;
+  document.getElementById('packaging-tag').textContent = rule.type;
+  document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
+  document.getElementById('r-why').textContent     = rule.why;
+  document.getElementById('r-tip').textContent     = rule.tip;
 }
 
-function resetToCamera() {
+function showNoPackaging(barcode, product) {
+  const name  = product.product_name || 'Unknown product';
+  const brand = product.brands       || '';
+
+  // Show product image if available
+  if (product.image_url) {
+    document.getElementById('result-img').src = product.image_url;
+    document.getElementById('result-img').onerror = () => { document.getElementById('result-photo').style.display = 'none'; };
+    document.getElementById('result-photo').style.display = 'block';
+  } else {
+    document.getElementById('result-photo').style.display = 'none';
+  }
+
+  document.getElementById('result-card').style.display    = 'none';
+  document.getElementById('low-conf-warn').style.display  = 'none';
+
+  const detail = document.getElementById('product-detail');
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div class="pd-name">${name}</div>
+    ${brand ? `<div class="pd-brand">${brand}</div>` : ''}
+    <div class="pd-code">Barcode: ${barcode}</div>
+  `;
+
+  showUncertain(
+    'Packaging Data Unavailable',
+    'Product found but no packaging information is listed in Open Food Facts.',
+    null
+  );
+}
+
+function showUncertain(heading, body, detail) {
+  document.getElementById('result-card').style.display    = 'none';
+  document.getElementById('low-conf-warn').style.display  = 'none';
+  document.getElementById('uncertain-card').style.display = 'block';
+  document.getElementById('result-photo').style.display   = 'none';
+
+  document.getElementById('uncertain-h2').textContent = heading;
+  document.getElementById('uncertain-p').textContent  = body;
+
+  const detailEl = document.getElementById('product-detail');
+  if (detail) {
+    detailEl.style.display = 'block';
+    detailEl.innerHTML = detail;
+  } else if (detailEl.style.display !== 'block') {
+    detailEl.style.display = 'none';
+  }
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+async function resetToCamera() {
+  if (isScanning) await stopScanning(false);
+  codeReader.reset();
   document.getElementById('file-input').value = '';
+  document.getElementById('manual-barcode').value = '';
+  document.getElementById('manual-input-row').classList.remove('open');
+  document.getElementById('product-detail').style.display = 'none';
+  await startPreview().catch(() => {});
   setState('camera');
 }
 
