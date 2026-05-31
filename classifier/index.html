@@ -726,7 +726,7 @@
     <div class="camera-card">
       <div class="camera-header">
         <h2>Scan product barcode</h2>
-        <p>Align the barcode inside the frame and tap Scan</p>
+        <p>Hold 15–25 cm away · tap Scan · move slightly if blurry</p>
       </div>
       <div class="camera-viewport" id="camera-viewport">
         <video id="camera-video" autoplay playsinline muted></video>
@@ -1190,26 +1190,30 @@ async function classifyWithGroq(product) {
         {
           role: 'system',
           content: `You are a waste classification assistant for AlburyCity Council, NSW Australia.
-Classify the PACKAGING of a supermarket product into exactly one bin for its PRIMARY/LARGEST component:
-- "yellow": Yellow Lid Recycling — glass bottles/jars, rigid plastic #1 or #2, cardboard boxes, paper, steel/aluminium cans, empty aerosol cans
-- "red": Red Lid General Waste — soft plastic packets/bags, chip packets, flexible film, multi-layer composite packaging, contaminated items
-- "fogo": Green Lid FOGO — food scraps, soiled compostable packaging
-- "dropoff": Special Drop-off Required — Tetra Pak/aseptic cartons, batteries, e-waste, medications/blister packs, paint
+Classify the PRIMARY packaging of a supermarket product. Use these bins:
+- "yellow": Rigid glass bottles/jars, rigid hard plastic bottles/tubs (#1/#2/#5), cardboard boxes, steel/aluminium cans, empty aerosol cans
+- "red": Soft plastic bags/pouches/sachets/chip packets/flexible film, composite multi-layer packaging, contaminated items, plastic caps alone
+- "fogo": Food scraps, soiled compostable packaging
+- "dropoff": Tetra Pak laminated cartons ONLY (e.g. long-life milk, stock, juice brick packs), batteries, blister packs, e-waste, paint
 
-IMPORTANT RULES:
-- Aerosol cans: EMPTY CAN → "yellow" (recyclable metal). The plastic cap is secondary → "red".
-- Cereal/cracker boxes: cardboard box → "yellow". Inner plastic bag liner is secondary → "red".
-- Yogurt/dairy tubs: plastic tub → "yellow". Foil peel lid is secondary → "red".
-- Pizza boxes: clean cardboard → "yellow". Greasy base is secondary → "fogo".
-- Takeaway coffee cups: paper cup → "red" (plastic-lined). Plastic lid is secondary → "yellow".
-- Composite tubes (Pringles, oat canisters): tube → "red". Plastic lid is secondary → "yellow".
-- Frozen meal trays: plastic tray → "red". Cardboard sleeve is secondary → "yellow".
-- Blister packs: blisters → "dropoff" (PharmaCycle). Cardboard outer box is secondary → "yellow".
-- Tetra Pak cartons: carton → "dropoff". Plastic straw/cap is secondary → "red".
+CRITICAL DISTINCTIONS — get these right:
+1. METAL CANS (tin/steel/aluminium) → "yellow". Examples: canned coconut milk, baked beans, tomatoes, soup cans, pet food cans → all yellow.
+2. TETRA PAK → "dropoff" ONLY for brick-shaped laminated cardboard cartons (long-life milk, stock, juice cartons). NOT pouches. NOT cans.
+3. SQUEEZE POUCHES / DOYPACK (baby food, fruit puree, sports nutrition, drink pouches) → "red". These are soft flexible PLASTIC POUCHES, not Tetra Pak.
+4. GLASS BOTTLES/JARS → "yellow" (pasta sauce, wine, beer, jam, olive oil, honey).
+5. RIGID PLASTIC BOTTLES/TUBS → "yellow" (shampoo, conditioner, yogurt tub, peanut butter jar, milk bottle).
+6. SOFT PLASTIC BAGS → "red" (frozen veggie bags, lentil bags, chip bags, bread bags, salad bags).
 
-If a product has a SEPARABLE component that goes in a DIFFERENT bin, include a "secondary" field.
-Respond ONLY with valid JSON:
-{"bin":"<bin>","type":"<short packaging type>","why":"<one sentence>","tip":"<one sentence>","secondary":{"part":"<e.g. Plastic cap → Red Lid>","bin":"<bin>"}}`
+MULTI-PART RULES (include "secondary" when parts go in DIFFERENT bins):
+- Aerosol can → yellow, plastic cap → red (secondary)
+- Cereal box → yellow, inner plastic bag → red (secondary)
+- Yogurt tub → yellow, foil peel lid → red (secondary)
+- Takeaway coffee cup body → red, plastic lid → yellow (secondary)
+- Composite tube (Pringles) → red, plastic lid → yellow (secondary)
+- Tetra Pak carton → dropoff, plastic straw/cap → red (secondary)
+
+Respond ONLY with valid JSON (no markdown):
+{"bin":"<bin>","type":"<short packaging type, e.g. Metal Can>","why":"<one sentence>","tip":"<one sentence>","secondary":{"part":"<component name>","bin":"<bin>"}}`
         },
         {
           role: 'user',
@@ -1272,15 +1276,16 @@ async function classifyWithGroqVision(base64Image) {
         content: [
           {
             type: 'text',
-            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Look at this image, identify the item, and classify which bin its PRIMARY component goes in.
+            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Identify the item in the image and classify its PRIMARY packaging component.
 
-Bins: yellow (Yellow Lid - glass, rigid plastic #1/#2, clean cardboard, metal cans, empty aerosol cans), red (Red Lid - soft plastics, composite packaging, chip packets, coffee cup bodies, frozen meal trays), fogo (Green Lid - food scraps, soiled cardboard), dropoff (Special drop-off - batteries, e-waste, medicines, blister packs, Tetra Pak).
+Bins: yellow (metal cans, glass bottles/jars, rigid plastic bottles/tubs, cardboard boxes, aerosol cans), red (soft plastic bags/pouches/sachets/chip packets, flexible film, coffee cup bodies), fogo (food scraps, soiled cardboard), dropoff (Tetra Pak laminated brick cartons ONLY, batteries, blister packs, e-waste).
 
-Multi-part rules: aerosol can→yellow, cap→red | cereal box→yellow, inner bag→red | yogurt tub→yellow, foil lid→red | coffee cup body→red, lid→yellow | pizza clean lid→yellow, greasy base→fogo | composite tube (Pringles)→red, lid→yellow | frozen meal tray→red, cardboard sleeve→yellow.
+CRITICAL: Metal tin/steel/aluminium cans (coconut milk, baked beans, soup) → yellow. Soft squeeze pouches and doy-packs (fruit puree, baby food) → red (soft plastic). Tetra Pak = only the rectangular laminated carton (long-life milk/stock/juice bricks) → dropoff. Glass bottles/jars → yellow. Rigid plastic bottles/tubs → yellow.
 
-If the item has a separable component going in a DIFFERENT bin, include "secondary".
-Reply with ONLY a raw JSON object on one line, no markdown, no code block:
-{"name":"item name","bin":"yellow|red|fogo|dropoff","type":"packaging type","why":"one sentence","tip":"one sentence or empty string","secondary":{"part":"component → Bin Name","bin":"yellow|red|fogo|dropoff"}}`
+Multi-part: aerosol→yellow, cap→red | cereal box→yellow, inner bag→red | yogurt tub→yellow, foil lid→red | takeaway cup→red, lid→yellow | Pringles tube→red, lid→yellow | Tetra Pak→dropoff, straw→red.
+
+Reply ONLY with a raw JSON object, no markdown:
+{"name":"item name","bin":"yellow|red|fogo|dropoff","type":"packaging type","why":"one sentence","tip":"one sentence or empty","secondary":{"part":"component name","bin":"bin"}}`
           },
           {
             type: 'image_url',
@@ -1642,9 +1647,22 @@ async function fetchOpenFoodFacts(barcode) {
       showResult(barcode, product, rule, false);
       setState('result');
     } else {
+      const pname = product.product_name || '';
+      const pbrand = product.brands || '';
+
+      // If no product name, Groq can't help — go straight to uncertain/photo
+      if (!pname && !pbrand) {
+        showUncertain(
+          'Product Unidentified',
+          'Barcode ' + barcode + ' was found but has no product information. Take a photo of the product for AI identification.',
+          null
+        );
+        setState('result');
+        return;
+      }
+
       // No packaging data in OFF — ask Groq AI
-      const pname = product.product_name || 'product';
-      document.getElementById('analysing-barcode').textContent = pname;
+      document.getElementById('analysing-barcode').textContent = pname || barcode;
       document.querySelector('#state-analysing .analysing-body h2').textContent  = 'Asking AI…';
       document.querySelector('#state-analysing .analysing-body p').textContent   = 'No packaging data in Open Food Facts — checking with Groq AI';
       try {
@@ -1696,24 +1714,28 @@ function classifyPackaging(product) {
     const has = (...kw) => kw.some(k => mat.some(t => t.includes(k)));
     const find = type => PACKAGING_RULES.find(r => r.type === type);
 
-    if (has('tetra-pak','tetrapak'))
+    if (has('tetra-pak','tetrapak','aseptic'))
       return find('Tetra Pak / Aseptic Carton');
     if (has('aluminium-can','aluminum-can','steel-can','tin-can','beverage-can'))
       return find('Metal Can');
     if (has('glass-bottle','glass-jar','glass-container') || (has('glass') && !has('fibre','fiber')))
       return find('Glass Jar / Bottle');
-    if (has('pet-bottle','hdpe-bottle','plastic-bottle','pp-bottle'))
-      return find('Plastic Bottle');
+    // Check flexible/film BEFORE rigid plastic — bags and pouches are often tagged as 'pet' or 'hdpe' film
+    if (has('flexible','film','pouch','sachet','soft-plastic','doypack','ldpe','low-density-polyethylene','lldpe'))
+      return find('Flexible Pouch / Sachet');
     if (has('cardboard','paperboard','paper-box','corrugated','paper-carton'))
       return find('Cardboard / Paperboard');
-    if (has('flexible','film','pouch','sachet','soft-plastic','doypack'))
-      return find('Flexible Pouch / Sachet');
-    if (has('aluminium','aluminum') && !has('can'))
-      return find('Metal Can');              // foil trays etc. → yellow
-    if (has('steel','iron','tin'))
-      return find('Metal Can');
-    if (has('plastic','pet','hdpe','pp','ldpe','pvc'))
+    if (has('pet-bottle','hdpe-bottle','plastic-bottle','pp-bottle'))
       return find('Plastic Bottle');
+    if (has('steel','iron','tin') && !has('flexible','film','foil'))
+      return find('Metal Can');
+    if (has('aluminium','aluminum') && !has('can','bottle'))
+      return find('Foil Peel Seal');
+    // Broad plastic catch-all: rigid forms → Plastic Bottle, ldpe/unknown → Flexible Pouch
+    if (has('pet','hdpe','pp') && !has('bag','film','flexible','pouch'))
+      return find('Plastic Bottle');
+    if (has('plastic','pvc','ldpe'))
+      return find('Flexible Pouch / Sachet');
   }
 
   return null;
