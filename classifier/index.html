@@ -557,10 +557,10 @@
     }
     .ai-note strong { display: block; margin-bottom: 3px; font-size: 13px; }
 
-    /* Photo mode viewport: portrait, capped so it never overflows Safari chrome */
+    /* Photo mode viewport: full-width, height fills visible screen without overflowing Safari chrome */
     .camera-viewport.photo-mode-vp {
-      aspect-ratio: 2/3;
-      max-height: 52dvh;
+      aspect-ratio: unset;
+      height: 62dvh;
     }
     /* Hide the guide frame entirely in photo mode — no box needed */
     .cam-frame.photo-mode { display: none; }
