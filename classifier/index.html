@@ -1727,7 +1727,7 @@ async function fetchOpenFoodFacts(barcode) {
 
     if (data.status === 0 || !data.product) {
       if (correction) {
-        showResult(barcode, { product_name: correction.type, brands: 'Community verified', image_url: null, quantity: '' }, correction, false, 'Community');
+        showResult(barcode, { product_name: correction.type, brands: '', image_url: null, quantity: '' }, correction, true);
         setState('result');
         return;
       }
@@ -1739,7 +1739,7 @@ async function fetchOpenFoodFacts(barcode) {
     const product = data.product;
 
     if (correction) {
-      showResult(barcode, product, correction, false, 'Community');
+      showResult(barcode, product, correction, true);
       setState('result');
       return;
     }
@@ -2001,12 +2001,13 @@ async function checkForCorrection(barcode) {
 
 function firestoreDocToRule(data) {
   const meta = BIN_META[data.bin] || BIN_META.red;
+  const binTypes = { yellow: 'Yellow Lid — Recycling', red: 'General Waste', fogo: 'FOGO — Food & Organics', dropoff: 'Drop-off Required' };
   return {
     bin:       data.bin,
     bandClass: meta.bandClass,
     icon:      meta.icon,
-    type:      data.type || 'Community Correction',
-    why:       data.why  || 'This classification was submitted and verified by community members.',
+    type:      binTypes[data.bin] || (data.type || 'Community Classification'),
+    why:       data.why  || 'This classification was submitted and verified by a community member.',
     tip:       data.tip  || '',
     secondary: data.secondary || null,
     _community: true
