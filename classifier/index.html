@@ -686,7 +686,69 @@
       font-size: 12px;
     }
     footer a { color: var(--blue); text-decoration: none; }
+
+    /* ---- FEEDBACK WIDGET ---- */
+    .feedback-widget {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .btn-flag {
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      width: 100%;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .btn-flag:hover { background: var(--bg); }
+    .flag-form { margin-top: 12px; display: none; }
+    .flag-form > p { font-size: 13px; color: var(--text-md); margin-bottom: 10px; font-weight: 600; }
+    .bin-options {
+      display: flex; gap: 10px; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .bin-option {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 8px 10px; border-radius: 10px; border: 2.5px solid transparent;
+      cursor: pointer; background: var(--bg);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .bin-option.selected { border-color: var(--navy); background: #EBF5FB; }
+    .bin-option-label { font-size: 10px; font-weight: 700; color: var(--text-md); text-align: center; }
+    .flag-actions { display: flex; gap: 8px; }
+    .btn-flag-submit {
+      flex: 1; background: var(--navy); color: #fff;
+      border: none; border-radius: 8px; padding: 11px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .btn-flag-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-flag-cancel-inner {
+      background: var(--bg); color: var(--text-md);
+      border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 11px 16px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .flag-toast {
+      margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; text-align: center;
+    }
+    .flag-toast.success { background: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }
+    .flag-toast.info    { background: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }
+    .flag-toast.error   { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -876,6 +938,8 @@
       </div>
     </div>
 
+    <div id="feedback-widget-container"></div>
+
     <div class="result-actions">
       <button class="btn-again" onclick="resetToCamera()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
@@ -902,6 +966,25 @@
 </footer>
 
 <script>
+/* ============================================================
+   FIREBASE — community correction system
+   ============================================================ */
+const VOTE_THRESHOLD = 3;
+const SESSION_ID = (() => {
+  let id = localStorage.getItem('fbSid');
+  if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('fbSid', id); }
+  return id;
+})();
+firebase.initializeApp({
+  apiKey: 'AIzaSyAX7c9il2yBXssH3LTYmGApW2OmGwE9WK4',
+  authDomain: 'waste-401ac.firebaseapp.com',
+  projectId: 'waste-401ac',
+  storageBucket: 'waste-401ac.firebasestorage.app',
+  messagingSenderId: '632432606402',
+  appId: '1:632432606402:web:545f2faf4ac8daccdacf5b'
+});
+const db = firebase.firestore();
+
 /* ============================================================
    PACKAGING RULES
    Match against combined packaging text + packaging_tags from OFF API.
@@ -1626,6 +1709,8 @@ function handleBarcode(code) {
    OPEN FOOD FACTS API
    ============================================================ */
 async function fetchOpenFoodFacts(barcode) {
+  const correction = await checkForCorrection(barcode);
+
   const fields = 'product_name,brands,packaging,packaging_tags,packaging_materials_tags,categories,quantity,image_url,labels_tags';
   const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}?fields=${fields}`;
 
@@ -1641,12 +1726,24 @@ async function fetchOpenFoodFacts(barcode) {
     const data = await res.json();
 
     if (data.status === 0 || !data.product) {
+      if (correction) {
+        showResult(barcode, { product_name: correction.type, brands: 'Community verified', image_url: null, quantity: '' }, correction, false, 'Community');
+        setState('result');
+        return;
+      }
       showUncertain('Product Not Found', 'Barcode ' + barcode + ' was not found in the Open Food Facts database.', null);
       setState('result');
       return;
     }
 
     const product = data.product;
+
+    if (correction) {
+      showResult(barcode, product, correction, false, 'Community');
+      setState('result');
+      return;
+    }
+
     const rule = classifyPackaging(product);
 
     if (rule) {
@@ -1750,7 +1847,7 @@ function classifyPackaging(product) {
 /* ============================================================
    DISPLAY FUNCTIONS
    ============================================================ */
-function showResult(identifier, product, rule, isAI = false) {
+function showResult(identifier, product, rule, isAI = false, sourceLabel = null) {
   // Product image
   if (product.image_url) {
     document.getElementById('result-img').src = product.image_url;
@@ -1765,7 +1862,7 @@ function showResult(identifier, product, rule, isAI = false) {
 
   // Hide source badge for AI results — no noisy "GROQ AI" label
   document.getElementById('r-conf').style.display = isAI ? 'none' : '';
-  document.getElementById('conf-pill').textContent = 'Open Food Facts';
+  document.getElementById('conf-pill').textContent = sourceLabel || 'Open Food Facts';
   document.getElementById('conf-pct').textContent  = identifier;
 
   const name   = product.product_name || 'Unknown product';
@@ -1805,6 +1902,10 @@ function showResult(identifier, product, rule, isAI = false) {
   } else {
     sec.style.display = 'none';
   }
+
+  // Feedback widget — only for numeric barcode lookups, not name/photo searches
+  const bc = /^\d{6,14}$/.test(String(identifier)) ? String(identifier) : null;
+  renderFeedbackWidget(bc, rule, isAI);
 }
 
 function showNoPackaging(barcode, product) {
@@ -1885,6 +1986,166 @@ async function resetToCamera() {
   document.getElementById('manual-input-row').classList.remove('open');
   document.getElementById('product-detail').style.display = 'none';
   setState('camera');
+}
+
+/* ============================================================
+   FIRESTORE — correction + feedback functions
+   ============================================================ */
+async function checkForCorrection(barcode) {
+  try {
+    const doc = await db.collection('corrections').doc(String(barcode)).get();
+    if (doc.exists && doc.data().promotedAt) return firestoreDocToRule(doc.data());
+  } catch (_) {}
+  return null;
+}
+
+function firestoreDocToRule(data) {
+  const meta = BIN_META[data.bin] || BIN_META.red;
+  return {
+    bin:       data.bin,
+    bandClass: meta.bandClass,
+    icon:      meta.icon,
+    type:      data.type || 'Community Correction',
+    why:       data.why  || 'This classification was submitted and verified by community members.',
+    tip:       data.tip  || '',
+    secondary: data.secondary || null,
+    _community: true
+  };
+}
+
+async function submitFeedback(barcode, originalRule, isAI, submittedBin) {
+  const voteId  = `${barcode}_${SESSION_ID}`;
+  const voteRef = db.collection('correction_votes').doc(voteId);
+  const corrRef = db.collection('corrections').doc(String(barcode));
+
+  try {
+    const existing = await voteRef.get();
+    if (existing.exists && existing.data().votedBin === submittedBin) return 'already_voted';
+  } catch (_) {}
+
+  db.collection('feedback').add({
+    barcode: String(barcode), submittedBin,
+    originalBin:    originalRule.bin,
+    originalSource: originalRule._community ? 'community' : (isAI ? 'ai' : 'rules'),
+    sessionId:   SESSION_ID,
+    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    userAgent:   navigator.userAgent.slice(0, 200)
+  }).catch(() => {});
+
+  let newCount = 1;
+  await db.runTransaction(async tx => {
+    const corrDoc = await tx.get(corrRef);
+    const prev    = corrDoc.exists ? corrDoc.data() : { voteCount: 0, bin: null };
+    const sameVote = corrDoc.exists && prev.bin === submittedBin;
+    newCount = sameVote ? (prev.voteCount || 0) + 1 : 1;
+    const isPromoted  = newCount >= VOTE_THRESHOLD;
+    const promotedAt  = isPromoted
+      ? firebase.firestore.FieldValue.serverTimestamp()
+      : (sameVote ? (prev.promotedAt || null) : null);
+    tx.set(corrRef, {
+      bin: submittedBin, type: 'Community Correction', voteCount: newCount,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+      promotedAt, source: 'community'
+    }, { merge: true });
+    tx.set(voteRef, {
+      barcode: String(barcode), sessionId: SESSION_ID,
+      votedBin: submittedBin, votedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+
+  return newCount >= VOTE_THRESHOLD ? 'promoted' : 'recorded';
+}
+
+let _selectedFlagBin = null;
+
+function renderFeedbackWidget(barcode, rule, isAI) {
+  const container = document.getElementById('feedback-widget-container');
+  _selectedFlagBin = null;
+  if (!barcode) { container.innerHTML = ''; return; }
+
+  container.innerHTML = `
+    <div class="feedback-widget">
+      <button class="btn-flag" id="btn-flag" onclick="openFlagForm()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        Flag incorrect bin
+      </button>
+      <div class="flag-form" id="flag-form">
+        <p>Which bin should this go in?</p>
+        <div class="bin-options">
+          ${['yellow','red','fogo','dropoff'].map(b => `
+            <div class="bin-option" id="bin-opt-${b}" onclick="selectBinOption('${b}')">
+              ${makeARLBadge(b)}
+              <span class="bin-option-label">${BIN_META[b].label.split(' - ')[0]}</span>
+            </div>`).join('')}
+        </div>
+        <div class="flag-actions">
+          <button class="btn-flag-cancel-inner" onclick="closeFlagForm()">Cancel</button>
+          <button class="btn-flag-submit" id="btn-flag-submit" disabled
+            onclick="doSubmitFeedback('${barcode}',${isAI})">Submit</button>
+        </div>
+      </div>
+      <div class="flag-toast" id="flag-toast" style="display:none"></div>
+    </div>`;
+
+  container._rule  = rule;
+}
+
+function openFlagForm() {
+  document.getElementById('flag-form').style.display = 'block';
+  document.getElementById('btn-flag').style.display  = 'none';
+}
+
+function selectBinOption(bin) {
+  _selectedFlagBin = bin;
+  document.querySelectorAll('.bin-option').forEach(el => el.classList.remove('selected'));
+  const opt = document.getElementById('bin-opt-' + bin);
+  if (opt) opt.classList.add('selected');
+  const sub = document.getElementById('btn-flag-submit');
+  if (sub) sub.disabled = false;
+}
+
+function closeFlagForm() {
+  const form = document.getElementById('flag-form');
+  const btn  = document.getElementById('btn-flag');
+  if (form) form.style.display = 'none';
+  if (btn)  btn.style.display  = '';
+  _selectedFlagBin = null;
+}
+
+async function doSubmitFeedback(barcode, isAI) {
+  if (!_selectedFlagBin) return;
+  const container    = document.getElementById('feedback-widget-container');
+  const rule         = container._rule || { bin: 'red', _community: false };
+  const submittedBin = _selectedFlagBin;
+  const submitBtn    = document.getElementById('btn-flag-submit');
+  const toast        = document.getElementById('flag-toast');
+
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Submitting…';
+  toast.style.display   = 'none';
+
+  try {
+    const outcome = await submitFeedback(barcode, rule, isAI, submittedBin);
+    document.getElementById('flag-form').style.display = 'none';
+    toast.style.display = 'block';
+    if (outcome === 'promoted') {
+      toast.className   = 'flag-toast success';
+      toast.textContent = 'Correction promoted! This fix will now apply to all future scans of this barcode.';
+    } else if (outcome === 'already_voted') {
+      toast.className   = 'flag-toast info';
+      toast.textContent = 'You have already flagged this product. Thanks for helping!';
+    } else {
+      const rem = VOTE_THRESHOLD - 1;
+      toast.className   = 'flag-toast info';
+      toast.textContent = `Thanks! Correction recorded. ${rem} more vote${rem !== 1 ? 's' : ''} needed to apply the fix.`;
+    }
+  } catch (_) {
+    submitBtn.disabled    = false;
+    submitBtn.textContent = 'Submit';
+    toast.style.display   = 'block';
+    toast.className       = 'flag-toast error';
+    toast.textContent     = 'Could not submit. Check your internet connection and try again.';
+  }
 }
 
 /* ============================================================
