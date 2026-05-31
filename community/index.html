@@ -835,7 +835,117 @@
       font-size: 12px;
     }
     footer a:hover { color: #fff; }
+
+    /* ===== WASTE ADVISOR ===== */
+    .advisor-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .advisor-input-area {
+      padding: 20px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .advisor-textarea-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    #advisor-input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      resize: none;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #advisor-input:focus { border-color: var(--blue); }
+    .btn-advisor-send {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      align-self: flex-end;
+    }
+    .btn-advisor-send:hover    { background: var(--navy-dk); }
+    .btn-advisor-send:disabled { opacity: 0.45; cursor: not-allowed; }
+    .advisor-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+    .advisor-chip {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 13px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-md);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .advisor-chip:hover { background: var(--border); border-color: var(--blue); color: var(--navy); }
+    .advisor-answer-area {
+      padding: 20px;
+      display: none;
+    }
+    .advisor-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-sm);
+      font-size: 13px;
+    }
+    .advisor-loading .mini-spin {
+      width: 18px; height: 18px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    .advisor-response {
+      font-size: 14.5px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .advisor-response strong { color: var(--navy); }
+    .advisor-response ul { padding-left: 18px; margin: 8px 0; }
+    .advisor-response li { margin-bottom: 4px; }
+    .advisor-response p  { margin-bottom: 10px; }
+    .advisor-response p:last-child { margin-bottom: 0; }
+    .advisor-response h4 { font-size: 14px; font-weight: 700; color: var(--navy); margin: 14px 0 4px; }
+    .advisor-disclaimer {
+      padding: 12px 20px;
+      background: #EBF5FB;
+      border-top: 1px solid #AED6F1;
+      font-size: 11.5px;
+      color: #1A5276;
+      line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+      .advisor-chips { gap: 6px; }
+      .advisor-chip  { font-size: 11.5px; padding: 5px 11px; }
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -870,6 +980,7 @@
     <a href="#bin-finder" class="nav-pill active" onclick="setActive(this)">Bin Finder</a>
     <a href="#quiz"       class="nav-pill"        onclick="setActive(this)">Pop Quiz</a>
     <a href="#plan"       class="nav-pill"        onclick="setActive(this)">Education Plan</a>
+    <a href="#waste-advisor" class="nav-pill" onclick="setActive(this)">Waste Advisor</a>
   </div>
 </nav>
 
@@ -962,6 +1073,48 @@
           <h4>Drop-off Required</h4>
           <p>Batteries, e-waste, paint, medicines. Never bin these - take to AlburyCity drop-off points.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== WASTE ADVISOR ===================== -->
+  <section class="page-section" id="waste-advisor">
+    <div class="section-head">
+      <div class="section-icon">💬</div>
+      <div class="section-head-text">
+        <h2>Drop Your Questions — Waste Advisor</h2>
+        <p>Ask anything about waste in Albury — drop-off costs, zones, commercial disposal, restaurant waste, bulky items, and more. Powered by AlburyCity's Waste Management Strategy.</p>
+      </div>
+    </div>
+
+    <div class="advisor-card">
+      <div class="advisor-input-area">
+        <div class="advisor-textarea-wrap">
+          <textarea id="advisor-input" rows="3"
+            placeholder="e.g. Where do I drop a mattress? How much does it cost to dump a fridge? I'm opening a cafe — how do I set up commercial waste collection?"></textarea>
+          <button class="btn-advisor-send" id="btn-advisor-send" onclick="askAdvisor()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Ask
+          </button>
+        </div>
+        <div class="advisor-chips">
+          <span class="advisor-chip" onclick="setAdvisorQ(this)">Where do I drop a mattress?</span>
+          <span class="advisor-chip" onclick="setAdvisorQ(this)">Does dumping cost money?</span>
+          <span class="advisor-chip" onclick="setAdvisorQ(this)">Restaurant waste disposal</span>
+          <span class="advisor-chip" onclick="setAdvisorQ(this)">How to dispose of old paint?</span>
+          <span class="advisor-chip" onclick="setAdvisorQ(this)">Commercial waste collection</span>
+          <span class="advisor-chip" onclick="setAdvisorQ(this)">E-waste drop-off</span>
+        </div>
+      </div>
+      <div class="advisor-answer-area" id="advisor-answer-area">
+        <div class="advisor-loading" id="advisor-loading">
+          <div class="mini-spin"></div>
+          <span id="advisor-loading-text">Reading the Waste Management Strategy…</span>
+        </div>
+        <div class="advisor-response" id="advisor-response" style="display:none"></div>
+      </div>
+      <div class="advisor-disclaimer">
+        Answers are based on AlburyCity's Waste Management Strategy. For exact fees, bookings, and opening hours call AlburyCity Waste on <strong>02 6023 8111</strong> or visit <a href="https://www.alburycity.nsw.gov.au/living/waste-and-recycling" target="_blank" rel="noopener">alburycity.nsw.gov.au</a>.
       </div>
     </div>
   </section>
@@ -1451,6 +1604,135 @@ function showResult() {
     document.getElementById('result-msg').textContent   = 'You scored ' + score + ' out of ' + QUESTIONS.length + '. Do not worry - these are genuinely tricky questions about common myths. Try again, and use the Bin Finder tool above to check items before you bin them. Together we can reduce contamination.';
   }
 }
+
+/* ============================================================
+   WASTE ADVISOR — PDF-grounded Q&A powered by Groq
+   ============================================================ */
+const WASTE_PDF_URL = 'https://www.alburycity.nsw.gov.au/__data/assets/pdf_file/0019/372223/AlburyCity-Waste-Management-Strategy.pdf';
+const GROQ_ADVISOR_KEY = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
+let _wasteDocText  = null;
+let _wasteDocReady = false;
+
+async function loadWasteDoc() {
+  if (_wasteDocReady) return;
+  try {
+    const lib = window.pdfjsLib;
+    if (!lib) throw new Error('PDF.js not available');
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const pdf = await Promise.race([
+      lib.getDocument({ url: WASTE_PDF_URL, withCredentials: false }).promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))
+    ]);
+
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page    = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(s => s.str).join(' ') + '\n';
+    }
+    _wasteDocText = text.slice(0, 80000);
+  } catch (_) {
+    _wasteDocText = null;
+  }
+  _wasteDocReady = true;
+}
+
+function buildAdvisorSystemPrompt() {
+  const base = `You are a helpful waste management advisor for AlburyCity Council, NSW Australia.
+Key facts: current diversion rate 49.4%, recycling contamination 18%, council target 55% by FY2025-26, NSW target 80% by 2030.
+Answer questions about: kerbside bins (red/yellow/green lids), drop-off facility fees and hours, bulky items (mattresses, furniture, fridges), e-waste, hazardous waste (paint, chemicals, batteries, gas bottles), green waste, commercial/restaurant waste, FOGO, and the waste management strategy.
+Be specific and practical. Use short paragraphs or bullet points. If you don't know exact current fees, say the user should call AlburyCity Waste on 02 6023 8111 or check the council website to confirm.`;
+
+  return _wasteDocText
+    ? `${base}\n\nAlburyCity Waste Management Strategy document:\n\n${_wasteDocText}`
+    : base;
+}
+
+function renderMarkdown(text) {
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return escaped
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,     '<em>$1</em>')
+    .replace(/^#### (.+)$/gm,  '<h4>$1</h4>')
+    .replace(/^### (.+)$/gm,   '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm,    '<h4>$1</h4>')
+    .replace(/^[-•] (.+)$/gm,  '<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(?!<[hup])(.+)/, '<p>$1')
+    .replace(/([^>])$/, '$1</p>');
+}
+
+async function askAdvisor() {
+  const input    = document.getElementById('advisor-input');
+  const question = input.value.trim();
+  if (!question) { input.focus(); return; }
+
+  const areaEl   = document.getElementById('advisor-answer-area');
+  const loadEl   = document.getElementById('advisor-loading');
+  const loadText = document.getElementById('advisor-loading-text');
+  const respEl   = document.getElementById('advisor-response');
+  const sendBtn  = document.getElementById('btn-advisor-send');
+
+  areaEl.style.display  = 'block';
+  loadEl.style.display  = 'flex';
+  respEl.style.display  = 'none';
+  sendBtn.disabled      = true;
+  loadText.textContent  = 'Reading the Waste Management Strategy…';
+
+  await loadWasteDoc();
+  loadText.textContent = 'Getting your answer…';
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      signal: AbortSignal.timeout(25000),
+      headers: {
+        'Authorization': 'Bearer ' + GROQ_ADVISOR_KEY,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({
+        model:       'llama-3.3-70b-versatile',
+        temperature: 0.2,
+        max_tokens:  700,
+        messages: [
+          { role: 'system', content: buildAdvisorSystemPrompt() },
+          { role: 'user',   content: question }
+        ]
+      })
+    });
+
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data   = await res.json();
+    const answer = data.choices?.[0]?.message?.content || 'No response received.';
+
+    loadEl.style.display = 'none';
+    respEl.style.display = 'block';
+    respEl.innerHTML     = renderMarkdown(answer);
+  } catch (_) {
+    loadEl.style.display = 'none';
+    respEl.style.display = 'block';
+    respEl.textContent   = 'Could not get a response — check your internet connection and try again.';
+  }
+
+  sendBtn.disabled = false;
+}
+
+function setAdvisorQ(el) {
+  const input = document.getElementById('advisor-input');
+  input.value = el.textContent;
+  input.focus();
+  // Scroll to the textarea
+  document.getElementById('waste-advisor').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('advisor-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAdvisor(); }
+  });
+});
 
 </script>
 </body>
