@@ -2172,7 +2172,7 @@ async function verifyWithGroq(product, submittedBin) {
       brands:       product.brands       || '',
       categories:   product.categories   || ''
     });
-    return { agrees: result.bin === submittedBin, why: result.why || '' };
+    return { agrees: result.bin === submittedBin, suggestedBin: result.bin, why: result.why || '' };
   } catch (_) {
     return { agrees: null };
   }
@@ -2201,7 +2201,7 @@ async function doSubmitFeedback(barcode, isAI) {
   toast.className     = 'flag-toast info';
   toast.textContent   = 'Verifying with AI…';
 
-  const { agrees, why } = await verifyWithGroq(product, submittedBin);
+  const { agrees, suggestedBin, why } = await verifyWithGroq(product, submittedBin);
 
   if (agrees === true) {
     // Groq agrees with the user — apply correction
@@ -2212,9 +2212,7 @@ async function doSubmitFeedback(barcode, isAI) {
         toast.textContent = 'You have already flagged this product. Thanks for helping!';
       } else {
         toast.className   = 'flag-toast success';
-        toast.textContent = barcode
-          ? 'AI confirmed your correction — future scans of this barcode will return the updated result.'
-          : 'Thanks! AI confirmed your feedback and we\'ll use it to improve future classifications.';
+        toast.textContent = 'Correction saved — thanks for helping improve classifications!';
       }
     } catch (_) {
       toast.className   = 'flag-toast error';
@@ -2230,8 +2228,11 @@ async function doSubmitFeedback(barcode, isAI) {
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
+    const sugLabel = BIN_META[suggestedBin] ? (suggestedBin === 'red' ? 'Red Lid (General Waste)' : suggestedBin === 'yellow' ? 'Yellow Lid (Recycling)' : suggestedBin === 'fogo' ? 'Green Lid (FOGO)' : 'Drop-off Required') : null;
     toast.className   = 'flag-toast info';
-    toast.textContent = why || 'Thanks for the report!';
+    toast.textContent = sugLabel
+      ? `Our AI thinks this is ${sugLabel}. ${why || ''}`
+      : (why || 'Thanks for the report!');
   } else {
     // Groq unavailable — log report but don't apply correction
     db.collection('feedback').add({
@@ -2258,7 +2259,7 @@ async function reportMissingComponents(barcode, isAI) {
   if (flagBtn)    flagBtn.style.display    = 'none';
   toast.style.display = 'block';
   toast.className     = 'flag-toast info';
-  toast.textContent   = 'Checking with AI…';
+  toast.textContent   = 'Checking for additional components…';
 
   try {
     const aiResult = await classifyWithGroq({
@@ -2297,7 +2298,7 @@ async function reportMissingComponents(barcode, isAI) {
     } else {
       if (flagBtn) flagBtn.style.display = '';
       toast.className   = 'flag-toast info';
-      toast.textContent = 'AI confirms this item has a single bin category — no missing components found.';
+      toast.textContent = 'No additional components found for this item.';
     }
   } catch (_) {
     if (missingBtn) missingBtn.style.display = '';
