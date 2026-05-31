@@ -557,15 +557,16 @@
     }
     .ai-note strong { display: block; margin-bottom: 3px; font-size: 13px; }
 
-    /* Photo mode viewport: taller portrait ratio */
+    /* Photo mode viewport: portrait, capped so it never overflows Safari chrome */
     .camera-viewport.photo-mode-vp {
-      aspect-ratio: 3/5;
+      aspect-ratio: 2/3;
+      max-height: 52dvh;
     }
     /* Hide the guide frame entirely in photo mode — no box needed */
     .cam-frame.photo-mode { display: none; }
     /* Tip lifted above shutter button in photo mode */
     .camera-viewport.photo-mode-vp .cam-tip {
-      bottom: 164px;
+      bottom: 96px;
       background: rgba(0,0,0,0.38);
       border-radius: 20px;
       padding: 5px 14px;
@@ -574,7 +575,7 @@
     /* ---- PHOTO MODE ---- */
     .btn-shutter {
       position: absolute;
-      bottom: 80px;
+      bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
       width: 72px; height: 72px;
@@ -1456,7 +1457,12 @@ async function startScanning() {
       stopScanning(false);
       handleBarcode(code);
     });
-    showTorchIfAvailable(); // show torch button once ZXing has opened the camera
+    showTorchIfAvailable();
+    // Request continuous autofocus after ZXing opens the stream (Android Chrome supports this)
+    try {
+      const track = document.getElementById('camera-video').srcObject?.getVideoTracks()[0];
+      if (track) await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    } catch (_) { /* iOS Safari does not expose focus control — ignore */ }
   } catch (err) {
     console.error('ZXing error:', err);
     await stopScanning();
@@ -1849,7 +1855,7 @@ function showUncertain(heading, body, detail) {
 }
 
 async function tryPhotoFromResult() {
-  setState('camera');
+  await resetToCamera();
   await startPhotoMode();
 }
 
@@ -1860,6 +1866,19 @@ async function resetToCamera() {
   if (isScanning) await stopScanning(true);
   if (photoModeActive) cancelPhotoMode();
   codeReader.reset();
+
+  // Force viewport back to the exact initial hidden state regardless of how scanning stopped
+  const vp = document.getElementById('camera-viewport');
+  vp.style.display = 'none';
+  vp.classList.remove('photo-mode-vp', 'scanning-active');
+  document.getElementById('cam-frame').classList.remove('photo-mode');
+  document.getElementById('btn-shutter').classList.remove('visible');
+  document.getElementById('btn-capture').style.display = '';
+  document.getElementById('btn-photo-id').style.display = '';
+  document.getElementById('btn-cancel-photo').style.display = 'none';
+  document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
+  hideTorch();
+
   document.getElementById('file-input').value = '';
   document.getElementById('manual-barcode').value = '';
   document.getElementById('manual-input-row').classList.remove('open');
