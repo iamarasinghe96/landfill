@@ -2134,6 +2134,15 @@ async function doSubmitFeedback(barcode, isAI) {
   const submitBtn    = document.getElementById('btn-flag-submit');
   const toast        = document.getElementById('flag-toast');
 
+  // If the user picked the same bin that's already shown, no correction needed
+  if (submittedBin === rule.bin) {
+    document.getElementById('flag-form').style.display = 'none';
+    toast.style.display = 'block';
+    toast.className     = 'flag-toast info';
+    toast.textContent   = 'The current classification is already correct — no change made. Thanks for checking!';
+    return;
+  }
+
   submitBtn.disabled    = true;
   submitBtn.textContent = 'Submitting…';
   toast.style.display   = 'none';
