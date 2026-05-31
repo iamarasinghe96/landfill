@@ -1905,7 +1905,7 @@ function showResult(identifier, product, rule, isAI = false, sourceLabel = null)
 
   // Feedback widget — barcode results get a persistent correction; name/photo just log feedback
   const bc = /^\d{6,14}$/.test(String(identifier)) ? String(identifier) : null;
-  renderFeedbackWidget(bc, rule, isAI, String(identifier));
+  renderFeedbackWidget(bc, rule, isAI, String(identifier), product);
 }
 
 function showNoPackaging(barcode, product) {
@@ -2072,7 +2072,7 @@ async function submitFeedback(barcode, originalRule, isAI, submittedBin) {
 
 let _selectedFlagBin = null;
 
-function renderFeedbackWidget(barcode, rule, isAI, label) {
+function renderFeedbackWidget(barcode, rule, isAI, label, product) {
   const container = document.getElementById('feedback-widget-container');
   _selectedFlagBin = null;
   const bcArg = barcode ? `'${barcode}'` : 'null';
@@ -2101,7 +2101,8 @@ function renderFeedbackWidget(barcode, rule, isAI, label) {
       <div class="flag-toast" id="flag-toast" style="display:none"></div>
     </div>`;
 
-  container._rule = rule;
+  container._rule    = rule;
+  container._product = product || null;
 }
 
 function openFlagForm() {
@@ -2126,15 +2127,31 @@ function closeFlagForm() {
   _selectedFlagBin = null;
 }
 
+/* Uses Groq text model to double-check whether the user's suggested bin is correct.
+   Returns true (agrees), false (disagrees), or null (verification unavailable). */
+async function verifyWithGroq(product, submittedBin) {
+  if (!product || (!product.product_name && !product.brands)) return null;
+  try {
+    const result = await classifyWithGroq({
+      product_name: product.product_name || '',
+      brands:       product.brands       || '',
+      categories:   product.categories   || ''
+    });
+    return result.bin === submittedBin;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function doSubmitFeedback(barcode, isAI) {
   if (!_selectedFlagBin) return;
   const container    = document.getElementById('feedback-widget-container');
-  const rule         = container._rule || { bin: 'red', _community: false };
+  const rule         = container._rule    || { bin: 'red', _community: false };
+  const product      = container._product || null;
   const submittedBin = _selectedFlagBin;
-  const submitBtn    = document.getElementById('btn-flag-submit');
   const toast        = document.getElementById('flag-toast');
 
-  // If the user picked the same bin that's already shown, no correction needed
+  // User confirmed the current bin — no change needed
   if (submittedBin === rule.bin) {
     document.getElementById('flag-form').style.display = 'none';
     toast.style.display = 'block';
@@ -2143,30 +2160,55 @@ async function doSubmitFeedback(barcode, isAI) {
     return;
   }
 
-  submitBtn.disabled    = true;
-  submitBtn.textContent = 'Submitting…';
-  toast.style.display   = 'none';
+  // Hide form and show verifying state while Groq checks
+  document.getElementById('flag-form').style.display = 'none';
+  toast.style.display = 'block';
+  toast.className     = 'flag-toast info';
+  toast.textContent   = 'Verifying with AI…';
 
-  try {
-    const outcome = await submitFeedback(barcode, rule, isAI, submittedBin);
-    document.getElementById('flag-form').style.display = 'none';
-    toast.style.display = 'block';
-    if (outcome === 'already_voted') {
-      toast.className   = 'flag-toast info';
-      toast.textContent = 'You have already flagged this product. Thanks for helping!';
-    } else if (outcome === 'logged') {
-      toast.className   = 'flag-toast success';
-      toast.textContent = 'Thanks for the feedback! We\'ll use this to improve future classifications.';
-    } else {
-      toast.className   = 'flag-toast success';
-      toast.textContent = 'Correction saved — future scans of this barcode will return the updated result.';
+  const verified = await verifyWithGroq(product, submittedBin);
+
+  if (verified === true) {
+    // Groq agrees with the user — apply correction
+    try {
+      const outcome = await submitFeedback(barcode, rule, isAI, submittedBin);
+      if (outcome === 'already_voted') {
+        toast.className   = 'flag-toast info';
+        toast.textContent = 'You have already flagged this product. Thanks for helping!';
+      } else {
+        toast.className   = 'flag-toast success';
+        toast.textContent = barcode
+          ? 'AI confirmed your correction — future scans of this barcode will return the updated result.'
+          : 'Thanks! AI confirmed your feedback and we\'ll use it to improve future classifications.';
+      }
+    } catch (_) {
+      toast.className   = 'flag-toast error';
+      toast.textContent = 'Could not save correction. Check your connection and try again.';
     }
-  } catch (_) {
-    submitBtn.disabled    = false;
-    submitBtn.textContent = 'Submit';
-    toast.style.display   = 'block';
-    toast.className       = 'flag-toast error';
-    toast.textContent     = 'Could not submit. Check your internet connection and try again.';
+  } else if (verified === false) {
+    // Groq disagrees — log the report but keep original classification
+    db.collection('feedback').add({
+      barcode: barcode ? String(barcode) : null,
+      submittedBin, originalBin: rule.bin,
+      originalSource: rule._community ? 'community' : (isAI ? 'ai' : 'rules'),
+      aiVerified: false, sessionId: SESSION_ID,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent.slice(0, 200)
+    }).catch(() => {});
+    toast.className   = 'flag-toast info';
+    toast.textContent = 'Our AI reviewed this and agrees with the original classification. No change made — but your report has been logged for manual review.';
+  } else {
+    // Groq unavailable — log report but don't apply correction
+    db.collection('feedback').add({
+      barcode: barcode ? String(barcode) : null,
+      submittedBin, originalBin: rule.bin,
+      originalSource: rule._community ? 'community' : (isAI ? 'ai' : 'rules'),
+      aiVerified: null, sessionId: SESSION_ID,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent.slice(0, 200)
+    }).catch(() => {});
+    toast.className   = 'flag-toast info';
+    toast.textContent = 'Could not verify with AI right now. Your report has been logged — try again later.';
   }
 }
 
