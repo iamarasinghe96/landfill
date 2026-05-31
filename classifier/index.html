@@ -2144,16 +2144,16 @@ function closeFlagForm() {
 /* Uses Groq text model to double-check whether the user's suggested bin is correct.
    Returns true (agrees), false (disagrees), or null (verification unavailable). */
 async function verifyWithGroq(product, submittedBin) {
-  if (!product || (!product.product_name && !product.brands)) return null;
+  if (!product || (!product.product_name && !product.brands)) return { agrees: null };
   try {
     const result = await classifyWithGroq({
       product_name: product.product_name || '',
       brands:       product.brands       || '',
       categories:   product.categories   || ''
     });
-    return result.bin === submittedBin;
+    return { agrees: result.bin === submittedBin, why: result.why || '' };
   } catch (_) {
-    return null;
+    return { agrees: null };
   }
 }
 
@@ -2180,9 +2180,9 @@ async function doSubmitFeedback(barcode, isAI) {
   toast.className     = 'flag-toast info';
   toast.textContent   = 'Verifying with AI…';
 
-  const verified = await verifyWithGroq(product, submittedBin);
+  const { agrees, why } = await verifyWithGroq(product, submittedBin);
 
-  if (verified === true) {
+  if (agrees === true) {
     // Groq agrees with the user — apply correction
     try {
       const outcome = await submitFeedback(barcode, rule, isAI, submittedBin);
@@ -2199,8 +2199,8 @@ async function doSubmitFeedback(barcode, isAI) {
       toast.className   = 'flag-toast error';
       toast.textContent = 'Could not save correction. Check your connection and try again.';
     }
-  } else if (verified === false) {
-    // Groq disagrees — log the report but keep original classification
+  } else if (agrees === false) {
+    // Groq disagrees — log the report and explain why
     db.collection('feedback').add({
       barcode: barcode ? String(barcode) : null,
       submittedBin, originalBin: rule.bin,
@@ -2210,7 +2210,7 @@ async function doSubmitFeedback(barcode, isAI) {
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
     toast.className   = 'flag-toast info';
-    toast.textContent = 'Thanks for the report!';
+    toast.textContent = why || 'Thanks for the report!';
   } else {
     // Groq unavailable — log report but don't apply correction
     db.collection('feedback').add({
