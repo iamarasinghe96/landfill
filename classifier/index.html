@@ -969,7 +969,7 @@
 /* ============================================================
    FIREBASE — community correction system
    ============================================================ */
-const VOTE_THRESHOLD = 3;
+const VOTE_THRESHOLD = 1;
 const SESSION_ID = (() => {
   let id = localStorage.getItem('fbSid');
   if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('fbSid', id); }
@@ -2128,16 +2128,12 @@ async function doSubmitFeedback(barcode, isAI) {
     const outcome = await submitFeedback(barcode, rule, isAI, submittedBin);
     document.getElementById('flag-form').style.display = 'none';
     toast.style.display = 'block';
-    if (outcome === 'promoted') {
-      toast.className   = 'flag-toast success';
-      toast.textContent = 'Correction promoted! This fix will now apply to all future scans of this barcode.';
-    } else if (outcome === 'already_voted') {
+    if (outcome === 'already_voted') {
       toast.className   = 'flag-toast info';
       toast.textContent = 'You have already flagged this product. Thanks for helping!';
     } else {
-      const rem = VOTE_THRESHOLD - 1;
-      toast.className   = 'flag-toast info';
-      toast.textContent = `Thanks! Correction recorded. ${rem} more vote${rem !== 1 ? 's' : ''} needed to apply the fix.`;
+      toast.className   = 'flag-toast success';
+      toast.textContent = 'Thanks! Your correction has been saved and will apply to future scans of this barcode.';
     }
   } catch (_) {
     submitBtn.disabled    = false;
