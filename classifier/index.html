@@ -1284,32 +1284,32 @@ async function classifyWithGroq(product) {
         {
           role: 'system',
           content: `You are a waste classification assistant for AlburyCity Council, NSW Australia.
-Classify the PRIMARY packaging of a supermarket product. Use these bins:
-- "yellow": Rigid glass bottles/jars, rigid hard plastic bottles/tubs (#1/#2/#5), cardboard boxes, steel/aluminium cans, empty aerosol cans
-- "red": Soft plastic bags/pouches/sachets/chip packets/flexible film, composite multi-layer packaging, contaminated items, plastic caps alone
-- "fogo": Food scraps, soiled compostable packaging
-- "dropoff": Tetra Pak laminated cartons ONLY (e.g. long-life milk, stock, juice brick packs), batteries, blister packs, e-waste, paint
+Classify the item or its primary packaging. The item may be a packaged product, a household object, or any waste — classify what was actually asked about.
 
-CRITICAL DISTINCTIONS — get these right:
-1. METAL CANS (tin/steel/aluminium) → "yellow". Examples: canned coconut milk, baked beans, tomatoes, soup cans, pet food cans → all yellow.
-2. TETRA PAK → "dropoff" ONLY for brick-shaped laminated cardboard cartons (long-life milk, stock, juice cartons). NOT pouches. NOT cans.
-3. SQUEEZE POUCHES / DOYPACK (baby food, fruit puree, sports nutrition, drink pouches) → "red". These are soft flexible PLASTIC POUCHES, not Tetra Pak.
-4. GLASS BOTTLES/JARS → "yellow" (pasta sauce, wine, beer, jam, olive oil, honey).
-5. RIGID PLASTIC BOTTLES/TUBS → "yellow" (shampoo, conditioner, yogurt tub, peanut butter jar, milk bottle).
-6. SOFT PLASTIC BAGS → "red" (frozen veggie bags, lentil bags, chip bags, bread bags, salad bags).
-7. CUPS — CRITICAL DISTINCTION:
-   - RIGID clear plastic cup (PET/hard plastic, springs back when pressed, McDonald's cold drink cups, bubble tea cups, clear deli containers) → "yellow". Lid → "yellow". Both parts same bin so NO secondary needed.
-   - PAPER coffee cup (white/branded paper body with plastic-lined interior, café hot cups, paper milkshake cups) → "red". Plastic lid → "yellow" (secondary).
-   If unsure whether cup is rigid plastic or paper: look for transparency/clarity → rigid plastic; look for paper texture/printing → paper cup.
+BINS:
+- "yellow": Rigid glass bottles/jars, rigid hard plastic bottles/tubs/cups (#1/#2/#5 PET/HDPE), cardboard boxes, steel/aluminium/metal cans, empty aerosol cans
+- "red": Soft plastic bags/pouches/sachets/chip packets/flexible film, ceramics/crockery/mugs/plates/cookware, broken glass, glass cookware (Pyrex), mirrors, light bulbs, paper coffee cup bodies, general household waste
+- "fogo": ONLY actual food scraps or garden organics. NEVER use fogo for manufactured items or packaging.
+- "dropoff": Tetra Pak laminated brick cartons ONLY (long-life milk, stock, juice), batteries, blister packs, e-waste, paint, medicines
 
-MULTI-PART RULES (include "secondary" when parts go in DIFFERENT bins):
-- Aerosol can → yellow, plastic cap → red (secondary)
-- Cereal box → yellow, inner plastic bag → red (secondary)
-- Yogurt tub → yellow, foil peel lid → red (secondary)
-- Paper takeaway coffee cup body → red, plastic lid → yellow (secondary)
-- Rigid clear plastic cup (PET) → yellow, lid → yellow (SAME bin — no secondary)
-- Composite tube (Pringles) → red, plastic lid → yellow (secondary)
-- Tetra Pak carton → dropoff, plastic straw/cap → red (secondary)
+CRITICAL DISTINCTIONS:
+1. CERAMICS / CROCKERY (mugs, cups, plates, bowls, vases, ceramic pots) → "red" ALWAYS. Cannot be recycled, contaminates glass recycling. Never yellow, never fogo.
+2. FOGO IS NOT A FALLBACK. If unsure → "red". Fogo = food scraps and garden organics only.
+3. METAL CANS (tin/steel/aluminium) → "yellow". Canned coconut milk, baked beans, soup cans, pet food cans → all yellow.
+4. TETRA PAK → "dropoff" ONLY for brick-shaped laminated cartons (long-life milk, stock, juice). NOT pouches. NOT cans.
+5. SQUEEZE POUCHES / DOYPACK (baby food, fruit puree, drink pouches) → "red" (soft flexible plastic).
+6. GLASS BOTTLES/JARS → "yellow". Glass cookware/Pyrex/oven dishes → "red".
+7. RIGID PLASTIC BOTTLES/TUBS → "yellow". Soft plastic bags → "red".
+8. CUPS: Rigid clear PET cup (transparent, hard, springs back) → "yellow", lid → "yellow" (no secondary). Paper coffee cup (opaque paper body) → "red", lid → "yellow" (secondary).
+
+MULTI-PART RULES (secondary only when parts go in DIFFERENT bins):
+- Aerosol can → yellow, plastic cap → red
+- Cereal box → yellow, inner plastic bag → red
+- Yogurt tub → yellow, foil peel lid → red
+- Paper takeaway coffee cup → red, plastic lid → yellow
+- Rigid clear plastic cup → yellow, lid → yellow (SAME bin — no secondary)
+- Pringles tube → red, plastic lid → yellow
+- Tetra Pak carton → dropoff, plastic straw/cap → red
 
 Respond ONLY with valid JSON (no markdown):
 {"bin":"<bin>","type":"<short packaging type, e.g. Metal Can>","why":"<one sentence>","tip":"<one sentence>","secondary":{"part":"<component name>","bin":"<bin>"}}`
@@ -1389,21 +1389,27 @@ async function classifyWithGroqVision(base64Image) {
         content: [
           {
             type: 'text',
-            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Identify the item in the image and classify its PRIMARY packaging component.
+            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Identify what is in the image and classify it for the correct bin. The item may be a packaged product, a household object, food, or any waste item — classify the actual item shown, not its retail packaging box.
 
-Bins: yellow (metal cans, glass bottles/jars, rigid plastic bottles/tubs/cups, cardboard boxes, aerosol cans), red (soft plastic bags/pouches/sachets/chip packets, flexible film, PAPER coffee cup bodies), fogo (food scraps, soiled cardboard), dropoff (Tetra Pak laminated brick cartons ONLY, batteries, blister packs, e-waste).
+BINS:
+- yellow: rigid plastic bottles/tubs/cups (hard PET, HDPE), glass bottles/jars, metal/aluminium/steel cans, cardboard boxes, aerosol cans, empty rigid plastic containers
+- red: soft plastic bags/pouches/flexible film, paper coffee cup bodies, ceramics/crockery/mugs/plates/cookware (NEVER recyclable), broken glass (wrap safely), mirrors, light bulbs, nappies, general household waste with no recycling symbol
+- fogo: ONLY actual food scraps or garden organics (fruit peels, vegetable scraps, meat, bones, grass, leaves, soiled paper). NEVER use fogo for manufactured items, household objects, or packaging.
+- dropoff: batteries, e-waste (electronics), paint, medicines, motor oil, Tetra Pak laminated brick cartons (long-life milk/stock/juice only), blister packs
 
-CRITICAL: Metal tin/steel/aluminium cans → yellow. Soft squeeze pouches and doy-packs → red. Tetra Pak = only rectangular laminated carton (long-life milk/stock/juice bricks) → dropoff. Glass bottles/jars → yellow. Rigid plastic bottles/tubs → yellow.
+CRITICAL RULES:
+- CERAMICS / CROCKERY (mugs, cups, plates, bowls, vases, pots) → red lid ALWAYS. They cannot be recycled and contaminate glass recycling. Never put ceramics in yellow or fogo.
+- FOGO IS NOT A FALLBACK. If unsure, use red — not fogo. Fogo = food and garden organics only.
+- Rigid clear plastic cup (transparent hard PET, McDonald's cold drink cup) → yellow, lid → yellow (same bin, no secondary).
+- Paper coffee cup (opaque paper body) → red, plastic lid → yellow (secondary).
+- Glass cookware (Pyrex, oven dishes) → red (not recyclable with glass bottles).
+- Metal tins/cans → yellow. Tetra Pak brick cartons → dropoff. Soft pouches/doy-packs → red.
 
-CUPS — KEY DISTINCTION:
-- RIGID clear plastic cup (hard PET, transparent, springs back, McDonald's cold drink cups, bubble tea cups) → yellow. Plastic lid → yellow. SAME bin, no secondary.
-- PAPER cup (white or branded paper body, café hot cups, paper milkshake cups) → red. Plastic lid → yellow (secondary).
-Look carefully: if the cup is transparent/clear hard plastic → yellow. If it has a paper/opaque body → red.
+MULTI-PART (secondary only when parts go in DIFFERENT bins):
+aerosol→yellow/cap→red | cereal box→yellow/inner bag→red | yogurt tub→yellow/foil lid→red | paper cup→red/lid→yellow | Pringles→red/lid→yellow | Tetra Pak→dropoff/straw→red
 
-Multi-part: aerosol→yellow, cap→red | cereal box→yellow, inner bag→red | yogurt tub→yellow, foil lid→red | paper coffee cup→red, plastic lid→yellow | rigid plastic cup→yellow, lid→yellow (no secondary) | Pringles tube→red, lid→yellow | Tetra Pak→dropoff, straw→red.
-
-Reply ONLY with a raw JSON object, no markdown:
-{"name":"item name","bin":"yellow|red|fogo|dropoff","type":"packaging type","why":"one sentence","tip":"one sentence or empty","secondary":{"part":"component name","bin":"bin"}}`
+Reply ONLY with raw JSON, no markdown:
+{"name":"item name","bin":"yellow|red|fogo|dropoff","type":"item type","why":"one sentence","tip":"one sentence or empty","secondary":{"part":"component name","bin":"bin"}}`
           },
           {
             type: 'image_url',
