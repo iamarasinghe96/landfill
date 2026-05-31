@@ -726,7 +726,7 @@
   <div id="state-camera" class="state">
     <div class="camera-card">
       <div class="camera-header">
-        <h2>Scan product barcode</h2>
+        <h2 id="camera-header-title">Scan product barcode</h2>
       </div>
       <div class="camera-viewport" id="camera-viewport">
         <video id="camera-video" autoplay playsinline muted></video>
@@ -1316,7 +1316,8 @@ async function startPhotoMode() {
   document.getElementById('camera-viewport').style.display = 'block';
   document.getElementById('camera-viewport').classList.add('photo-mode-vp');
   document.getElementById('cam-frame').classList.add('photo-mode');
-  document.getElementById('cam-tip').textContent = 'Point at the product, then tap the shutter';
+  document.getElementById('camera-header-title').textContent = 'Point at the product';
+  document.getElementById('cam-tip').textContent = 'Tap the shutter button to capture';
   document.getElementById('btn-shutter').classList.add('visible');
   document.getElementById('btn-capture').style.display = 'none';
   document.getElementById('btn-photo-id').style.display = 'none';
@@ -1875,6 +1876,7 @@ async function resetToCamera() {
   document.getElementById('btn-capture').style.display = '';
   document.getElementById('btn-photo-id').style.display = '';
   document.getElementById('btn-cancel-photo').style.display = 'none';
+  document.getElementById('camera-header-title').textContent = 'Scan product barcode';
   document.getElementById('cam-tip').textContent = 'Align barcode within the frame';
   hideTorch();
 
