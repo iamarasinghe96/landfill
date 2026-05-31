@@ -1336,6 +1336,20 @@ function groqToRule(aiResult) {
       label:     sMeta.label
     };
   }
+  // If AI skipped the secondary, inherit it from the matching PACKAGING_RULES entry
+  if (!rule.secondary) {
+    const typeStr = aiResult.type || '';
+    const matched = PACKAGING_RULES.find(r =>
+      r.secondary && (
+        r.type.toLowerCase() === typeStr.toLowerCase() ||
+        r.pattern.test(typeStr)
+      )
+    );
+    if (matched) {
+      rule.secondary = matched.secondary;
+      if (!aiResult.tip) rule.tip = matched.tip;
+    }
+  }
   return rule;
 }
 
