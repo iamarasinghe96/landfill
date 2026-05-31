@@ -2090,6 +2090,7 @@ function renderFeedbackWidget(barcode, rule, isAI, label, product) {
   const container = document.getElementById('feedback-widget-container');
   _selectedFlagBin = null;
   const bcArg = barcode ? `'${barcode}'` : 'null';
+  const hasSecondary = !!(rule && rule.secondary);
 
   container.innerHTML = `
     <div class="feedback-widget">
@@ -2097,6 +2098,11 @@ function renderFeedbackWidget(barcode, rule, isAI, label, product) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
         Flag incorrect bin
       </button>
+      ${!hasSecondary ? `
+      <button class="btn-flag" id="btn-missing" style="margin-top:6px" onclick="reportMissingComponents(${bcArg},${isAI})">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Missing bin category?
+      </button>` : ''}
       <div class="flag-form" id="flag-form">
         <p>Which bin should this go in?</p>
         <div class="bin-options">
@@ -2122,6 +2128,8 @@ function renderFeedbackWidget(barcode, rule, isAI, label, product) {
 function openFlagForm() {
   document.getElementById('flag-form').style.display = 'block';
   document.getElementById('btn-flag').style.display  = 'none';
+  const m = document.getElementById('btn-missing');
+  if (m) m.style.display = 'none';
 }
 
 function selectBinOption(bin) {
@@ -2136,8 +2144,10 @@ function selectBinOption(bin) {
 function closeFlagForm() {
   const form = document.getElementById('flag-form');
   const btn  = document.getElementById('btn-flag');
+  const m    = document.getElementById('btn-missing');
   if (form) form.style.display = 'none';
   if (btn)  btn.style.display  = '';
+  if (m)    m.style.display    = '';
   _selectedFlagBin = null;
 }
 
@@ -2223,6 +2233,66 @@ async function doSubmitFeedback(barcode, isAI) {
     }).catch(() => {});
     toast.className   = 'flag-toast info';
     toast.textContent = 'Thanks for the report!';
+  }
+}
+
+async function reportMissingComponents(barcode, isAI) {
+  const container = document.getElementById('feedback-widget-container');
+  const product   = container._product || null;
+  const toast     = document.getElementById('flag-toast');
+  const missingBtn = document.getElementById('btn-missing');
+  const flagBtn    = document.getElementById('btn-flag');
+
+  if (missingBtn) missingBtn.style.display = 'none';
+  if (flagBtn)    flagBtn.style.display    = 'none';
+  toast.style.display = 'block';
+  toast.className     = 'flag-toast info';
+  toast.textContent   = 'Checking with AI…';
+
+  try {
+    const aiResult = await classifyWithGroq({
+      product_name: product?.product_name || '',
+      brands:       product?.brands       || '',
+      categories:   product?.categories   || ''
+    });
+
+    if (aiResult.secondary && BIN_META[aiResult.secondary.bin]) {
+      const sMeta = BIN_META[aiResult.secondary.bin];
+      const sec   = document.getElementById('r-secondary');
+      sec.className = 'r-secondary ' + sMeta.bandClass;
+      document.getElementById('r-secondary-icon').innerHTML    = makeARLBadge(aiResult.secondary.bin);
+      document.getElementById('r-secondary-part').textContent  = aiResult.secondary.part || 'Component';
+      document.getElementById('r-secondary-label').textContent = sMeta.label;
+      sec.style.display = 'flex';
+
+      if (aiResult.tip) {
+        const tipWrap = document.getElementById('r-tip-wrap');
+        tipWrap.style.display = 'flex';
+        document.getElementById('r-tip').textContent = aiResult.tip;
+      }
+
+      toast.className   = 'flag-toast success';
+      toast.textContent = `Found: ${aiResult.secondary.part || 'additional component'} → ${sMeta.label}`;
+
+      // Persist secondary to Firestore so future scans benefit
+      if (barcode) {
+        db.collection('corrections').doc(String(barcode)).set({
+          secondary:   aiResult.secondary,
+          tip:         aiResult.tip || '',
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+          source:      'community'
+        }, { merge: true }).catch(() => {});
+      }
+    } else {
+      if (flagBtn) flagBtn.style.display = '';
+      toast.className   = 'flag-toast info';
+      toast.textContent = 'AI confirms this item has a single bin category — no missing components found.';
+    }
+  } catch (_) {
+    if (missingBtn) missingBtn.style.display = '';
+    if (flagBtn)    flagBtn.style.display    = '';
+    toast.className   = 'flag-toast error';
+    toast.textContent = 'Could not check with AI. Try again later.';
   }
 }
 
