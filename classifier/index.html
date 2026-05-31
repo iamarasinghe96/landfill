@@ -1903,9 +1903,9 @@ function showResult(identifier, product, rule, isAI = false, sourceLabel = null)
     sec.style.display = 'none';
   }
 
-  // Feedback widget — only for numeric barcode lookups, not name/photo searches
+  // Feedback widget — barcode results get a persistent correction; name/photo just log feedback
   const bc = /^\d{6,14}$/.test(String(identifier)) ? String(identifier) : null;
-  renderFeedbackWidget(bc, rule, isAI);
+  renderFeedbackWidget(bc, rule, isAI, String(identifier));
 }
 
 function showNoPackaging(barcode, product) {
@@ -2015,6 +2015,19 @@ function firestoreDocToRule(data) {
 }
 
 async function submitFeedback(barcode, originalRule, isAI, submittedBin) {
+  // No barcode (name search / photo) — log feedback only, no persistent correction
+  if (!barcode) {
+    await db.collection('feedback').add({
+      barcode: null, submittedBin,
+      originalBin:    originalRule.bin,
+      originalSource: isAI ? 'ai' : 'rules',
+      sessionId:      SESSION_ID,
+      submittedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent:      navigator.userAgent.slice(0, 200)
+    }).catch(() => {});
+    return 'logged';
+  }
+
   const voteId  = `${barcode}_${SESSION_ID}`;
   const voteRef = db.collection('correction_votes').doc(voteId);
   const corrRef = db.collection('corrections').doc(String(barcode));
@@ -2059,10 +2072,10 @@ async function submitFeedback(barcode, originalRule, isAI, submittedBin) {
 
 let _selectedFlagBin = null;
 
-function renderFeedbackWidget(barcode, rule, isAI) {
+function renderFeedbackWidget(barcode, rule, isAI, label) {
   const container = document.getElementById('feedback-widget-container');
   _selectedFlagBin = null;
-  if (!barcode) { container.innerHTML = ''; return; }
+  const bcArg = barcode ? `'${barcode}'` : 'null';
 
   container.innerHTML = `
     <div class="feedback-widget">
@@ -2082,13 +2095,13 @@ function renderFeedbackWidget(barcode, rule, isAI) {
         <div class="flag-actions">
           <button class="btn-flag-cancel-inner" onclick="closeFlagForm()">Cancel</button>
           <button class="btn-flag-submit" id="btn-flag-submit" disabled
-            onclick="doSubmitFeedback('${barcode}',${isAI})">Submit</button>
+            onclick="doSubmitFeedback(${bcArg},${isAI})">Submit</button>
         </div>
       </div>
       <div class="flag-toast" id="flag-toast" style="display:none"></div>
     </div>`;
 
-  container._rule  = rule;
+  container._rule = rule;
 }
 
 function openFlagForm() {
@@ -2132,9 +2145,12 @@ async function doSubmitFeedback(barcode, isAI) {
     if (outcome === 'already_voted') {
       toast.className   = 'flag-toast info';
       toast.textContent = 'You have already flagged this product. Thanks for helping!';
+    } else if (outcome === 'logged') {
+      toast.className   = 'flag-toast success';
+      toast.textContent = 'Thanks for the feedback! We\'ll use this to improve future classifications.';
     } else {
       toast.className   = 'flag-toast success';
-      toast.textContent = 'Thanks! Your correction has been saved and will apply to future scans of this barcode.';
+      toast.textContent = 'Correction saved — future scans of this barcode will return the updated result.';
     }
   } catch (_) {
     submitBtn.disabled    = false;
