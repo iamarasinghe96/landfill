@@ -2210,7 +2210,7 @@ async function doSubmitFeedback(barcode, isAI) {
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
     toast.className   = 'flag-toast info';
-    toast.textContent = 'Our AI reviewed this and agrees with the original classification. No change made — but your report has been logged for manual review.';
+    toast.textContent = 'Thanks for the report!';
   } else {
     // Groq unavailable — log report but don't apply correction
     db.collection('feedback').add({
@@ -2222,7 +2222,7 @@ async function doSubmitFeedback(barcode, isAI) {
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
     toast.className   = 'flag-toast info';
-    toast.textContent = 'Could not verify with AI right now. Your report has been logged — try again later.';
+    toast.textContent = 'Thanks for the report!';
   }
 }
 
