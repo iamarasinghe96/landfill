@@ -841,6 +841,167 @@
     }
     footer a:hover { color: #fff; }
 
+    /* ===== REPORT LITTER ===== */
+    .litter-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .litter-form-body { padding: 24px 24px 20px; }
+    .litter-field-group {
+      margin-bottom: 22px;
+    }
+    .litter-group-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-sm);
+      margin-bottom: 10px;
+    }
+    .litter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .litter-location-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      margin-top: 12px;
+    }
+    .litter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .litter-field label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-md);
+    }
+    .litter-req { color: var(--red); }
+    .litter-opt { font-weight: 400; color: var(--text-sm); }
+    .litter-field input,
+    .litter-field select,
+    .litter-field textarea {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+    .litter-field input:focus,
+    .litter-field select:focus,
+    .litter-field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(36,113,163,0.10);
+      background: #fff;
+    }
+    .litter-field textarea { resize: vertical; line-height: 1.5; }
+    .litter-field input.error,
+    .litter-field textarea.error { border-color: var(--red-lt); }
+    .btn-gps {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      height: 40px;
+    }
+    .btn-gps:hover { background: var(--navy-dk); }
+    .btn-gps:disabled { opacity: 0.45; cursor: not-allowed; }
+    .litter-gps-status {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .litter-gps-status.error { color: var(--red); }
+    .litter-error {
+      background: #FDECEA;
+      border: 1px solid #F5B7B1;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--red);
+      margin-bottom: 14px;
+    }
+    .btn-litter-submit {
+      width: 100%;
+      background: #C0392B;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .btn-litter-submit:hover    { background: #A93226; }
+    .btn-litter-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .litter-disclaimer {
+      padding: 12px 24px;
+      background: #FEF9F9;
+      border-top: 1px solid #F5B7B1;
+      font-size: 11.5px;
+      color: #7B241C;
+      line-height: 1.5;
+    }
+    .litter-success {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 48px 28px;
+      text-align: center;
+    }
+    .litter-success-icon { font-size: 48px; margin-bottom: 14px; }
+    .litter-success h3 { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+    .litter-success p  { font-size: 14px; color: var(--text-md); margin-bottom: 8px; line-height: 1.6; }
+    .litter-success p#litter-ref { font-size: 12px; color: var(--text-sm); font-family: monospace; }
+    .btn-litter-another {
+      margin-top: 20px;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-litter-another:hover { background: var(--navy-dk); }
+    @media (max-width: 640px) {
+      .litter-form-body { padding: 18px 16px 16px; }
+      .litter-row { grid-template-columns: 1fr; gap: 10px; }
+      .litter-location-row { flex-direction: column; align-items: stretch; }
+      .btn-gps { width: 100%; justify-content: center; height: auto; padding: 10px; }
+    }
+
     /* ===== WASTE ADVISOR ===== */
     .advisor-card {
       background: var(--card);
@@ -979,6 +1140,8 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -1012,6 +1175,7 @@
   <div class="page-nav-inner">
     <a href="#waste-advisor" class="nav-pill active" onclick="setActive(this)">Waste Advisor</a>
     <a href="#bin-finder" class="nav-pill"          onclick="setActive(this)">Bin Finder</a>
+    <a href="#report-litter" class="nav-pill"       onclick="setActive(this)">Report Litter</a>
     <a href="#quiz"       class="nav-pill"          onclick="setActive(this)">Pop Quiz</a>
     <a href="#plan"       class="nav-pill"          onclick="setActive(this)">Education Plan</a>
   </div>
@@ -1138,6 +1302,100 @@
         </div>
         <svg class="wi-cta-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
+    </div>
+  </section>
+
+  <!-- ===================== REPORT LITTER ===================== -->
+  <section class="page-section" id="report-litter">
+    <div class="section-head">
+      <div class="section-icon" style="background:#C0392B">🚨</div>
+      <div class="section-head-text">
+        <h2>Report a Litter Site</h2>
+      </div>
+    </div>
+
+    <div class="litter-card" id="litter-form-card">
+      <div class="litter-form-body">
+
+        <div class="litter-field-group">
+          <div class="litter-group-label">Your Details</div>
+          <div class="litter-row">
+            <div class="litter-field">
+              <label for="lr-name">Full Name <span class="litter-req">*</span></label>
+              <input type="text" id="lr-name" placeholder="e.g. Jane Smith" autocomplete="name">
+            </div>
+            <div class="litter-field">
+              <label for="lr-email">Email <span class="litter-req">*</span></label>
+              <input type="email" id="lr-email" placeholder="your@email.com" autocomplete="email">
+            </div>
+          </div>
+          <div class="litter-field">
+            <label for="lr-phone">Phone <span class="litter-opt">(optional)</span></label>
+            <input type="tel" id="lr-phone" placeholder="e.g. 04xx xxx xxx" autocomplete="tel">
+          </div>
+        </div>
+
+        <div class="litter-field-group">
+          <div class="litter-group-label">Litter Location</div>
+          <div class="litter-field">
+            <label for="lr-address">Street Address / Description <span class="litter-req">*</span></label>
+            <input type="text" id="lr-address" placeholder="e.g. Corner of Dean St and Kiewa St, Albury">
+          </div>
+          <div class="litter-location-row">
+            <div class="litter-field" style="flex:1">
+              <label for="lr-suburb">Suburb</label>
+              <input type="text" id="lr-suburb" placeholder="e.g. Albury" autocomplete="address-level2">
+            </div>
+            <button class="btn-gps" id="btn-gps" onclick="captureGPS()" title="Use my current location">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/></svg>
+              <span id="btn-gps-label">Use GPS</span>
+            </button>
+          </div>
+          <div class="litter-gps-status" id="gps-status" style="display:none"></div>
+        </div>
+
+        <div class="litter-field-group">
+          <div class="litter-group-label">What Did You See?</div>
+          <div class="litter-field">
+            <label for="lr-type">Type of Litter</label>
+            <select id="lr-type">
+              <option value="">Select type…</option>
+              <option value="dumped_furniture">Dumped furniture / household items</option>
+              <option value="rubbish_bags">Rubbish bags / general waste</option>
+              <option value="construction">Construction / demolition waste</option>
+              <option value="green_waste">Green / garden waste</option>
+              <option value="tyres">Tyres</option>
+              <option value="chemicals">Chemicals / hazardous material</option>
+              <option value="e_waste">E-waste / electronics</option>
+              <option value="litter_scattered">Scattered litter (small items)</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="litter-field">
+            <label for="lr-description">Description <span class="litter-req">*</span></label>
+            <textarea id="lr-description" rows="3" placeholder="Describe what you saw — approximate quantity, any identifying details (vehicle, time of day), and how long it has been there…"></textarea>
+          </div>
+        </div>
+
+        <div id="litter-error" class="litter-error" style="display:none"></div>
+        <button class="btn-litter-submit" id="btn-litter-submit" onclick="submitLitterReport()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Submit Report
+        </button>
+
+      </div>
+      <div class="litter-disclaimer">
+        Reports are sent to AlburyCity Council staff for review. For urgent matters or to report illegal burning call <strong>02 6023 8111</strong>.
+      </div>
+    </div>
+
+    <!-- Success state -->
+    <div class="litter-success" id="litter-success" style="display:none">
+      <div class="litter-success-icon">✅</div>
+      <h3>Report Submitted</h3>
+      <p id="litter-ref"></p>
+      <p>AlburyCity Council staff will review your report. Thank you for helping keep Albury clean.</p>
+      <button class="btn-litter-another" onclick="resetLitterForm()">Submit Another Report</button>
     </div>
   </section>
 
@@ -1767,6 +2025,141 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAdvisor(); }
   });
 });
+
+/* ============================================================
+   FIREBASE + LITTER REPORT
+   ============================================================ */
+firebase.initializeApp({
+  apiKey:            'AIzaSyAX7c9il2yBXssH3LTYmGApW2OmGwE9WK4',
+  authDomain:        'waste-401ac.firebaseapp.com',
+  projectId:         'waste-401ac',
+  storageBucket:     'waste-401ac.firebasestorage.app',
+  messagingSenderId: '632432606402',
+  appId:             '1:632432606402:web:545f2faf4ac8daccdacf5b'
+});
+const db = firebase.firestore();
+
+let _gpsCoords = null;
+
+async function captureGPS() {
+  const btn   = document.getElementById('btn-gps');
+  const label = document.getElementById('btn-gps-label');
+  const status = document.getElementById('gps-status');
+  if (!navigator.geolocation) {
+    status.className = 'litter-gps-status error';
+    status.textContent = 'GPS not available on this device.';
+    status.style.display = 'flex';
+    return;
+  }
+  btn.disabled = true;
+  label.textContent = 'Locating…';
+  status.style.display = 'none';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      _gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) };
+      btn.disabled = false;
+      label.textContent = 'GPS ✓';
+      status.className = 'litter-gps-status';
+      status.innerHTML = `📍 Captured: ${_gpsCoords.lat.toFixed(5)}, ${_gpsCoords.lng.toFixed(5)} (±${_gpsCoords.accuracy}m)`;
+      status.style.display = 'flex';
+    },
+    err => {
+      btn.disabled = false;
+      label.textContent = 'Use GPS';
+      status.className = 'litter-gps-status error';
+      status.textContent = err.code === 1 ? 'Location permission denied — please enter the address manually.' : 'Could not get location. Please enter the address manually.';
+      status.style.display = 'flex';
+    },
+    { timeout: 12000, maximumAge: 60000 }
+  );
+}
+
+function lrVal(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+function setLrError(id, hasError) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('error', hasError);
+}
+
+async function submitLitterReport() {
+  const name    = lrVal('lr-name');
+  const email   = lrVal('lr-email');
+  const address = lrVal('lr-address');
+  const desc    = lrVal('lr-description');
+  const errEl   = document.getElementById('litter-error');
+
+  // Validate
+  let errors = [];
+  setLrError('lr-name',        !name);
+  setLrError('lr-email',       !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  setLrError('lr-address',     !address);
+  setLrError('lr-description', !desc);
+
+  if (!name)    errors.push('Full name is required.');
+  if (!email)   errors.push('A valid email address is required.');
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Please enter a valid email address.');
+  if (!address) errors.push('Please describe the litter location.');
+  if (!desc)    errors.push('Please describe what you saw.');
+
+  if (errors.length) {
+    errEl.innerHTML = errors.join('<br>');
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('btn-litter-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const refId = 'LR-' + Date.now().toString(36).toUpperCase();
+
+  try {
+    await db.collection('litter_reports').add({
+      refId,
+      name,
+      email,
+      phone:       lrVal('lr-phone') || null,
+      address,
+      suburb:      lrVal('lr-suburb') || null,
+      litterType:  lrVal('lr-type')   || null,
+      description: desc,
+      gps:         _gpsCoords || null,
+      status:      'pending',
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent:   navigator.userAgent.slice(0, 200)
+    });
+
+    document.getElementById('litter-form-card').style.display = 'none';
+    document.getElementById('litter-success').style.display   = 'block';
+    document.getElementById('litter-ref').textContent = 'Reference: ' + refId;
+  } catch (_) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Report';
+    errEl.textContent = 'Could not submit — check your connection and try again.';
+    errEl.style.display = 'block';
+  }
+}
+
+function resetLitterForm() {
+  ['lr-name','lr-email','lr-phone','lr-address','lr-suburb','lr-description'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('error'); }
+  });
+  const typeEl = document.getElementById('lr-type');
+  if (typeEl) typeEl.selectedIndex = 0;
+  document.getElementById('litter-error').style.display   = 'none';
+  document.getElementById('gps-status').style.display     = 'none';
+  document.getElementById('btn-gps-label').textContent    = 'Use GPS';
+  document.getElementById('btn-gps').disabled             = false;
+  document.getElementById('btn-litter-submit').disabled   = false;
+  document.getElementById('btn-litter-submit').innerHTML  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Report';
+  _gpsCoords = null;
+  document.getElementById('litter-form-card').style.display = 'block';
+  document.getElementById('litter-success').style.display   = 'none';
+}
 
 </script>
 </body>
