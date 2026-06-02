@@ -757,6 +757,15 @@
     .flag-toast.success { background: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }
     .flag-toast.info    { background: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }
     .flag-toast.error   { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
+    .flag-explanation-label { font-size: 12px; color: var(--text-sm); margin-bottom: 4px; display: block; }
+    .flag-explanation {
+      width: 100%; margin-bottom: 12px;
+      padding: 9px 11px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: 13px; color: var(--text); resize: vertical;
+      font-family: inherit; min-height: 68px;
+    }
+    .flag-explanation:focus { outline: none; border-color: var(--blue); }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -2055,16 +2064,17 @@ function firestoreDocToRule(data) {
   };
 }
 
-async function submitFeedback(barcode, originalRule, isAI, submittedBin) {
+async function submitFeedback(barcode, originalRule, isAI, submittedBin, userExplanation) {
   // No barcode (name search / photo) — log feedback only, no persistent correction
   if (!barcode) {
     await db.collection('feedback').add({
       barcode: null, submittedBin,
-      originalBin:    originalRule.bin,
-      originalSource: isAI ? 'ai' : 'rules',
-      sessionId:      SESSION_ID,
-      submittedAt:    firebase.firestore.FieldValue.serverTimestamp(),
-      userAgent:      navigator.userAgent.slice(0, 200)
+      originalBin:     originalRule.bin,
+      originalSource:  isAI ? 'ai' : 'rules',
+      userExplanation: userExplanation || null,
+      sessionId:       SESSION_ID,
+      submittedAt:     firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent:       navigator.userAgent.slice(0, 200)
     }).catch(() => {});
     return 'logged';
   }
@@ -2080,11 +2090,12 @@ async function submitFeedback(barcode, originalRule, isAI, submittedBin) {
 
   db.collection('feedback').add({
     barcode: String(barcode), submittedBin,
-    originalBin:    originalRule.bin,
-    originalSource: originalRule._community ? 'community' : (isAI ? 'ai' : 'rules'),
-    sessionId:   SESSION_ID,
-    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    userAgent:   navigator.userAgent.slice(0, 200)
+    originalBin:     originalRule.bin,
+    originalSource:  originalRule._community ? 'community' : (isAI ? 'ai' : 'rules'),
+    userExplanation: userExplanation || null,
+    sessionId:       SESSION_ID,
+    submittedAt:     firebase.firestore.FieldValue.serverTimestamp(),
+    userAgent:       navigator.userAgent.slice(0, 200)
   }).catch(() => {});
 
   let newCount = 1;
@@ -2139,6 +2150,8 @@ function renderFeedbackWidget(barcode, rule, isAI, label, product) {
               <span class="bin-option-label">${BIN_META[b].label.split(' - ')[0]}</span>
             </div>`).join('')}
         </div>
+        <label class="flag-explanation-label" for="flag-explanation">Why is it wrong? (optional — helps AI decide)</label>
+        <textarea class="flag-explanation" id="flag-explanation" placeholder="e.g. This is a rigid PET cup, not a paper cup — it can be recycled in the yellow bin." rows="3"></textarea>
         <div class="flag-actions">
           <button class="btn-flag-cancel-inner" onclick="closeFlagForm()">Cancel</button>
           <button class="btn-flag-submit" id="btn-flag-submit" disabled
@@ -2178,17 +2191,76 @@ function closeFlagForm() {
   _selectedFlagBin = null;
 }
 
-/* Uses Groq text model to double-check whether the user's suggested bin is correct.
-   Returns true (agrees), false (disagrees), or null (verification unavailable). */
-async function verifyWithGroq(product, submittedBin) {
-  if (!product || (!product.product_name && !product.brands)) return { agrees: null };
+/* Dedicated verification call: weighs product info + user explanation to decide
+   if the submitted bin is correct. Returns { agrees, suggestedBin, why }. */
+async function verifyWithGroq(product, submittedBin, userExplanation) {
+  const hasProduct = product && (product.product_name || product.brands);
+  if (!hasProduct && !userExplanation) return { agrees: null };
   try {
-    const result = await classifyWithGroq({
-      product_name: product.product_name || '',
-      brands:       product.brands       || '',
-      categories:   product.categories   || ''
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const productDesc = hasProduct
+      ? `Product: "${product.product_name || 'Unknown'}"${product.brands ? ` by ${product.brands}` : ''}${product.categories ? `\nCategories: ${product.categories}` : ''}`
+      : '(no product data — verify using user explanation only)';
+    const explanationPart = userExplanation
+      ? `\nUser's explanation: "${userExplanation}"`
+      : '\n(No explanation provided)';
+    const submittedLabel = BIN_META[submittedBin]?.label || submittedBin;
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        temperature: 0.1,
+        max_tokens: 280,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: `You are a waste classification verifier for AlburyCity Council, NSW Australia.
+A citizen is challenging a waste bin classification. Decide whether their proposed bin is correct.
+
+BINS:
+- "yellow": Rigid glass bottles/jars, rigid hard plastic (#1/#2/#5 PET/HDPE), cardboard boxes, metal cans, empty aerosols
+- "red": Soft plastics, ceramics/crockery, broken glass, glass cookware, paper coffee cups, general waste
+- "fogo": ONLY food scraps or garden organics. NEVER manufactured items or packaging.
+- "dropoff": Tetra Pak cartons, batteries, e-waste, blister packs, paint, medicines
+
+CRITICAL RULES:
+- Ceramics/crockery → red ALWAYS
+- FOGO IS NOT A FALLBACK — if unsure → red
+- Rigid clear PET cup → yellow; paper coffee cup body → red
+
+Give extra weight to a factually accurate user explanation.
+- If user explanation is factually correct and supports their bin → agrees: true
+- If explanation is wrong or misleading → agrees: false
+- If you genuinely cannot determine → agrees: null
+
+Respond ONLY with valid JSON: {"agrees":true/false/null,"suggestedBin":"<bin>","why":"<one sentence>"}`
+          },
+          {
+            role: 'user',
+            content: `${productDesc}${explanationPart}\nUser says it belongs in: ${submittedLabel}\n\nIs the user correct?`
+          }
+        ]
+      })
     });
-    return { agrees: result.bin === submittedBin, suggestedBin: result.bin, why: result.why || '' };
+
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error('Groq ' + res.status);
+
+    const data   = await res.json();
+    const parsed = JSON.parse(data.choices[0].message.content);
+    const suggestedBin = ['yellow','red','fogo','dropoff'].includes(parsed.suggestedBin)
+      ? parsed.suggestedBin : submittedBin;
+    return {
+      agrees:       parsed.agrees === true ? true : parsed.agrees === false ? false : null,
+      suggestedBin,
+      why: parsed.why || ''
+    };
   } catch (_) {
     return { agrees: null };
   }
@@ -2200,6 +2272,7 @@ async function doSubmitFeedback(barcode, isAI) {
   const rule         = container._rule    || { bin: 'red', _community: false };
   const product      = container._product || null;
   const submittedBin = _selectedFlagBin;
+  const explanation  = (document.getElementById('flag-explanation')?.value || '').trim();
   const toast        = document.getElementById('flag-toast');
 
   // User confirmed the current bin — no change needed
@@ -2217,12 +2290,12 @@ async function doSubmitFeedback(barcode, isAI) {
   toast.className     = 'flag-toast info';
   toast.textContent   = 'Verifying with AI…';
 
-  const { agrees, suggestedBin, why } = await verifyWithGroq(product, submittedBin);
+  const { agrees, suggestedBin, why } = await verifyWithGroq(product, submittedBin, explanation);
 
   if (agrees === true) {
     // Groq agrees with the user — apply correction
     try {
-      const outcome = await submitFeedback(barcode, rule, isAI, submittedBin);
+      const outcome = await submitFeedback(barcode, rule, isAI, submittedBin, explanation);
       if (outcome === 'already_voted') {
         toast.className   = 'flag-toast info';
         toast.textContent = 'You have already flagged this product. Thanks for helping!';
@@ -2241,6 +2314,7 @@ async function doSubmitFeedback(barcode, isAI) {
       submittedBin, originalBin: rule.bin,
       originalSource: rule._community ? 'community' : (isAI ? 'ai' : 'rules'),
       aiVerified: false, sessionId: SESSION_ID,
+      userExplanation: explanation || null,
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
@@ -2250,17 +2324,18 @@ async function doSubmitFeedback(barcode, isAI) {
       ? `Our AI thinks this is ${sugLabel}. ${why || ''}`
       : (why || 'Thanks for the report!');
   } else {
-    // Groq unavailable — log report but don't apply correction
+    // Groq unavailable — save correction directly (user explanation logged)
     db.collection('feedback').add({
       barcode: barcode ? String(barcode) : null,
       submittedBin, originalBin: rule.bin,
       originalSource: rule._community ? 'community' : (isAI ? 'ai' : 'rules'),
       aiVerified: null, sessionId: SESSION_ID,
+      userExplanation: explanation || null,
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
     toast.className   = 'flag-toast info';
-    toast.textContent = 'Thanks for the report!';
+    toast.textContent = 'Thanks for the report! Your feedback has been logged for review.';
   }
 }
 
