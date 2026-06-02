@@ -866,12 +866,47 @@
       gap: 12px;
       margin-bottom: 12px;
     }
-    .litter-location-row {
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-      margin-top: 12px;
+    .litter-map-hint {
+      font-size: 12.5px;
+      color: var(--text-sm);
+      margin-bottom: 10px;
+      line-height: 1.5;
     }
+    .litter-map-wrap {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+    }
+    #litter-map {
+      height: 280px;
+      width: 100%;
+      background: #e8eef5;
+    }
+    .btn-locate-me {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      z-index: 999;
+      width: 40px; height: 40px;
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      color: var(--navy);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-locate-me:hover { background: var(--bg); border-color: var(--blue); }
+    .btn-locate-me.locating { opacity: 0.5; pointer-events: none; }
+    .litter-pin-status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-sm);
+      min-height: 18px;
+    }
+    .litter-pin-status.placed { color: var(--green); font-weight: 600; }
     .litter-field {
       display: flex;
       flex-direction: column;
@@ -908,34 +943,6 @@
     .litter-field textarea { resize: vertical; line-height: 1.5; }
     .litter-field input.error,
     .litter-field textarea.error { border-color: var(--red-lt); }
-    .btn-gps {
-      background: var(--navy);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: background 0.15s;
-      height: 40px;
-    }
-    .btn-gps:hover { background: var(--navy-dk); }
-    .btn-gps:disabled { opacity: 0.45; cursor: not-allowed; }
-    .litter-gps-status {
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--green);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .litter-gps-status.error { color: var(--red); }
     .litter-error {
       background: #FDECEA;
       border: 1px solid #F5B7B1;
@@ -998,8 +1005,7 @@
     @media (max-width: 640px) {
       .litter-form-body { padding: 18px 16px 16px; }
       .litter-row { grid-template-columns: 1fr; gap: 10px; }
-      .litter-location-row { flex-direction: column; align-items: stretch; }
-      .btn-gps { width: 100%; justify-content: center; height: auto; padding: 10px; }
+      #litter-map { height: 240px; }
     }
 
     /* ===== WASTE ADVISOR ===== */
@@ -1140,6 +1146,8 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
@@ -1336,22 +1344,19 @@
         </div>
 
         <div class="litter-field-group">
-          <div class="litter-group-label">Litter Location</div>
-          <div class="litter-field">
-            <label for="lr-address">Street Address / Description <span class="litter-req">*</span></label>
-            <input type="text" id="lr-address" placeholder="e.g. Corner of Dean St and Kiewa St, Albury">
-          </div>
-          <div class="litter-location-row">
-            <div class="litter-field" style="flex:1">
-              <label for="lr-suburb">Suburb</label>
-              <input type="text" id="lr-suburb" placeholder="e.g. Albury" autocomplete="address-level2">
-            </div>
-            <button class="btn-gps" id="btn-gps" onclick="captureGPS()" title="Use my current location">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/></svg>
-              <span id="btn-gps-label">Use GPS</span>
+          <div class="litter-group-label">Litter Location <span class="litter-req">*</span></div>
+          <p class="litter-map-hint">Tap the map to place the pin on the litter site. Use the <strong>⊕</strong> button to jump to your current location first.</p>
+          <div class="litter-map-wrap">
+            <div id="litter-map"></div>
+            <button class="btn-locate-me" id="btn-locate-me" onclick="locateMe()" title="Go to my location">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 4a8 8 0 100 16A8 8 0 0012 4z" stroke-dasharray="3 2"/></svg>
             </button>
           </div>
-          <div class="litter-gps-status" id="gps-status" style="display:none"></div>
+          <div class="litter-pin-status" id="pin-status">No pin placed yet — tap the map above</div>
+          <div class="litter-field" style="margin-top:10px">
+            <label for="lr-address">Street Address / Description <span class="litter-req">*</span></label>
+            <input type="text" id="lr-address" placeholder="Auto-filled when you place a pin, or type manually">
+          </div>
         </div>
 
         <div class="litter-field-group">
@@ -2039,40 +2044,112 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 
-let _gpsCoords = null;
+/* ── Litter map ── */
+const ALBURY = [-36.0737, 146.9135];
+let _litterMap    = null;
+let _litterMarker = null;
+let _gpsCoords    = null;
 
-async function captureGPS() {
-  const btn   = document.getElementById('btn-gps');
-  const label = document.getElementById('btn-gps-label');
-  const status = document.getElementById('gps-status');
-  if (!navigator.geolocation) {
-    status.className = 'litter-gps-status error';
-    status.textContent = 'GPS not available on this device.';
-    status.style.display = 'flex';
-    return;
+function initLitterMap() {
+  if (_litterMap) return;
+  _litterMap = L.map('litter-map', { zoomControl: true }).setView(ALBURY, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(_litterMap);
+
+  // Custom red pin icon
+  const pinIcon = L.divIcon({
+    className: '',
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#C0392B"/>
+      <circle cx="16" cy="16" r="7" fill="#fff"/>
+    </svg>`,
+    iconSize:   [32, 42],
+    iconAnchor: [16, 42],
+    popupAnchor:[0, -44]
+  });
+
+  _litterMap.on('click', e => placePinAt(e.latlng.lat, e.latlng.lng, pinIcon));
+  _litterMap._pinIcon = pinIcon;
+}
+
+function placePinAt(lat, lng, icon) {
+  icon = icon || _litterMap._pinIcon;
+  if (_litterMarker) {
+    _litterMarker.setLatLng([lat, lng]);
+  } else {
+    _litterMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_litterMap);
+    _litterMarker.on('dragend', e => {
+      const p = e.target.getLatLng();
+      updatePinStatus(p.lat, p.lng);
+      reverseGeocode(p.lat, p.lng);
+    });
   }
-  btn.disabled = true;
-  label.textContent = 'Locating…';
-  status.style.display = 'none';
+  _gpsCoords = { lat, lng };
+  updatePinStatus(lat, lng);
+  reverseGeocode(lat, lng);
+}
+
+function updatePinStatus(lat, lng) {
+  const el = document.getElementById('pin-status');
+  el.className = 'litter-pin-status placed';
+  el.textContent = `📍 Pin placed at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    const addr = data.address || {};
+    const parts = [
+      addr.house_number && addr.road ? `${addr.house_number} ${addr.road}` : addr.road,
+      addr.suburb || addr.neighbourhood || addr.hamlet,
+      addr.city || addr.town || addr.village
+    ].filter(Boolean);
+    const addressEl = document.getElementById('lr-address');
+    if (addressEl && !addressEl._manuallyEdited) {
+      addressEl.value = parts.join(', ') || data.display_name?.split(',').slice(0,3).join(',').trim() || '';
+    }
+  } catch (_) {}
+}
+
+function locateMe() {
+  if (!navigator.geolocation) return;
+  const btn = document.getElementById('btn-locate-me');
+  btn.classList.add('locating');
   navigator.geolocation.getCurrentPosition(
     pos => {
-      _gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) };
-      btn.disabled = false;
-      label.textContent = 'GPS ✓';
-      status.className = 'litter-gps-status';
-      status.innerHTML = `📍 Captured: ${_gpsCoords.lat.toFixed(5)}, ${_gpsCoords.lng.toFixed(5)} (±${_gpsCoords.accuracy}m)`;
-      status.style.display = 'flex';
+      btn.classList.remove('locating');
+      const { latitude: lat, longitude: lng } = pos.coords;
+      _litterMap.setView([lat, lng], 17);
+      placePinAt(lat, lng);
     },
-    err => {
-      btn.disabled = false;
-      label.textContent = 'Use GPS';
-      status.className = 'litter-gps-status error';
-      status.textContent = err.code === 1 ? 'Location permission denied — please enter the address manually.' : 'Could not get location. Please enter the address manually.';
-      status.style.display = 'flex';
+    () => {
+      btn.classList.remove('locating');
+      const el = document.getElementById('pin-status');
+      el.className = 'litter-pin-status';
+      el.textContent = 'Location permission denied — tap the map to place the pin manually.';
     },
-    { timeout: 12000, maximumAge: 60000 }
+    { timeout: 12000 }
   );
 }
+
+// Mark address field as manually edited so reverse geocode doesn't overwrite it
+document.addEventListener('DOMContentLoaded', () => {
+  const addrEl = document.getElementById('lr-address');
+  if (addrEl) addrEl.addEventListener('input', () => { addrEl._manuallyEdited = true; });
+  // Lazy-init map when section scrolls into view
+  const obs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { initLitterMap(); obs.disconnect(); }
+  }, { threshold: 0.1 });
+  const sec = document.getElementById('report-litter');
+  if (sec) obs.observe(sec);
+});
 
 function lrVal(id) { return (document.getElementById(id)?.value || '').trim(); }
 
@@ -2123,8 +2200,7 @@ async function submitLitterReport() {
       email,
       phone:       lrVal('lr-phone') || null,
       address,
-      suburb:      lrVal('lr-suburb') || null,
-      litterType:  lrVal('lr-type')   || null,
+      litterType:  lrVal('lr-type')  || null,
       description: desc,
       gps:         _gpsCoords || null,
       status:      'pending',
@@ -2144,21 +2220,22 @@ async function submitLitterReport() {
 }
 
 function resetLitterForm() {
-  ['lr-name','lr-email','lr-phone','lr-address','lr-suburb','lr-description'].forEach(id => {
+  ['lr-name','lr-email','lr-phone','lr-address','lr-description'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.value = ''; el.classList.remove('error'); }
+    if (el) { el.value = ''; el.classList.remove('error'); el._manuallyEdited = false; }
   });
   const typeEl = document.getElementById('lr-type');
   if (typeEl) typeEl.selectedIndex = 0;
-  document.getElementById('litter-error').style.display   = 'none';
-  document.getElementById('gps-status').style.display     = 'none';
-  document.getElementById('btn-gps-label').textContent    = 'Use GPS';
-  document.getElementById('btn-gps').disabled             = false;
-  document.getElementById('btn-litter-submit').disabled   = false;
-  document.getElementById('btn-litter-submit').innerHTML  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Report';
+  document.getElementById('litter-error').style.display  = 'none';
+  document.getElementById('pin-status').className        = 'litter-pin-status';
+  document.getElementById('pin-status').textContent      = 'No pin placed yet — tap the map above';
+  document.getElementById('btn-litter-submit').disabled  = false;
+  document.getElementById('btn-litter-submit').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Report';
   _gpsCoords = null;
+  if (_litterMarker) { _litterMarker.remove(); _litterMarker = null; }
   document.getElementById('litter-form-card').style.display = 'block';
   document.getElementById('litter-success').style.display   = 'none';
+  if (_litterMap) _litterMap.setView(ALBURY, 14);
 }
 
 </script>
