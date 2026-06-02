@@ -448,7 +448,137 @@
     #toast.show { transform: translateY(0); opacity: 1; }
     #toast.success { background: var(--green); }
     #toast.error   { background: var(--red); }
+
+    /* ── LITTER REPORTS ── */
+    .complaints-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .complaints-toolbar select,
+    .complaints-toolbar input {
+      padding: 7px 11px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+    .complaints-toolbar .refresh-btn {
+      margin-left: auto;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--navy);
+      transition: background 0.15s;
+    }
+    .complaints-toolbar .refresh-btn:hover { background: #E8EDF5; }
+    .complaints-count { font-size: 12px; color: var(--text-sm); }
+    .complaints-table-wrap { overflow-x: auto; }
+    .complaints-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .complaints-table th {
+      background: var(--bg);
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-md);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .complaints-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .complaints-table tr:hover td { background: #F7FAFC; }
+    .c-ref   { font-family: monospace; font-size: 12px; color: var(--text-sm); white-space: nowrap; }
+    .c-date  { white-space: nowrap; font-size: 12px; color: var(--text-sm); }
+    .c-name  { font-weight: 600; }
+    .c-contact { font-size: 11.5px; color: var(--text-sm); }
+    .c-addr  { max-width: 200px; }
+    .c-map-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+      margin-top: 3px;
+    }
+    .c-map-link:hover { text-decoration: underline; }
+    .c-desc  { max-width: 220px; font-size: 12.5px; color: var(--text-md); }
+    .c-desc .desc-full { display: none; }
+    .c-desc .show-more {
+      font-size: 11px;
+      color: var(--blue);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      margin-top: 2px;
+      display: block;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .badge-pending    { background: #FEF3CD; color: #856404; }
+    .badge-attended   { background: #D1ECF1; color: #0C5460; }
+    .badge-dispatched { background: #D4EDDA; color: #155724; }
+    .c-actions { white-space: nowrap; }
+    .c-actions .cbtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid;
+      transition: all 0.15s;
+      margin-right: 5px;
+      margin-bottom: 4px;
+    }
+    .cbtn-attend  { border-color: #17a2b8; color: #17a2b8; background: #fff; }
+    .cbtn-attend:hover  { background: #D1ECF1; }
+    .cbtn-attend.done   { opacity: 0.45; cursor: not-allowed; }
+    .cbtn-dispatch { border-color: var(--green); color: var(--green); background: #fff; }
+    .cbtn-dispatch:hover { background: #D4EDDA; }
+    .complaints-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-sm);
+      font-size: 13px;
+    }
+    .complaints-loading {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-sm);
+      font-size: 13px;
+    }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -481,6 +611,58 @@
 
   <!-- ── MAIN FORM ── -->
   <div class="form-col">
+
+    <!-- 0. LITTER REPORTS -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🚨</div>
+        <h2>Litter &amp; Dumping Reports — Community Submissions</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div class="complaints-toolbar">
+          <select id="cr-filter-status" onchange="renderComplaints()">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="attended">Attended</option>
+            <option value="dispatched">Dispatched</option>
+          </select>
+          <select id="cr-filter-type" onchange="renderComplaints()">
+            <option value="all">All Types</option>
+            <option value="dumped_furniture">Dumped Furniture</option>
+            <option value="rubbish_bags">Rubbish Bags</option>
+            <option value="construction">Construction Waste</option>
+            <option value="green_waste">Green Waste</option>
+            <option value="tyres">Tyres</option>
+            <option value="chemicals">Chemicals / Hazardous</option>
+            <option value="e_waste">E-Waste</option>
+            <option value="litter_scattered">Scattered Litter</option>
+            <option value="other">Other</option>
+          </select>
+          <span class="complaints-count" id="cr-count"></span>
+          <button class="refresh-btn" onclick="loadComplaints()">↻ Refresh</button>
+        </div>
+        <div class="complaints-table-wrap">
+          <div class="complaints-loading" id="cr-loading">Loading reports…</div>
+          <table class="complaints-table" id="cr-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Ref</th>
+                <th>Date</th>
+                <th>Reporter</th>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="cr-tbody"></tbody>
+          </table>
+          <div class="complaints-empty" id="cr-empty" style="display:none">No reports found.</div>
+        </div>
+      </div>
+    </div>
 
     <!-- 1. Reporting Information -->
     <div class="form-card">
@@ -1343,6 +1525,209 @@ tryLoadExistingData();
 document.querySelectorAll('input[type=number], input[type=text], select').forEach(el => {
   el.addEventListener('input', recalc);
 });
+
+/* ============================================================
+   FIREBASE + LITTER COMPLAINTS
+   ============================================================ */
+firebase.initializeApp({
+  apiKey:            'AIzaSyAX7c9il2yBXssH3LTYmGApW2OmGwE9WK4',
+  authDomain:        'waste-401ac.firebaseapp.com',
+  projectId:         'waste-401ac',
+  storageBucket:     'waste-401ac.firebasestorage.app',
+  messagingSenderId: '632432606402',
+  appId:             '1:632432606402:web:545f2faf4ac8daccdacf5b'
+});
+const fdb = firebase.firestore();
+
+let _allReports = [];
+
+const LITTER_TYPE_LABELS = {
+  dumped_furniture: 'Dumped Furniture',
+  rubbish_bags:     'Rubbish Bags',
+  construction:     'Construction Waste',
+  green_waste:      'Green Waste',
+  tyres:            'Tyres',
+  chemicals:        'Chemicals / Hazardous',
+  e_waste:          'E-Waste',
+  litter_scattered: 'Scattered Litter',
+  other:            'Other'
+};
+
+async function loadComplaints() {
+  document.getElementById('cr-loading').style.display = 'block';
+  document.getElementById('cr-table').style.display   = 'none';
+  document.getElementById('cr-empty').style.display   = 'none';
+  try {
+    const snap = await fdb.collection('litter_reports')
+      .orderBy('submittedAt', 'desc')
+      .limit(200)
+      .get();
+    _allReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderComplaints();
+  } catch (e) {
+    document.getElementById('cr-loading').textContent = 'Failed to load — check Firestore rules allow admin reads.';
+    console.error(e);
+  }
+}
+
+function renderComplaints() {
+  const statusFilter = document.getElementById('cr-filter-status').value;
+  const typeFilter   = document.getElementById('cr-filter-type').value;
+
+  const filtered = _allReports.filter(r => {
+    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+    if (typeFilter   !== 'all' && r.litterType !== typeFilter) return false;
+    return true;
+  });
+
+  document.getElementById('cr-count').textContent = filtered.length + ' report' + (filtered.length !== 1 ? 's' : '');
+  document.getElementById('cr-loading').style.display = 'none';
+
+  if (!filtered.length) {
+    document.getElementById('cr-table').style.display = 'none';
+    document.getElementById('cr-empty').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('cr-empty').style.display = 'none';
+  document.getElementById('cr-table').style.display = 'table';
+
+  const tbody = document.getElementById('cr-tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const date    = r.submittedAt?.toDate ? r.submittedAt.toDate() : new Date(r.submittedAt?.seconds * 1000 || Date.now());
+    const dateStr = date.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' });
+    const timeStr = date.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' });
+
+    const mapUrl  = r.gps
+      ? `https://www.google.com/maps?q=${r.gps.lat},${r.gps.lng}`
+      : r.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : null;
+
+    const mapLink = mapUrl
+      ? `<br><a class="c-map-link" href="${mapUrl}" target="_blank" rel="noopener">
+           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+           View in Maps
+         </a>` : '';
+
+    const desc    = r.description || '';
+    const descShort = desc.length > 80 ? desc.slice(0, 80) + '…' : desc;
+    const descHtml = desc.length > 80
+      ? `<span class="desc-short">${escH(descShort)}</span>
+         <span class="desc-full">${escH(desc)}</span>
+         <button class="show-more" onclick="toggleDesc(this)">Show more</button>`
+      : escH(desc);
+
+    const statusBadge = {
+      pending:    '<span class="badge badge-pending">Pending</span>',
+      attended:   '<span class="badge badge-attended">Attended</span>',
+      dispatched: '<span class="badge badge-dispatched">Dispatched</span>'
+    }[r.status] || '<span class="badge badge-pending">Pending</span>';
+
+    const attendedDone = r.status === 'attended' || r.status === 'dispatched';
+
+    return `<tr>
+      <td class="c-ref">${escH(r.refId || r.id.slice(0,8).toUpperCase())}</td>
+      <td class="c-date">${dateStr}<br>${timeStr}</td>
+      <td>
+        <div class="c-name">${escH(r.name || '—')}</div>
+        <div class="c-contact">${escH(r.email || '')}</div>
+        <div class="c-contact">${escH(r.phone || '')}</div>
+      </td>
+      <td class="c-addr">${escH(r.address || '—')}${mapLink}</td>
+      <td>${escH(LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—')}</td>
+      <td class="c-desc">${descHtml}</td>
+      <td>${statusBadge}</td>
+      <td class="c-actions">
+        <button class="cbtn cbtn-attend ${attendedDone ? 'done' : ''}"
+          ${attendedDone ? 'disabled' : ''}
+          onclick="markAttended('${r.id}', this)">
+          ✓ Attended
+        </button>
+        <button class="cbtn cbtn-dispatch" onclick="dispatchReport(${JSON.stringify(JSON.stringify(r))})">
+          ✉ Dispatch
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function escH(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleDesc(btn) {
+  const td = btn.closest('td');
+  const short = td.querySelector('.desc-short');
+  const full  = td.querySelector('.desc-full');
+  const expanded = full.style.display === 'inline';
+  short.style.display = expanded ? 'inline' : 'none';
+  full.style.display  = expanded ? 'none'   : 'inline';
+  btn.textContent     = expanded ? 'Show more' : 'Show less';
+}
+
+async function markAttended(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    await fdb.collection('litter_reports').doc(id).update({ status: 'attended' });
+    const r = _allReports.find(x => x.id === id);
+    if (r) r.status = 'attended';
+    renderComplaints();
+    showToast('✅ Marked as attended', 'success', 3000);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '✓ Attended';
+    showToast('⚠ Could not update — check connection', 'error');
+  }
+}
+
+function dispatchReport(jsonStr) {
+  const r    = JSON.parse(jsonStr);
+  const date = r.submittedAt?.seconds
+    ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU')
+    : 'Unknown date';
+
+  const mapUrl = r.gps
+    ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
+    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : 'N/A';
+
+  const msg = [
+    `LITTER REPORT — ${r.refId || r.id}`,
+    `Date: ${date}`,
+    ``,
+    `REPORTER`,
+    `Name:  ${r.name || '—'}`,
+    `Email: ${r.email || '—'}`,
+    `Phone: ${r.phone || '—'}`,
+    ``,
+    `LOCATION`,
+    `Address: ${r.address || '—'}`,
+    `GPS:     ${r.gps ? `${r.gps.lat}, ${r.gps.lng}` : 'Not captured'}`,
+    `Map:     ${mapUrl}`,
+    ``,
+    `DETAILS`,
+    `Type:    ${LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—'}`,
+    `Description:`,
+    r.description || '—',
+    ``,
+    `Status: ${(r.status || 'pending').toUpperCase()}`,
+  ].join('\n');
+
+  navigator.clipboard.writeText(msg).then(() => {
+    // Mark as dispatched in Firestore
+    fdb.collection('litter_reports').doc(r.id).update({ status: 'dispatched' }).catch(() => {});
+    const report = _allReports.find(x => x.id === r.id);
+    if (report) report.status = 'dispatched';
+    renderComplaints();
+    showToast('📋 Copied to clipboard — paste into email or SMS', 'success', 4000);
+  }).catch(() => {
+    // Fallback: open a textarea dialog
+    const w = window.open('', '_blank', 'width=600,height=500');
+    w.document.write(`<pre style="font-family:monospace;padding:20px;white-space:pre-wrap">${msg.replace(/</g,'&lt;')}</pre>`);
+  });
+}
+
+// Load on page open
+loadComplaints();
 </script>
 </body>
 </html>
