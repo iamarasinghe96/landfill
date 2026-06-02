@@ -2209,8 +2209,10 @@ async function submitLitterReport() {
     });
 
     document.getElementById('litter-form-card').style.display = 'none';
-    document.getElementById('litter-success').style.display   = 'block';
+    const successEl = document.getElementById('litter-success');
+    successEl.style.display = 'block';
     document.getElementById('litter-ref').textContent = 'Reference: ' + refId;
+    setTimeout(() => successEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   } catch (_) {
     btn.disabled = false;
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Report';
