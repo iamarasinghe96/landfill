@@ -1642,7 +1642,7 @@ function renderComplaints() {
           onclick="markAttended('${r.id}', this)">
           ✓ Attended
         </button>
-        <button class="cbtn cbtn-dispatch" onclick="dispatchReport(${JSON.stringify(JSON.stringify(r))})">
+        <button class="cbtn cbtn-dispatch" onclick="dispatchReport('${r.id}')">
           ✉ Dispatch
         </button>
       </td>
@@ -1680,8 +1680,9 @@ async function markAttended(id, btn) {
   }
 }
 
-function dispatchReport(jsonStr) {
-  const r    = JSON.parse(jsonStr);
+function dispatchReport(id) {
+  const r = _allReports.find(x => x.id === id);
+  if (!r) return;
   const date = r.submittedAt?.seconds
     ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU')
     : 'Unknown date';
