@@ -1160,6 +1160,25 @@
       margin-bottom: 10px;
     }
     .flood-info-banner svg { flex-shrink: 0; margin-top: 1px; }
+    .flood-search-row {
+      display: flex; gap: 8px; align-items: stretch;
+    }
+    .flood-search-row input {
+      flex: 1; padding: 10px 12px; border-radius: 8px;
+      border: 1.5px solid var(--border); font-size: 14px;
+      font-family: inherit; color: var(--text); background: var(--bg);
+    }
+    .flood-search-row input:focus { outline: none; border-color: var(--blue); }
+    .flood-search-row input.error { border-color: #E10600; }
+    .btn-flood-search {
+      display: flex; align-items: center; gap: 6px;
+      background: #1A5276; color: #fff;
+      border: none; border-radius: 8px; padding: 10px 16px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-flood-search:hover { background: #2471A3; }
+    .btn-flood-search:disabled { opacity: 0.5; cursor: not-allowed; }
     .flood-duplicate-warning {
       background: #FFF3CD; border: 1px solid #FFEAA7;
       color: #856404; border-radius: 8px;
@@ -1468,12 +1487,16 @@
 
       <div class="litter-field-group">
         <div class="litter-group-label">Flood Location <span class="litter-req">*</span></div>
-        <p class="litter-map-hint">Tap the map above to pin the affected area. Use the <strong>⊕</strong> button to jump to your location first.</p>
-        <div id="flood-pin-status" class="litter-pin-status">No pin placed yet — tap the map above</div>
-        <div class="litter-field" style="margin-top:10px">
-          <label for="fr-address">Street Address / Area Description <span class="litter-req">*</span></label>
-          <input type="text" id="fr-address" placeholder="Auto-filled when you place a pin, or type manually">
+        <div class="flood-search-row">
+          <input type="text" id="fr-address" placeholder="Type a street address or suburb…"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchFloodAddress()}">
+          <button type="button" class="btn-flood-search" id="btn-flood-search" onclick="searchFloodAddress()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
+          </button>
         </div>
+        <div id="flood-search-status" class="litter-pin-status" style="margin-top:6px">Type an address above and press Search, or tap the map directly</div>
+        <div id="flood-pin-status" class="litter-pin-status" style="display:none"></div>
       </div>
 
       <div class="litter-field-group">
@@ -2286,8 +2309,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.1 });
   const floodSec = document.getElementById('flood-risk');
   if (floodSec) floodObs.observe(floodSec);
-  const frAddrEl = document.getElementById('fr-address');
-  if (frAddrEl) frAddrEl.addEventListener('input', () => { frAddrEl._manuallyEdited = true; });
 });
 
 function lrVal(id) { return (document.getElementById(id)?.value || '').trim(); }
@@ -2444,7 +2465,7 @@ async function loadFloodCircles() {
   } catch (_) {}
 }
 
-function placeFloodPin(lat, lng) {
+function placeFloodPin(lat, lng, label) {
   const icon = _floodMap._pinIcon;
   if (_floodMarker) {
     _floodMarker.setLatLng([lat, lng]);
@@ -2452,21 +2473,66 @@ function placeFloodPin(lat, lng) {
     _floodMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_floodMap);
     _floodMarker.on('dragend', e => {
       const p = e.target.getLatLng();
+      _floodCoords = { lat: p.lat, lng: p.lng };
       updateFloodPinStatus(p.lat, p.lng);
-      reverseGeocodeFlood(p.lat, p.lng);
       checkFloodDuplicate(p.lat, p.lng);
     });
   }
   _floodCoords = { lat, lng };
-  updateFloodPinStatus(lat, lng);
-  reverseGeocodeFlood(lat, lng);
+  updateFloodPinStatus(lat, lng, label);
   checkFloodDuplicate(lat, lng);
 }
 
-function updateFloodPinStatus(lat, lng) {
+function updateFloodPinStatus(lat, lng, label) {
   const el = document.getElementById('flood-pin-status');
+  el.style.display = 'block';
   el.className = 'litter-pin-status placed';
-  el.textContent = `📍 Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
+  el.textContent = label
+    ? `📍 ${label} — drag to adjust`
+    : `📍 Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
+}
+
+async function searchFloodAddress() {
+  const input = document.getElementById('fr-address');
+  const btn   = document.getElementById('btn-flood-search');
+  const status = document.getElementById('flood-search-status');
+  const query  = (input?.value || '').trim();
+  if (!query) { input.classList.add('error'); return; }
+  input.classList.remove('error');
+
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+  status.className = 'litter-pin-status';
+  status.textContent = 'Searching…';
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Albury NSW Australia')}&format=json&limit=1&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const results = await res.json();
+    if (!results.length) {
+      status.className = 'litter-pin-status';
+      status.textContent = 'No results found — try a more specific address.';
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search';
+      return;
+    }
+    const r = results[0];
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    const label = r.display_name.split(',').slice(0, 3).join(',').trim();
+    input.value = label;
+    _floodMap.setView([lat, lng], 16);
+    placeFloodPin(lat, lng, label);
+    status.className = 'litter-pin-status';
+    status.textContent = '';
+  } catch (_) {
+    status.className = 'litter-pin-status';
+    status.textContent = 'Search failed — check your connection or tap the map directly.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search';
 }
 
 function checkFloodDuplicate(lat, lng) {
@@ -2485,26 +2551,6 @@ function checkFloodDuplicate(lat, lng) {
   }
 }
 
-async function reverseGeocodeFlood(lat, lng) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    if (!res.ok) return;
-    const data = await res.json();
-    const addr = data.address || {};
-    const parts = [
-      addr.house_number && addr.road ? `${addr.house_number} ${addr.road}` : addr.road,
-      addr.suburb || addr.neighbourhood || addr.hamlet,
-      addr.city || addr.town || addr.village
-    ].filter(Boolean);
-    const el = document.getElementById('fr-address');
-    if (el && !el._manuallyEdited) {
-      el.value = parts.join(', ') || data.display_name?.split(',').slice(0,3).join(',').trim() || '';
-    }
-  } catch (_) {}
-}
 
 function locateFloodMe() {
   if (!navigator.geolocation) return;
@@ -2599,8 +2645,10 @@ function resetFloodForm() {
   });
   document.getElementById('flood-error').style.display = 'none';
   document.getElementById('flood-duplicate-warning').style.display = 'none';
-  document.getElementById('flood-pin-status').className = 'litter-pin-status';
-  document.getElementById('flood-pin-status').textContent = 'No pin placed yet — tap the map above';
+  const fps = document.getElementById('flood-pin-status');
+  fps.className = 'litter-pin-status'; fps.textContent = ''; fps.style.display = 'none';
+  const fss = document.getElementById('flood-search-status');
+  if (fss) { fss.className = 'litter-pin-status'; fss.textContent = 'Type an address above and press Search, or tap the map directly'; }
   document.getElementById('btn-flood-submit').disabled = false;
   document.getElementById('btn-flood-submit').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Flood Report';
   _floodCoords = null;
