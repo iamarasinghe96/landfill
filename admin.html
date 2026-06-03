@@ -576,6 +576,19 @@
       color: var(--text-sm);
       font-size: 13px;
     }
+
+    /* FLOOD REPORTS */
+    #flood-admin-map {
+      height: 380px;
+      width: 100%;
+      background: #e8eef5;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .badge-engaged   { background: #FFF3CD; color: #856404; }
+    .cbtn-engage     { border-color: #F0A500; color: #856404; background: #fff; }
+    .cbtn-engage:hover { background: #FFF3CD; }
+    .cbtn-engage.done { opacity: 0.5; cursor: not-allowed; }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -662,6 +675,58 @@
             <tbody id="cr-tbody"></tbody>
           </table>
           <div class="complaints-empty" id="cr-empty" style="display:none">No reports found.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOOD RISK REPORTS -->
+    <div class="form-card">
+      <div class="form-card-header open" onclick="toggleSection(this)">
+        <div class="fch-icon">🌊</div>
+        <h2>Flood Risk Reports — Community Submissions</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="form-card-body open">
+        <div id="flood-admin-map"></div>
+        <div class="complaints-toolbar">
+          <select id="fr-filter-status" onchange="renderFloodReports()">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="engaged">Engaged</option>
+            <option value="dispatched">Dispatched</option>
+          </select>
+          <select id="fr-filter-type" onchange="renderFloodReports()">
+            <option value="all">All Types</option>
+            <option value="stormwater">Stormwater / Drain</option>
+            <option value="river">River / Creek</option>
+            <option value="flash">Flash Flooding</option>
+            <option value="property">Property Flooding</option>
+            <option value="road">Road Inundation</option>
+            <option value="other">Other</option>
+          </select>
+          <span class="complaints-count" id="fr-count"></span>
+          <button class="refresh-btn" onclick="loadFloodReports()">↻ Refresh</button>
+        </div>
+        <div class="complaints-table-wrap">
+          <div class="complaints-loading" id="fr-loading">Loading reports…</div>
+          <table class="complaints-table" id="fr-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Ref</th>
+                <th>Date</th>
+                <th>Reporter</th>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fr-tbody"></tbody>
+          </table>
+          <div class="complaints-empty" id="fr-empty" style="display:none">No flood reports found.</div>
+          <div class="complaints-error" id="fr-error" style="display:none">Failed to load — check Firestore rules allow admin reads.</div>
         </div>
       </div>
     </div>
@@ -1729,8 +1794,218 @@ function dispatchReport(id) {
   });
 }
 
+/* ═══════════════════════════════════
+   FLOOD RISK REPORTS
+   ═══════════════════════════════════ */
+let _allFloodReports = [];
+let _floodAdminMap   = null;
+
+const FLOOD_TYPE_LABELS = {
+  stormwater: 'Stormwater / Drain',
+  river:      'River / Creek',
+  flash:      'Flash Flooding',
+  property:   'Property Flooding',
+  road:       'Road Inundation',
+  other:      'Other'
+};
+const FLOOD_SEVERITY_LABELS = {
+  minor:    'Minor',
+  moderate: 'Moderate',
+  severe:   'Severe'
+};
+const FLOOD_ACTIVE_LABELS = {
+  yes:    'Active now',
+  recent: 'Last 48 hrs',
+  risk:   'Risk area'
+};
+
+function initFloodAdminMap(reports) {
+  if (!_floodAdminMap) {
+    _floodAdminMap = L.map('flood-admin-map', { zoomControl: true })
+      .setView([-36.0737, 146.9135], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(_floodAdminMap);
+  } else {
+    _floodAdminMap.eachLayer(l => { if (!(l instanceof L.TileLayer)) _floodAdminMap.removeLayer(l); });
+  }
+
+  const statusColors = { pending: '#E74C3C', engaged: '#F0A500', dispatched: '#27AE60' };
+  const bounds = [];
+
+  reports.forEach(r => {
+    if (!r.gps?.lat) return;
+    const color = statusColors[r.status] || '#E74C3C';
+    L.circleMarker([r.gps.lat, r.gps.lng], {
+      radius: 10, color, fillColor: color, fillOpacity: 0.7, weight: 2
+    }).addTo(_floodAdminMap)
+      .bindPopup(`<b>${r.refId || r.id}</b><br>${r.address || ''}<br>Type: ${FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—'}<br>Severity: ${FLOOD_SEVERITY_LABELS[r.severity] || r.severity || '—'}<br>Status: ${r.status || 'pending'}`);
+    bounds.push([r.gps.lat, r.gps.lng]);
+  });
+
+  if (bounds.length) {
+    try { _floodAdminMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); } catch(_) {}
+  }
+}
+
+async function loadFloodReports() {
+  const loadEl = document.getElementById('fr-loading');
+  const tableEl = document.getElementById('fr-table');
+  const emptyEl = document.getElementById('fr-empty');
+  const errEl   = document.getElementById('fr-error');
+  loadEl.style.display = 'block';
+  tableEl.style.display = 'none';
+  emptyEl.style.display = 'none';
+  errEl.style.display   = 'none';
+
+  try {
+    const snap = await fdb.collection('flood_reports')
+      .orderBy('submittedAt', 'desc').limit(200).get();
+    _allFloodReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    loadEl.style.display = 'none';
+    initFloodAdminMap(_allFloodReports);
+    renderFloodReports();
+  } catch (e) {
+    loadEl.style.display = 'none';
+    errEl.style.display  = 'block';
+  }
+}
+
+function renderFloodReports() {
+  const tableEl  = document.getElementById('fr-table');
+  const emptyEl  = document.getElementById('fr-empty');
+  const countEl  = document.getElementById('fr-count');
+  const tbody    = document.getElementById('fr-tbody');
+  const stFilter = document.getElementById('fr-filter-status')?.value || 'all';
+  const tyFilter = document.getElementById('fr-filter-type')?.value   || 'all';
+
+  const filtered = _allFloodReports.filter(r => {
+    if (stFilter !== 'all' && r.status !== stFilter) return false;
+    if (tyFilter !== 'all' && r.floodType !== tyFilter) return false;
+    return true;
+  });
+
+  countEl.textContent = `${filtered.length} report${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    tableEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  const statusBadge = {
+    pending:    '<span class="badge badge-pending">Pending</span>',
+    engaged:    '<span class="badge badge-engaged">Engaged</span>',
+    dispatched: '<span class="badge badge-dispatched">Dispatched</span>'
+  };
+
+  tbody.innerHTML = filtered.map(r => {
+    const date = r.submittedAt?.seconds
+      ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+      : '—';
+    const mapUrl = r.gps
+      ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
+      : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : null;
+    const engagedDone = r.status === 'engaged' || r.status === 'dispatched';
+    const descShort = (r.description || '').length > 80
+      ? `<span class="desc-short">${escH(r.description.slice(0, 80))}…</span><span class="desc-full" style="display:none">${escH(r.description)}</span><button class="desc-toggle" onclick="toggleDesc(this)">more</button>`
+      : escH(r.description || '—');
+
+    return `<tr>
+      <td style="white-space:nowrap;font-family:monospace;font-size:11px">${escH(r.refId || r.id.slice(0,8))}</td>
+      <td style="white-space:nowrap;font-size:12px">${date}</td>
+      <td style="font-size:12px">${escH(r.name || '—')}<br><span style="color:var(--text-sm);font-size:11px">${escH(r.email || '')}${r.phone ? '<br>'+escH(r.phone) : ''}</span></td>
+      <td style="font-size:12px">${escH(r.address || '—')}${mapUrl ? `<br><a href="${mapUrl}" target="_blank" class="map-link">View in Maps</a>` : ''}</td>
+      <td style="font-size:12px">${escH(FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—')}</td>
+      <td style="font-size:12px">${escH(FLOOD_SEVERITY_LABELS[r.severity] || r.severity || '—')}<br><span style="font-size:11px;color:var(--text-sm)">${escH(FLOOD_ACTIVE_LABELS[r.isActive] || r.isActive || '')}</span></td>
+      <td style="font-size:12px">${descShort}</td>
+      <td>${statusBadge[r.status] || statusBadge.pending}</td>
+      <td style="white-space:nowrap">
+        <button class="cbtn cbtn-engage ${engagedDone ? 'done' : ''}"
+          ${engagedDone ? 'disabled' : ''}
+          onclick="markFloodEngaged('${r.id}', this)">
+          ✓ Engaged
+        </button>
+        <button class="cbtn cbtn-dispatch" onclick="dispatchFloodReport('${r.id}')">
+          ✉ Dispatch
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tableEl.style.display = 'table';
+  emptyEl.style.display = 'none';
+}
+
+async function markFloodEngaged(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    await fdb.collection('flood_reports').doc(id).update({ status: 'engaged' });
+    const r = _allFloodReports.find(x => x.id === id);
+    if (r) r.status = 'engaged';
+    renderFloodReports();
+    initFloodAdminMap(_allFloodReports);
+    showToast('Marked as engaged', 'success', 3000);
+  } catch (_) {
+    btn.disabled = false;
+    btn.textContent = '✓ Engaged';
+    showToast('Could not update — check connection', 'error', 3000);
+  }
+}
+
+function dispatchFloodReport(id) {
+  const r = _allFloodReports.find(x => x.id === id);
+  if (!r) return;
+
+  const date = r.submittedAt?.seconds
+    ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU')
+    : 'Unknown date';
+  const mapUrl = r.gps
+    ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
+    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : 'N/A';
+
+  const msg = [
+    `FLOOD RISK REPORT — ${r.refId || r.id}`,
+    `Date: ${date}`,
+    ``,
+    `REPORTER`,
+    `Name:  ${r.name  || '—'}`,
+    `Email: ${r.email || '—'}`,
+    `Phone: ${r.phone || '—'}`,
+    ``,
+    `LOCATION`,
+    `Address:  ${r.address || '—'}`,
+    `GPS:      ${r.gps ? `${r.gps.lat}, ${r.gps.lng}` : 'Not captured'}`,
+    `Map:      ${mapUrl}`,
+    ``,
+    `FLOOD DETAILS`,
+    `Type:     ${FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—'}`,
+    `Severity: ${FLOOD_SEVERITY_LABELS[r.severity] || r.severity || '—'}`,
+    `Active:   ${FLOOD_ACTIVE_LABELS[r.isActive] || r.isActive || '—'}`,
+    `Description:`,
+    r.description || '—',
+    ``,
+    `Status: ${(r.status || 'pending').toUpperCase()}`,
+  ].join('\n');
+
+  navigator.clipboard.writeText(msg).then(() => {
+    fdb.collection('flood_reports').doc(r.id).update({ status: 'dispatched' }).catch(() => {});
+    const report = _allFloodReports.find(x => x.id === r.id);
+    if (report) report.status = 'dispatched';
+    renderFloodReports();
+    initFloodAdminMap(_allFloodReports);
+    showToast('📋 Copied to clipboard — paste into email or SMS', 'success', 4000);
+  }).catch(() => {
+    const w = window.open('', '_blank', 'width=600,height=500');
+    if (w) w.document.write(`<pre style="font-family:monospace;padding:20px;white-space:pre-wrap">${msg.replace(/</g,'&lt;')}</pre>`);
+  });
+}
+
 // Load on page open
 loadComplaints();
+loadFloodReports();
 </script>
 </body>
 </html>
