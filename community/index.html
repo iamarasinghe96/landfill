@@ -1536,7 +1536,7 @@
           </select>
         </div>
         <div class="litter-field">
-          <label for="fr-description">Description <span class="litter-req">*</span></label>
+          <label for="fr-description">Description <span class="litter-opt">(optional)</span></label>
           <textarea id="fr-description" rows="3" placeholder="Describe the situation — water depth estimate, affected properties, road names, how long it has been flooding…"></textarea>
         </div>
       </div>
@@ -2585,7 +2585,6 @@ async function submitFloodReport() {
   if (!type)         errors.push('Please select a flooding type.');
   if (!severity)     errors.push('Please select severity.');
   if (!active)       errors.push('Please indicate if flooding is currently active.');
-  if (!desc)         errors.push('Please describe what you observed.');
 
   if (errors.length) {
     errEl.innerHTML = errors.join('<br>');
