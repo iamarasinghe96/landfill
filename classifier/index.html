@@ -1346,6 +1346,63 @@ Respond ONLY with valid JSON (no markdown):
   return parsed;
 }
 
+/* Classifies a SPECIFIC named component (e.g. "plastic pouch", "cardboard box")
+   within the context of a parent product. Returns same shape as classifyWithGroq
+   but always populates secondary = the component itself as the primary result. */
+async function classifyComponentWithGroq(componentHint, parentProductName) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    signal: controller.signal,
+    headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.1,
+      max_tokens: 280,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a waste classification assistant for AlburyCity Council, NSW Australia.
+A user has identified a specific component of a product that needs its own bin classification.
+Classify ONLY the named component — not the whole product.
+
+BINS:
+- "yellow": Rigid glass bottles/jars, rigid hard plastic (#1/#2/#5 PET/HDPE), cardboard boxes, metal cans, empty aerosols
+- "red": Soft plastic bags/pouches/film, greasy or contaminated packaging, ceramics, broken glass, general waste
+- "fogo": ONLY actual food scraps or garden organics
+- "dropoff": Tetra Pak cartons, batteries, e-waste, blister packs, paint, medicines, CLEAN soft plastics (REDcycle)
+
+CRITICAL:
+- Greasy or food-contaminated plastic → "red" (not drop-off, not yellow)
+- Clean soft plastic bags/film → "dropoff"
+- Cardboard/paper → "yellow"
+- Ceramics → "red" ALWAYS
+
+Respond ONLY with valid JSON — put the component as "secondary":
+{"secondary":{"part":"<component name, cleaned up>","bin":"<bin>"},"tip":"<optional one-sentence prep tip or empty string>"}`
+        },
+        {
+          role: 'user',
+          content: `Product context: "${parentProductName || 'unknown product'}"\nComponent to classify: "${componentHint}"\n\nWhat bin does this component go in?`
+        }
+      ]
+    })
+  });
+
+  clearTimeout(timeout);
+  if (!res.ok) throw new Error('Groq ' + res.status);
+
+  const data   = await res.json();
+  const parsed = JSON.parse(data.choices[0].message.content);
+  if (!parsed.secondary?.bin || !['yellow','red','fogo','dropoff'].includes(parsed.secondary.bin)) {
+    return { secondary: null, tip: '' };
+  }
+  return { secondary: parsed.secondary, tip: parsed.tip || '' };
+}
+
 function groqToRule(aiResult) {
   const bin  = aiResult.bin;
   const meta = BIN_META[bin];
@@ -2408,17 +2465,20 @@ async function reportMissingComponents(barcode, isAI, componentHint) {
   toast.className     = 'flag-toast info';
   toast.textContent   = 'Checking with AI…';
 
-  // Build an enriched product description that includes the user's hint
-  const enrichedName = componentHint
-    ? `${product?.product_name || 'Unknown product'} (user reports missing component: ${componentHint})`
-    : (product?.product_name || '');
-
   try {
-    const aiResult = await classifyWithGroq({
-      product_name: enrichedName,
-      brands:       product?.brands     || '',
-      categories:   product?.categories || ''
-    });
+    // Use a dedicated component-classification call when the user named the part.
+    // This asks directly "what bin does THIS component go in?" rather than re-running
+    // the full product classification which focuses on the primary item.
+    let aiResult;
+    if (componentHint) {
+      aiResult = await classifyComponentWithGroq(componentHint, product?.product_name || '');
+    } else {
+      aiResult = await classifyWithGroq({
+        product_name: product?.product_name || '',
+        brands:       product?.brands       || '',
+        categories:   product?.categories   || ''
+      });
+    }
 
     if (aiResult.secondary && BIN_META[aiResult.secondary.bin]) {
       const sMeta = BIN_META[aiResult.secondary.bin];
