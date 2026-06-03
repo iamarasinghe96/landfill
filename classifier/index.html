@@ -2064,7 +2064,7 @@ function firestoreDocToRule(data) {
   };
 }
 
-async function submitFeedback(barcode, originalRule, isAI, submittedBin, userExplanation) {
+async function submitFeedback(barcode, originalRule, isAI, submittedBin, userExplanation, secondary, tip) {
   // No barcode (name search / photo) — log feedback only, no persistent correction
   if (!barcode) {
     await db.collection('feedback').add({
@@ -2108,11 +2108,14 @@ async function submitFeedback(barcode, originalRule, isAI, submittedBin, userExp
     const promotedAt  = isPromoted
       ? firebase.firestore.FieldValue.serverTimestamp()
       : (sameVote ? (prev.promotedAt || null) : null);
-    tx.set(corrRef, {
+    const corrData = {
       bin: submittedBin, type: 'Community Correction', voteCount: newCount,
       lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-      promotedAt, source: 'community'
-    }, { merge: true });
+      promotedAt, source: 'community',
+      tip:       tip       || '',
+      secondary: secondary || null
+    };
+    tx.set(corrRef, corrData, { merge: true });
     tx.set(voteRef, {
       barcode: String(barcode), sessionId: SESSION_ID,
       votedBin: submittedBin, votedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -2193,7 +2196,7 @@ function closeFlagForm() {
 
 /* Dedicated verification call: weighs product info + user explanation to decide
    if the submitted bin is correct. Returns { agrees, suggestedBin, why }. */
-async function verifyWithGroq(product, submittedBin, userExplanation) {
+async function verifyWithGroq(product, submittedBin, userExplanation, originalBin) {
   const hasProduct = product && (product.product_name || product.brands);
   if (!hasProduct && !userExplanation) return { agrees: null };
   try {
@@ -2207,6 +2210,7 @@ async function verifyWithGroq(product, submittedBin, userExplanation) {
       ? `\nUser's explanation: "${userExplanation}"`
       : '\n(No explanation provided)';
     const submittedLabel = BIN_META[submittedBin]?.label || submittedBin;
+    const originalLabel  = originalBin ? (BIN_META[originalBin]?.label || originalBin) : null;
 
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -2215,7 +2219,7 @@ async function verifyWithGroq(product, submittedBin, userExplanation) {
       body: JSON.stringify({
         model: GROQ_MODEL,
         temperature: 0.1,
-        max_tokens: 280,
+        max_tokens: 380,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -2234,16 +2238,22 @@ CRITICAL RULES:
 - FOGO IS NOT A FALLBACK — if unsure → red
 - Rigid clear PET cup → yellow; paper coffee cup body → red
 
+MULTI-PART ITEMS: Many products have two components that go in different bins (e.g. cardboard box + soft plastic inner pouch, cereal box + plastic bag, yogurt tub + foil lid).
+- If the user is correcting the PRIMARY bin and the ORIGINAL bin was correct for a SECONDARY component, preserve the original as a secondary.
+- Example: original="red" (soft plastic inner), user says "yellow" (cardboard outer) → agrees:true, suggestedBin:"yellow", secondary:{part:"Inner plastic pouch",bin:"red"}
+- Only include secondary when the two parts genuinely go in DIFFERENT bins.
+
 Give extra weight to a factually accurate user explanation.
 - If user explanation is factually correct and supports their bin → agrees: true
 - If explanation is wrong or misleading → agrees: false
 - If you genuinely cannot determine → agrees: null
 
-Respond ONLY with valid JSON: {"agrees":true/false/null,"suggestedBin":"<bin>","why":"<one sentence>"}`
+Respond ONLY with valid JSON:
+{"agrees":true/false/null,"suggestedBin":"<bin>","why":"<one sentence>","tip":"<optional prep tip or empty string>","secondary":{"part":"<component name>","bin":"<bin>"} or null}`
           },
           {
             role: 'user',
-            content: `${productDesc}${explanationPart}\nUser says it belongs in: ${submittedLabel}\n\nIs the user correct?`
+            content: `${productDesc}${explanationPart}\nOriginal classification: ${originalLabel || 'unknown'}\nUser says primary bin should be: ${submittedLabel}\n\nIs the user correct? If this is a multi-part item, identify the secondary component.`
           }
         ]
       })
@@ -2256,10 +2266,14 @@ Respond ONLY with valid JSON: {"agrees":true/false/null,"suggestedBin":"<bin>","
     const parsed = JSON.parse(data.choices[0].message.content);
     const suggestedBin = ['yellow','red','fogo','dropoff'].includes(parsed.suggestedBin)
       ? parsed.suggestedBin : submittedBin;
+    const secondary = parsed.secondary?.bin && ['yellow','red','fogo','dropoff'].includes(parsed.secondary.bin)
+      ? parsed.secondary : null;
     return {
       agrees:       parsed.agrees === true ? true : parsed.agrees === false ? false : null,
       suggestedBin,
-      why: parsed.why || ''
+      why:          parsed.why  || '',
+      tip:          parsed.tip  || '',
+      secondary
     };
   } catch (_) {
     return { agrees: null };
@@ -2290,18 +2304,21 @@ async function doSubmitFeedback(barcode, isAI) {
   toast.className     = 'flag-toast info';
   toast.textContent   = 'Verifying with AI…';
 
-  const { agrees, suggestedBin, why } = await verifyWithGroq(product, submittedBin, explanation);
+  const { agrees, suggestedBin, why, tip, secondary } = await verifyWithGroq(product, submittedBin, explanation, rule.bin);
 
   if (agrees === true) {
-    // Groq agrees with the user — apply correction
+    // Groq agrees with the user — apply correction (including any secondary component)
     try {
-      const outcome = await submitFeedback(barcode, rule, isAI, submittedBin, explanation);
+      const outcome = await submitFeedback(barcode, rule, isAI, submittedBin, explanation, secondary, tip);
       if (outcome === 'already_voted') {
         toast.className   = 'flag-toast info';
         toast.textContent = 'You have already flagged this product. Thanks for helping!';
       } else {
         toast.className   = 'flag-toast success';
-        toast.textContent = 'Correction saved — thanks for helping improve classifications!';
+        const secNote = secondary
+          ? ` (${secondary.part} → ${BIN_META[secondary.bin]?.label || secondary.bin} also saved)`
+          : '';
+        toast.textContent = `Correction saved${secNote} — thanks for helping improve classifications!`;
       }
     } catch (_) {
       toast.className   = 'flag-toast error';
