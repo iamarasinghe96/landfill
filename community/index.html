@@ -1144,6 +1144,28 @@
       .advisor-textarea-wrap { flex-direction: column; align-items: stretch; }
       .btn-advisor-send { width: 100%; justify-content: center; }
     }
+
+    /* FLOOD RISK */
+    #flood-map {
+      height: 280px;
+      width: 100%;
+      background: #e8eef5;
+    }
+    @media (max-width: 480px) { #flood-map { height: 240px; } }
+    .flood-info-banner {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: #EBF5FB; border: 1px solid #AED6F1;
+      color: #1A5276; border-radius: 8px;
+      padding: 10px 13px; font-size: 13px; line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .flood-info-banner svg { flex-shrink: 0; margin-top: 1px; }
+    .flood-duplicate-warning {
+      background: #FFF3CD; border: 1px solid #FFEAA7;
+      color: #856404; border-radius: 8px;
+      padding: 10px 13px; font-size: 13px;
+      margin-bottom: 10px;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1184,6 +1206,7 @@
     <a href="#waste-advisor" class="nav-pill active" onclick="setActive(this)">Waste Advisor</a>
     <a href="#bin-finder" class="nav-pill"          onclick="setActive(this)">Bin Finder</a>
     <a href="#report-litter" class="nav-pill"       onclick="setActive(this)">Report Litter</a>
+    <a href="#flood-risk" class="nav-pill" onclick="setActive(this)">Flood Risk</a>
     <a href="#quiz"       class="nav-pill"          onclick="setActive(this)">Pop Quiz</a>
     <a href="#plan"       class="nav-pill"          onclick="setActive(this)">Education Plan</a>
   </div>
@@ -1403,6 +1426,115 @@
       <button class="btn-litter-another" onclick="resetLitterForm()">Submit Another Report</button>
     </div>
   </section>
+
+<!-- ===================== FLOOD RISK ===================== -->
+<section class="page-section" id="flood-risk">
+  <div class="section-head">
+    <div class="section-icon" style="background:#1A5276">🌊</div>
+    <div class="section-head-text">
+      <h2>Flood Risk Survey</h2>
+    </div>
+  </div>
+
+  <!-- Community heatmap -->
+  <div class="flood-info-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+    Shaded areas on the map have already been reported. You cannot submit a duplicate report for the same location.
+  </div>
+  <div class="litter-map-wrap" style="margin-bottom:16px">
+    <div id="flood-map"></div>
+  </div>
+
+  <div class="litter-card" id="flood-form-card">
+    <div class="litter-form-body">
+
+      <div class="litter-field-group">
+        <div class="litter-group-label">Your Details <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — for follow-up)</span></div>
+        <div class="litter-row">
+          <div class="litter-field">
+            <label for="fr-name">Full Name</label>
+            <input type="text" id="fr-name" placeholder="e.g. Jane Smith" autocomplete="name">
+          </div>
+          <div class="litter-field">
+            <label for="fr-email">Email</label>
+            <input type="email" id="fr-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="litter-field">
+          <label for="fr-phone">Phone</label>
+          <input type="tel" id="fr-phone" placeholder="e.g. 04xx xxx xxx" autocomplete="tel">
+        </div>
+      </div>
+
+      <div class="litter-field-group">
+        <div class="litter-group-label">Flood Location <span class="litter-req">*</span></div>
+        <p class="litter-map-hint">Tap the map above to pin the affected area. Use the <strong>⊕</strong> button to jump to your location first.</p>
+        <div id="flood-pin-status" class="litter-pin-status">No pin placed yet — tap the map above</div>
+        <div class="litter-field" style="margin-top:10px">
+          <label for="fr-address">Street Address / Area Description <span class="litter-req">*</span></label>
+          <input type="text" id="fr-address" placeholder="Auto-filled when you place a pin, or type manually">
+        </div>
+      </div>
+
+      <div class="litter-field-group">
+        <div class="litter-group-label">Flood Details <span class="litter-req">*</span></div>
+        <div class="litter-field">
+          <label for="fr-type">Type of Flooding <span class="litter-req">*</span></label>
+          <select id="fr-type">
+            <option value="">Select type…</option>
+            <option value="stormwater">Stormwater / drain overflow</option>
+            <option value="river">River or creek flooding</option>
+            <option value="flash">Flash flooding</option>
+            <option value="property">Property / yard flooding</option>
+            <option value="road">Road inundation</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="litter-field">
+          <label for="fr-severity">Severity <span class="litter-req">*</span></label>
+          <select id="fr-severity">
+            <option value="">Select severity…</option>
+            <option value="minor">Minor — low lying water, no immediate threat</option>
+            <option value="moderate">Moderate — significant pooling, access affected</option>
+            <option value="severe">Severe — property or road damage, safety risk</option>
+          </select>
+        </div>
+        <div class="litter-field">
+          <label for="fr-active">Is flooding currently active? <span class="litter-req">*</span></label>
+          <select id="fr-active">
+            <option value="">Select…</option>
+            <option value="yes">Yes — actively flooding right now</option>
+            <option value="recent">Recent — within the last 48 hours</option>
+            <option value="risk">Risk area — prone to flooding in rain events</option>
+          </select>
+        </div>
+        <div class="litter-field">
+          <label for="fr-description">Description <span class="litter-req">*</span></label>
+          <textarea id="fr-description" rows="3" placeholder="Describe the situation — water depth estimate, affected properties, road names, how long it has been flooding…"></textarea>
+        </div>
+      </div>
+
+      <div id="flood-duplicate-warning" class="flood-duplicate-warning" style="display:none"></div>
+      <div id="flood-error" class="litter-error" style="display:none"></div>
+      <button class="btn-litter-submit" id="btn-flood-submit" onclick="submitFloodReport()" style="background:linear-gradient(135deg,#1A5276,#2471A3)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Submit Flood Report
+      </button>
+    </div>
+    <div class="litter-disclaimer">
+      Reports are reviewed by AlburyCity Council. For life-threatening flooding call <strong>000</strong>. SES: <strong>132 500</strong>.
+    </div>
+  </div>
+
+  <!-- Success state -->
+  <div class="litter-success" id="flood-success" style="display:none">
+    <div class="litter-success-icon">🌊</div>
+    <h3>Flood Report Submitted</h3>
+    <p id="flood-ref"></p>
+    <p>AlburyCity Council staff will review your report. For life-threatening emergencies call <strong>000</strong> or SES on <strong>132 500</strong>.</p>
+    <button class="btn-litter-another" onclick="resetFloodForm()">Submit Another Report</button>
+  </div>
+</section>
 
   <!-- ===================== QUIZ ===================== -->
   <section class="page-section" id="quiz">
@@ -2149,6 +2281,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.1 });
   const sec = document.getElementById('report-litter');
   if (sec) obs.observe(sec);
+  const floodObs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { initFloodMap(); floodObs.disconnect(); }
+  }, { threshold: 0.1 });
+  const floodSec = document.getElementById('flood-risk');
+  if (floodSec) floodObs.observe(floodSec);
+  const frAddrEl = document.getElementById('fr-address');
+  if (frAddrEl) frAddrEl.addEventListener('input', () => { frAddrEl._manuallyEdited = true; });
 });
 
 function lrVal(id) { return (document.getElementById(id)?.value || '').trim(); }
@@ -2238,6 +2377,237 @@ function resetLitterForm() {
   document.getElementById('litter-form-card').style.display = 'block';
   document.getElementById('litter-success').style.display   = 'none';
   if (_litterMap) _litterMap.setView(ALBURY, 14);
+}
+
+/* ── Flood Risk map ── */
+let _floodMap    = null;
+let _floodMarker = null;
+let _floodCoords = null;
+let _floodReports = [];
+const FLOOD_DEDUP_RADIUS_M = 300; // metres — block duplicate within this radius
+
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+async function initFloodMap() {
+  if (_floodMap) return;
+  _floodMap = L.map('flood-map', { zoomControl: true }).setView(ALBURY, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(_floodMap);
+
+  // Locate-me button
+  const locBtn = document.createElement('button');
+  locBtn.className = 'btn-locate-me';
+  locBtn.id = 'btn-flood-locate';
+  locBtn.title = 'Go to my location';
+  locBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 4a8 8 0 100 16A8 8 0 0012 4z" stroke-dasharray="3 2"/></svg>`;
+  locBtn.onclick = locateFloodMe;
+  _floodMap.getContainer().parentElement.appendChild(locBtn);
+
+  // Blue pin icon
+  const pinIcon = L.divIcon({
+    className: '',
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#1A5276"/>
+      <circle cx="16" cy="16" r="7" fill="#fff"/>
+    </svg>`,
+    iconSize: [32, 42], iconAnchor: [16, 42], popupAnchor: [0, -44]
+  });
+  _floodMap._pinIcon = pinIcon;
+
+  _floodMap.on('click', e => placeFloodPin(e.latlng.lat, e.latlng.lng));
+
+  // Load existing reports and draw circles
+  await loadFloodCircles();
+}
+
+async function loadFloodCircles() {
+  try {
+    const snap = await db.collection('flood_reports').get();
+    _floodReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _floodReports.forEach(r => {
+      if (r.gps?.lat && r.gps?.lng) {
+        L.circle([r.gps.lat, r.gps.lng], {
+          radius: FLOOD_DEDUP_RADIUS_M,
+          color: '#1A5276', fillColor: '#2471A3',
+          fillOpacity: 0.18, weight: 2
+        }).addTo(_floodMap).bindPopup(`<b>${r.refId || 'Report'}</b><br>${r.address || ''}<br>Status: ${r.status || 'pending'}`);
+      }
+    });
+  } catch (_) {}
+}
+
+function placeFloodPin(lat, lng) {
+  const icon = _floodMap._pinIcon;
+  if (_floodMarker) {
+    _floodMarker.setLatLng([lat, lng]);
+  } else {
+    _floodMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_floodMap);
+    _floodMarker.on('dragend', e => {
+      const p = e.target.getLatLng();
+      updateFloodPinStatus(p.lat, p.lng);
+      reverseGeocodeFlood(p.lat, p.lng);
+      checkFloodDuplicate(p.lat, p.lng);
+    });
+  }
+  _floodCoords = { lat, lng };
+  updateFloodPinStatus(lat, lng);
+  reverseGeocodeFlood(lat, lng);
+  checkFloodDuplicate(lat, lng);
+}
+
+function updateFloodPinStatus(lat, lng) {
+  const el = document.getElementById('flood-pin-status');
+  el.className = 'litter-pin-status placed';
+  el.textContent = `📍 Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
+}
+
+function checkFloodDuplicate(lat, lng) {
+  const warn = document.getElementById('flood-duplicate-warning');
+  const btn  = document.getElementById('btn-flood-submit');
+  const near = _floodReports.find(r =>
+    r.gps?.lat && haversineM(lat, lng, r.gps.lat, r.gps.lng) < FLOOD_DEDUP_RADIUS_M
+  );
+  if (near) {
+    warn.style.display = 'block';
+    warn.textContent = `⚠️ This area has already been reported (${near.refId || 'existing report'}). Please choose a different location or contact AlburyCity Council directly.`;
+    btn.disabled = true;
+  } else {
+    warn.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+async function reverseGeocodeFlood(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    const addr = data.address || {};
+    const parts = [
+      addr.house_number && addr.road ? `${addr.house_number} ${addr.road}` : addr.road,
+      addr.suburb || addr.neighbourhood || addr.hamlet,
+      addr.city || addr.town || addr.village
+    ].filter(Boolean);
+    const el = document.getElementById('fr-address');
+    if (el && !el._manuallyEdited) {
+      el.value = parts.join(', ') || data.display_name?.split(',').slice(0,3).join(',').trim() || '';
+    }
+  } catch (_) {}
+}
+
+function locateFloodMe() {
+  if (!navigator.geolocation) return;
+  const btn = document.getElementById('btn-flood-locate');
+  if (btn) btn.classList.add('locating');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      if (btn) btn.classList.remove('locating');
+      _floodMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+    },
+    () => { if (btn) btn.classList.remove('locating'); }
+  );
+}
+
+function frVal(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+async function submitFloodReport() {
+  const address = frVal('fr-address');
+  const type    = frVal('fr-type');
+  const severity= frVal('fr-severity');
+  const active  = frVal('fr-active');
+  const desc    = frVal('fr-description');
+  const errEl   = document.getElementById('flood-error');
+
+  let errors = [];
+  if (!_floodCoords) errors.push('Please place a pin on the map.');
+  if (!address)      errors.push('Please describe the flood location.');
+  if (!type)         errors.push('Please select a flooding type.');
+  if (!severity)     errors.push('Please select severity.');
+  if (!active)       errors.push('Please indicate if flooding is currently active.');
+  if (!desc)         errors.push('Please describe what you observed.');
+
+  if (errors.length) {
+    errEl.innerHTML = errors.join('<br>');
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+  errEl.style.display = 'none';
+
+  // Final duplicate check
+  if (_floodCoords) {
+    const near = _floodReports.find(r =>
+      r.gps?.lat && haversineM(_floodCoords.lat, _floodCoords.lng, r.gps.lat, r.gps.lng) < FLOOD_DEDUP_RADIUS_M
+    );
+    if (near) return;
+  }
+
+  const btn = document.getElementById('btn-flood-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const refId = 'FR-' + Date.now().toString(36).toUpperCase();
+  try {
+    await db.collection('flood_reports').add({
+      refId,
+      name:        frVal('fr-name')  || null,
+      email:       frVal('fr-email') || null,
+      phone:       frVal('fr-phone') || null,
+      address,
+      floodType:   type,
+      severity,
+      isActive:    active,
+      description: desc,
+      gps:         _floodCoords,
+      status:      'pending',
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent:   navigator.userAgent.slice(0, 200)
+    });
+
+    document.getElementById('flood-form-card').style.display = 'none';
+    const successEl = document.getElementById('flood-success');
+    successEl.style.display = 'block';
+    document.getElementById('flood-ref').textContent = 'Reference: ' + refId;
+    setTimeout(() => successEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  } catch (_) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Flood Report';
+    errEl.textContent = 'Could not submit — check your connection and try again.';
+    errEl.style.display = 'block';
+  }
+}
+
+function resetFloodForm() {
+  ['fr-name','fr-email','fr-phone','fr-address','fr-description'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el._manuallyEdited = false; }
+  });
+  ['fr-type','fr-severity','fr-active'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.selectedIndex = 0;
+  });
+  document.getElementById('flood-error').style.display = 'none';
+  document.getElementById('flood-duplicate-warning').style.display = 'none';
+  document.getElementById('flood-pin-status').className = 'litter-pin-status';
+  document.getElementById('flood-pin-status').textContent = 'No pin placed yet — tap the map above';
+  document.getElementById('btn-flood-submit').disabled = false;
+  document.getElementById('btn-flood-submit').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Flood Report';
+  _floodCoords = null;
+  if (_floodMarker) { _floodMarker.remove(); _floodMarker = null; }
+  document.getElementById('flood-form-card').style.display = 'block';
+  document.getElementById('flood-success').style.display = 'none';
+  if (_floodMap) _floodMap.setView(ALBURY, 13);
 }
 
 </script>
