@@ -757,6 +757,12 @@
     .flag-toast.success { background: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }
     .flag-toast.info    { background: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }
     .flag-toast.error   { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
+    .missing-component-input {
+      width: 100%; padding: 9px 11px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: 13px; color: var(--text); font-family: inherit;
+    }
+    .missing-component-input:focus { outline: none; border-color: var(--blue); }
     .flag-explanation-label { font-size: 12px; color: var(--text-sm); margin-bottom: 4px; display: block; }
     .flag-explanation {
       width: 100%; margin-bottom: 12px;
@@ -2140,10 +2146,21 @@ function renderFeedbackWidget(barcode, rule, isAI, label, product) {
         Flag incorrect bin
       </button>
       ${!hasSecondary ? `
-      <button class="btn-flag" id="btn-missing" style="margin-top:6px" onclick="reportMissingComponents(${bcArg},${isAI})">
+      <button class="btn-flag" id="btn-missing" style="margin-top:6px" onclick="openMissingForm()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Missing bin category?
-      </button>` : ''}
+      </button>
+      <div class="flag-form" id="missing-form" style="display:none">
+        <p>What component is missing a bin category?</p>
+        <input class="missing-component-input" id="missing-component"
+          placeholder="e.g. plastic pouch, cardboard box, plastic cap…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();doReportMissing(${bcArg},${isAI})}">
+        <div class="flag-actions" style="margin-top:10px">
+          <button class="btn-flag-cancel-inner" onclick="closeMissingForm()">Cancel</button>
+          <button class="btn-flag-submit" id="btn-missing-submit"
+            onclick="doReportMissing(${bcArg},${isAI})">Check with AI</button>
+        </div>
+      </div>` : ''}
       <div class="flag-form" id="flag-form">
         <p>Which bin should this go in?</p>
         <div class="bin-options">
@@ -2356,10 +2373,32 @@ async function doSubmitFeedback(barcode, isAI) {
   }
 }
 
-async function reportMissingComponents(barcode, isAI) {
-  const container = document.getElementById('feedback-widget-container');
-  const product   = container._product || null;
-  const toast     = document.getElementById('flag-toast');
+function openMissingForm() {
+  document.getElementById('missing-form').style.display = 'block';
+  document.getElementById('btn-missing').style.display  = 'none';
+  document.getElementById('btn-flag').style.display     = 'none';
+  setTimeout(() => document.getElementById('missing-component')?.focus(), 50);
+}
+
+function closeMissingForm() {
+  document.getElementById('missing-form').style.display = 'none';
+  document.getElementById('btn-missing').style.display  = '';
+  document.getElementById('btn-flag').style.display     = '';
+  const inp = document.getElementById('missing-component');
+  if (inp) inp.value = '';
+}
+
+async function doReportMissing(barcode, isAI) {
+  const componentText = (document.getElementById('missing-component')?.value || '').trim();
+  document.getElementById('missing-form').style.display = 'none';
+  document.getElementById('btn-flag').style.display     = 'none';
+  await reportMissingComponents(barcode, isAI, componentText);
+}
+
+async function reportMissingComponents(barcode, isAI, componentHint) {
+  const container  = document.getElementById('feedback-widget-container');
+  const product    = container._product || null;
+  const toast      = document.getElementById('flag-toast');
   const missingBtn = document.getElementById('btn-missing');
   const flagBtn    = document.getElementById('btn-flag');
 
@@ -2367,13 +2406,18 @@ async function reportMissingComponents(barcode, isAI) {
   if (flagBtn)    flagBtn.style.display    = 'none';
   toast.style.display = 'block';
   toast.className     = 'flag-toast info';
-  toast.textContent   = 'Checking for additional components…';
+  toast.textContent   = 'Checking with AI…';
+
+  // Build an enriched product description that includes the user's hint
+  const enrichedName = componentHint
+    ? `${product?.product_name || 'Unknown product'} (user reports missing component: ${componentHint})`
+    : (product?.product_name || '');
 
   try {
     const aiResult = await classifyWithGroq({
-      product_name: product?.product_name || '',
-      brands:       product?.brands       || '',
-      categories:   product?.categories   || ''
+      product_name: enrichedName,
+      brands:       product?.brands     || '',
+      categories:   product?.categories || ''
     });
 
     if (aiResult.secondary && BIN_META[aiResult.secondary.bin]) {
@@ -2404,9 +2448,12 @@ async function reportMissingComponents(barcode, isAI) {
         }, { merge: true }).catch(() => {});
       }
     } else {
-      if (flagBtn) flagBtn.style.display = '';
+      if (flagBtn)    flagBtn.style.display    = '';
+      if (missingBtn) missingBtn.style.display = '';
       toast.className   = 'flag-toast info';
-      toast.textContent = 'No additional components found for this item.';
+      toast.textContent = componentHint
+        ? `No separate bin found for "${componentHint}" — it may go in the same bin as the main item.`
+        : 'No additional components found for this item.';
     }
   } catch (_) {
     if (missingBtn) missingBtn.style.display = '';
