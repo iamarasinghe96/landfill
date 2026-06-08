@@ -1391,18 +1391,22 @@
 
         <div class="litter-field-group">
           <div class="litter-group-label">Litter Location <span class="litter-req">*</span></div>
-          <p class="litter-map-hint">Tap the map to place the pin on the litter site. Use the <strong>⊕</strong> button to jump to your current location first.</p>
-          <div class="litter-map-wrap">
+          <div class="flood-search-row">
+            <input type="text" id="lr-address" placeholder="Type a street address or suburb…"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();searchLitterAddress()}">
+            <button type="button" class="btn-flood-search" id="btn-litter-search" onclick="searchLitterAddress()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Search
+            </button>
+          </div>
+          <div id="litter-search-status" class="litter-pin-status" style="margin-top:6px">Type an address above and press Search, or tap the map directly</div>
+          <div class="litter-map-wrap" style="margin-top:10px">
             <div id="litter-map"></div>
             <button class="btn-locate-me" id="btn-locate-me" onclick="locateMe()" title="Go to my location">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 4a8 8 0 100 16A8 8 0 0012 4z" stroke-dasharray="3 2"/></svg>
             </button>
           </div>
-          <div class="litter-pin-status" id="pin-status">No pin placed yet — tap the map above</div>
-          <div class="litter-field" style="margin-top:10px">
-            <label for="lr-address">Street Address / Description <span class="litter-req">*</span></label>
-            <input type="text" id="lr-address" placeholder="Auto-filled when you place a pin, or type manually">
-          </div>
+          <div class="litter-pin-status" id="pin-status" style="display:none"></div>
         </div>
 
         <div class="litter-field-group">
@@ -2233,7 +2237,7 @@ function initLitterMap() {
   _litterMap._pinIcon = pinIcon;
 }
 
-function placePinAt(lat, lng, icon) {
+function placePinAt(lat, lng, icon, label) {
   icon = icon || _litterMap._pinIcon;
   if (_litterMarker) {
     _litterMarker.setLatLng([lat, lng]);
@@ -2241,40 +2245,62 @@ function placePinAt(lat, lng, icon) {
     _litterMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_litterMap);
     _litterMarker.on('dragend', e => {
       const p = e.target.getLatLng();
+      _gpsCoords = { lat: p.lat, lng: p.lng };
       updatePinStatus(p.lat, p.lng);
-      reverseGeocode(p.lat, p.lng);
     });
   }
   _gpsCoords = { lat, lng };
-  updatePinStatus(lat, lng);
-  reverseGeocode(lat, lng);
+  updatePinStatus(lat, lng, label);
 }
 
-function updatePinStatus(lat, lng) {
+function updatePinStatus(lat, lng, label) {
   const el = document.getElementById('pin-status');
+  el.style.display = 'block';
   el.className = 'litter-pin-status placed';
-  el.textContent = `📍 Pin placed at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
+  el.textContent = label
+    ? `📍 ${label} — drag to adjust`
+    : `📍 Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
 }
 
-async function reverseGeocode(lat, lng) {
+async function searchLitterAddress() {
+  const input  = document.getElementById('lr-address');
+  const btn    = document.getElementById('btn-litter-search');
+  const status = document.getElementById('litter-search-status');
+  const query  = (input?.value || '').trim();
+  if (!query) { input.classList.add('error'); return; }
+  input.classList.remove('error');
+
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+  status.className = 'litter-pin-status';
+  status.textContent = 'Searching…';
+
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Albury NSW Australia')}&format=json&limit=1&addressdetails=1`,
       { headers: { 'Accept-Language': 'en' } }
     );
-    if (!res.ok) return;
-    const data = await res.json();
-    const addr = data.address || {};
-    const parts = [
-      addr.house_number && addr.road ? `${addr.house_number} ${addr.road}` : addr.road,
-      addr.suburb || addr.neighbourhood || addr.hamlet,
-      addr.city || addr.town || addr.village
-    ].filter(Boolean);
-    const addressEl = document.getElementById('lr-address');
-    if (addressEl && !addressEl._manuallyEdited) {
-      addressEl.value = parts.join(', ') || data.display_name?.split(',').slice(0,3).join(',').trim() || '';
+    const results = await res.json();
+    if (!results.length) {
+      status.textContent = 'No results found — try a more specific address.';
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search';
+      return;
     }
-  } catch (_) {}
+    const r = results[0];
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    const label = r.display_name.split(',').slice(0, 3).join(',').trim();
+    input.value = label;
+    _litterMap.setView([lat, lng], 17);
+    placePinAt(lat, lng, null, label);
+    status.className = 'litter-pin-status';
+    status.textContent = '';
+  } catch (_) {
+    status.textContent = 'Search failed — check your connection or tap the map directly.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search';
 }
 
 function locateMe() {
@@ -2290,18 +2316,14 @@ function locateMe() {
     },
     () => {
       btn.classList.remove('locating');
-      const el = document.getElementById('pin-status');
-      el.className = 'litter-pin-status';
-      el.textContent = 'Location permission denied — tap the map to place the pin manually.';
+      const el = document.getElementById('litter-search-status');
+      if (el) { el.className = 'litter-pin-status'; el.textContent = 'Location permission denied — tap the map to place pin manually.'; }
     },
     { timeout: 12000 }
   );
 }
 
-// Mark address field as manually edited so reverse geocode doesn't overwrite it
 document.addEventListener('DOMContentLoaded', () => {
-  const addrEl = document.getElementById('lr-address');
-  if (addrEl) addrEl.addEventListener('input', () => { addrEl._manuallyEdited = true; });
   // Lazy-init map when section scrolls into view
   const obs = new IntersectionObserver(entries => {
     if (entries[0].isIntersecting) { initLitterMap(); obs.disconnect(); }
@@ -2388,13 +2410,15 @@ async function submitLitterReport() {
 function resetLitterForm() {
   ['lr-name','lr-email','lr-phone','lr-address','lr-description'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.value = ''; el.classList.remove('error'); el._manuallyEdited = false; }
+    if (el) { el.value = ''; el.classList.remove('error'); }
   });
   const typeEl = document.getElementById('lr-type');
   if (typeEl) typeEl.selectedIndex = 0;
   document.getElementById('litter-error').style.display  = 'none';
-  document.getElementById('pin-status').className        = 'litter-pin-status';
-  document.getElementById('pin-status').textContent      = 'No pin placed yet — tap the map above';
+  const ps = document.getElementById('pin-status');
+  ps.className = 'litter-pin-status'; ps.textContent = ''; ps.style.display = 'none';
+  const lss = document.getElementById('litter-search-status');
+  if (lss) { lss.className = 'litter-pin-status'; lss.textContent = 'Type an address above and press Search, or tap the map directly'; }
   document.getElementById('btn-litter-submit').disabled  = false;
   document.getElementById('btn-litter-submit').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Report';
   _gpsCoords = null;
