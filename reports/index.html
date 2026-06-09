@@ -16,9 +16,7 @@
       --navy-dk: #122850;
       --blue:    #2471A3;
       --green:   #1E8449;
-      --green-lt:#27AE60;
       --amber:   #D4860B;
-      --amber-lt:#F39C12;
       --red:     #C0392B;
       --red-lt:  #E74C3C;
       --bg:      #EEF2F7;
@@ -27,249 +25,290 @@
       --text-md: #4A5568;
       --text-sm: #718096;
       --border:  #CBD5E0;
-      --input-bg:#F7FAFC;
       --shadow:  0 2px 10px rgba(27,58,107,0.10);
-      --radius:  12px;
+      --radius:  10px;
+      --sidebar: 380px;
     }
 
-    body {
+    html, body {
+      height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
+      overflow: hidden;
     }
 
     /* ── HEADER ── */
     header {
       background: linear-gradient(135deg, var(--navy-dk) 0%, var(--navy) 60%, #2557A7 100%);
       color: #fff;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.28);
+      position: relative;
+      z-index: 200;
+      flex-shrink: 0;
     }
     .header-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 14px 24px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+      padding: 12px 20px;
     }
     .logo-wrap img {
-      height: 52px;
+      height: 44px;
       background: #fff;
       border-radius: 7px;
-      padding: 5px 8px;
+      padding: 4px 7px;
     }
     .logo-fallback {
-      height: 52px;
+      height: 44px;
       background: #fff;
       border-radius: 7px;
-      padding: 6px 12px;
+      padding: 5px 11px;
       font-weight: 800;
-      font-size: 18px;
+      font-size: 16px;
       color: var(--navy);
       display: flex; align-items: center;
     }
     .header-text { flex: 1; }
-    .header-text h1 { font-size: 20px; font-weight: 700; }
+    .header-text h1 { font-size: 18px; font-weight: 700; line-height: 1.2; }
     .admin-tag {
       background: rgba(231,76,60,0.85);
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
-      padding: 2px 9px;
+      padding: 2px 8px;
       border-radius: 20px;
       letter-spacing: 0.8px;
       text-transform: uppercase;
       display: inline-block;
-      margin-top: 4px;
+      margin-top: 3px;
     }
-    .header-actions { display: flex; gap: 10px; align-items: center; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 9px 18px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.18s;
-      border: none;
-      text-decoration: none;
-    }
-    .btn-outline-wh {
-      background: rgba(255,255,255,0.12);
-      color: #fff;
-      border: 1.5px solid rgba(255,255,255,0.35);
-    }
-    .btn-outline-wh:hover { background: rgba(255,255,255,0.22); }
-
-    /* ── LAYOUT ── */
-    .main-content {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px 20px 60px;
-    }
-
-    /* ── FORM CARD ── */
-    .form-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-    .form-card-header {
-      background: var(--bg);
-      padding: 14px 22px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s;
-    }
-    .form-card-header:hover { background: #E8EDF5; }
-    .form-card-header .fch-icon {
-      font-size: 18px;
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      background: var(--navy);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .form-card-header h2 {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--navy);
-      flex: 1;
-    }
-    .form-card-header .chevron {
-      font-size: 12px;
-      color: var(--text-sm);
-      transition: transform 0.2s;
-    }
-    .form-card-header.open .chevron { transform: rotate(180deg); }
-    .form-card-body {
-      padding: 22px;
-      display: none;
-    }
-    .form-card-body.open { display: block; }
-
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      background: var(--navy);
-      color: #fff;
-      padding: 14px 22px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
-      z-index: 9999;
-      transform: translateY(80px);
-      opacity: 0;
-      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-    }
-    #toast.show { transform: translateY(0); opacity: 1; }
-    #toast.success { background: var(--green); }
-    #toast.error   { background: var(--red); }
-
-    /* ── REPORTS TOOLBAR ── */
-    .complaints-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    .complaints-toolbar select,
-    .complaints-toolbar input {
-      padding: 7px 11px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: 13px;
-      background: var(--input-bg);
-      color: var(--text);
-    }
-    .complaints-toolbar .refresh-btn {
-      margin-left: auto;
-      background: var(--bg);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-hd {
+      display: inline-flex; align-items: center; gap: 5px;
       padding: 7px 14px;
-      font-size: 13px;
+      border-radius: 7px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      color: var(--navy);
+      border: 1.5px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      text-decoration: none;
       transition: background 0.15s;
     }
-    .complaints-toolbar .refresh-btn:hover { background: #E8EDF5; }
-    .export-btn { background: #1B3A6B !important; color: #fff !important; border-color: #1B3A6B !important; }
-    .export-btn:hover { background: #122850 !important; }
-    .complaints-count { font-size: 12px; color: var(--text-sm); }
-    .complaints-table-wrap { overflow-x: auto; }
-    .complaints-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
+    .btn-hd:hover { background: rgba(255,255,255,0.20); }
+
+    /* ── SPLIT LAYOUT ── */
+    .app-body {
+      display: flex;
+      height: calc(100vh - 68px);
     }
-    .complaints-table th {
-      background: var(--bg);
-      padding: 9px 12px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-md);
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      white-space: nowrap;
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar);
+      flex-shrink: 0;
+      background: var(--card);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      box-shadow: 2px 0 12px rgba(27,58,107,0.08);
+      z-index: 10;
     }
-    .complaints-table td {
-      padding: 10px 12px;
+
+    /* Filter bar */
+    .filter-bar {
+      padding: 14px 16px 10px;
       border-bottom: 1px solid var(--border);
-      vertical-align: top;
+      flex-shrink: 0;
     }
-    .complaints-table tr:hover td { background: #F7FAFC; }
-    .c-ref   { font-family: monospace; font-size: 12px; color: var(--text-sm); white-space: nowrap; }
-    .c-date  { white-space: nowrap; font-size: 12px; color: var(--text-sm); }
-    .c-name  { font-weight: 600; }
-    .c-contact { font-size: 11.5px; color: var(--text-sm); }
-    .c-addr  { max-width: 200px; }
-    .c-map-link {
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .filter-row:last-child { margin-bottom: 0; }
+
+    /* Type tabs */
+    .type-tabs {
+      display: flex;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .type-tab {
+      flex: 1;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-md);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .type-tab.active {
+      background: #fff;
+      color: var(--navy);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+    .type-tab .tab-count {
+      display: inline-block;
+      background: var(--border);
+      color: var(--text-sm);
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      margin-left: 4px;
+    }
+    .type-tab.active .tab-count { background: var(--navy); color: #fff; }
+
+    .filter-selects { display: flex; gap: 6px; flex: 1; }
+    .filter-selects select {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      font-size: 12px;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .filter-actions { display: flex; gap: 6px; }
+    .act-btn {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 11.5px;
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--blue);
-      text-decoration: none;
-      margin-top: 3px;
-    }
-    .c-map-link:hover { text-decoration: underline; }
-    .c-desc  { max-width: 220px; font-size: 12.5px; color: var(--text-md); }
-    .c-desc .desc-full { display: none; }
-    .c-desc .show-more {
-      font-size: 11px;
-      color: var(--blue);
       cursor: pointer;
-      background: none;
-      border: none;
-      padding: 0;
-      margin-top: 2px;
-      display: block;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .act-btn:hover { background: #E8EDF5; }
+    .act-btn.export { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .act-btn.export:hover { background: var(--navy-dk); }
+
+    /* Stats strip */
+    .stats-strip {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1.1;
+    }
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .stat-item.s-pending  .stat-num { color: #856404; }
+    .stat-item.s-attended .stat-num { color: #0C5460; }
+    .stat-item.s-dispatched .stat-num { color: var(--green); }
+
+    /* List */
+    .report-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+    .report-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 14px;
+      border-bottom: 1px solid #F0F4F8;
+      cursor: pointer;
+      transition: background 0.12s;
+      position: relative;
+    }
+    .report-item:hover  { background: #F7FAFF; }
+    .report-item.active { background: #EBF2FF; border-left: 3px solid var(--navy); }
+    .ri-type-icon {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .ri-type-icon.litter { background: #FDECEA; }
+    .ri-type-icon.flood  { background: #EAF2FF; }
+    .ri-body { flex: 1; min-width: 0; }
+    .ri-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .ri-ref {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      white-space: nowrap;
+    }
+    .ri-time {
+      font-size: 10.5px;
+      color: var(--text-sm);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ri-addr {
+      font-size: 12px;
+      color: var(--text-md);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 5px;
+    }
+    .ri-foot {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ri-type-tag {
+      font-size: 10.5px;
+      color: var(--text-sm);
+      background: var(--bg);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-weight: 500;
     }
 
-    /* ── UNIFIED STATUS BADGES ── */
+    /* Badges */
     .badge {
       display: inline-block;
-      padding: 3px 10px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
       white-space: nowrap;
     }
     .badge-pending    { background: #FEF3CD; color: #856404; }
@@ -277,57 +316,203 @@
     .badge-engaged    { background: #FFF3CD; color: #856404; }
     .badge-dispatched { background: #D4EDDA; color: #155724; }
 
-    .c-actions { white-space: nowrap; }
-    .c-actions .cbtn {
-      display: inline-flex;
+    /* Pagination */
+    .list-footer {
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 5px 11px;
-      border-radius: 7px;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .page-info { font-size: 12px; color: var(--text-sm); }
+    .page-btns { display: flex; gap: 5px; align-items: center; }
+    .page-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: #fff;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      border: 1.5px solid;
-      transition: all 0.15s;
-      margin-right: 5px;
-      margin-bottom: 4px;
+      color: var(--text);
     }
-    .cbtn-attend  { border-color: #17a2b8; color: #17a2b8; background: #fff; }
-    .cbtn-attend:hover  { background: #D1ECF1; }
-    .cbtn-attend.done   { opacity: 0.45; cursor: not-allowed; }
-    .cbtn-engage  { border-color: #F0A500; color: #856404; background: #fff; }
-    .cbtn-engage:hover  { background: #FFF3CD; }
-    .cbtn-engage.done   { opacity: 0.5; cursor: not-allowed; }
-    .cbtn-dispatch { border-color: var(--green); color: var(--green); background: #fff; }
-    .cbtn-dispatch:hover { background: #D4EDDA; }
-    .complaints-empty {
+    .page-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+    .page-btn:not(:disabled):hover { background: var(--bg); }
+    .page-size-sel {
+      padding: 5px 7px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    /* Loading/empty states */
+    .list-state {
       text-align: center;
       padding: 40px 20px;
       color: var(--text-sm);
       font-size: 13px;
     }
-    .complaints-loading {
-      text-align: center;
-      padding: 30px;
+    .list-state.error { color: var(--red); }
+
+    /* ── MAP PANEL ── */
+    .map-panel {
+      flex: 1;
+      position: relative;
+      isolation: isolate;
+    }
+    #admin-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Map overlay legend */
+    .map-legend {
+      position: absolute;
+      bottom: 28px;
+      left: 14px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+      padding: 10px 14px;
+      z-index: 1000;
+      font-size: 12px;
+    }
+    .map-legend h4 {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: var(--text-sm);
-      font-size: 13px;
+      margin-bottom: 7px;
     }
-    .complaints-error {
+    .legend-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .legend-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid rgba(0,0,0,0.15);
+    }
+
+    /* Leaflet popup overrides */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+      padding: 0 !important;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      width: 280px !important;
+    }
+    .leaflet-popup-tip-container { margin-top: -1px; }
+
+    /* Popup card */
+    .popup-card { border-radius: 12px; overflow: hidden; }
+    .popup-header {
+      padding: 11px 14px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .popup-header.litter { background: #FDECEA; }
+    .popup-header.flood  { background: #EAF2FF; }
+    .popup-icon { font-size: 18px; }
+    .popup-ref  { font-weight: 700; font-size: 13px; color: var(--navy); flex: 1; }
+    .popup-body { padding: 10px 14px; }
+    .popup-row  {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: var(--text-md);
+      align-items: flex-start;
+    }
+    .popup-row svg { flex-shrink: 0; margin-top: 1px; }
+    .popup-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-sm); margin-bottom: 8px; margin-top: 2px; }
+    .popup-actions {
+      display: flex;
+      gap: 6px;
+      padding: 0 14px 12px;
+    }
+    .popup-btn {
+      flex: 1;
+      padding: 7px 0;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1.5px solid;
+      transition: all 0.15s;
       text-align: center;
-      padding: 30px;
-      color: var(--red);
-      font-size: 13px;
     }
+    .popup-btn-attend  { border-color: #17a2b8; color: #17a2b8; background: #fff; }
+    .popup-btn-attend:hover  { background: #D1ECF1; }
+    .popup-btn-engage  { border-color: #F0A500; color: #856404; background: #fff; }
+    .popup-btn-engage:hover  { background: #FFF3CD; }
+    .popup-btn-dispatch { border-color: var(--green); color: var(--green); background: #fff; }
+    .popup-btn-dispatch:hover { background: #D4EDDA; }
+    .popup-btn:disabled { opacity: 0.42; cursor: not-allowed; }
 
-    /* FLOOD MAP */
-    #flood-admin-map { height: 380px; width: 100%; background: #e8eef5; margin-bottom: 0; }
+    /* Export dropdown */
+    .export-wrap { position: relative; }
+    .export-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      z-index: 999;
+      min-width: 170px;
+      overflow: hidden;
+    }
+    .export-menu.open { display: block; }
+    .export-opt {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 12.5px;
+      font-weight: 600;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .export-opt:hover { background: var(--bg); }
 
-    /* ── PAGINATION ── */
-    .pagination-bar { display: flex; align-items: center; gap: 10px; padding: 12px 0 4px; flex-wrap: wrap; }
-    .page-info { font-size: 13px; color: var(--text-sm); flex: 1; }
-    .page-btn { padding: 6px 14px; border-radius: 7px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .page-btn:not(:disabled):hover { background: var(--bg); }
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--navy);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      max-width: 340px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { background: var(--green); }
+    #toast.error   { background: var(--red); }
+
+    @media (max-width: 720px) {
+      .app-body { flex-direction: column; height: auto; overflow: visible; }
+      html, body { overflow: auto; }
+      .sidebar { width: 100%; height: auto; max-height: 55vh; }
+      .map-panel { height: 50vh; }
+    }
   </style>
 </head>
 <body>
@@ -336,186 +521,172 @@
   <div class="header-inner">
     <div class="logo-wrap">
       <img src="https://www.alburycity.nsw.gov.au/__data/assets/image/0009/368064/AC-logo.png"
-           alt="AlburyCity Council"
+           alt="AlburyCity"
            onerror="this.style.display='none';document.getElementById('lfb').style.display='flex'">
       <div class="logo-fallback" id="lfb" style="display:none">AlburyCity</div>
     </div>
     <div class="header-text">
       <h1>Community Reports</h1>
-      <span class="admin-tag">Litter &amp; Flood Submissions</span>
+      <span class="admin-tag">Live Dashboard</span>
     </div>
     <div class="header-actions">
-      <a href="../admin.html" class="btn btn-outline-wh">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to Admin
+      <a href="../admin.html" class="btn-hd">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Admin
       </a>
-      <a href="../index.html" class="btn btn-outline-wh">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Public Dashboard
+      <a href="../index.html" class="btn-hd">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
       </a>
     </div>
   </div>
 </header>
 
-<div class="main-content">
+<div class="app-body">
 
-  <!-- LITTER REPORTS CARD -->
-  <div class="form-card">
-    <div class="form-card-header open" onclick="toggleSection(this)">
-      <div class="fch-icon">🚨</div>
-      <h2>Litter &amp; Dumping Reports — Community Submissions</h2>
-      <span class="chevron">▼</span>
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <!-- Type tabs -->
+      <div class="filter-row">
+        <div class="type-tabs" style="flex:1">
+          <button class="type-tab active" id="tab-all"    onclick="setTab('all')">
+            All <span class="tab-count" id="tc-all">0</span>
+          </button>
+          <button class="type-tab" id="tab-litter" onclick="setTab('litter')">
+            🚨 Litter <span class="tab-count" id="tc-litter">0</span>
+          </button>
+          <button class="type-tab" id="tab-flood"  onclick="setTab('flood')">
+            🌊 Flood <span class="tab-count" id="tc-flood">0</span>
+          </button>
+        </div>
+      </div>
+      <!-- Secondary filters -->
+      <div class="filter-row">
+        <div class="filter-selects">
+          <select id="status-filter" onchange="_page=1;renderList()">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="attended">Attended</option>
+            <option value="engaged">Engaged</option>
+            <option value="dispatched">Dispatched</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="act-btn" onclick="refreshAll()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            Refresh
+          </button>
+          <div class="export-wrap">
+            <button class="act-btn export" id="export-btn" onclick="toggleExportMenu(event)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+            </button>
+            <div class="export-menu" id="export-menu">
+              <button class="export-opt" onclick="exportLitterCSV()">🚨 Litter Reports (.csv)</button>
+              <button class="export-opt" onclick="exportFloodCSV()">🌊 Flood Reports (.csv)</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="form-card-body open">
-      <div class="complaints-toolbar">
-        <select id="cr-filter-status" onchange="_litterPage=1;renderComplaints()">
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="attended">Attended</option>
-          <option value="dispatched">Dispatched</option>
-        </select>
-        <select id="cr-filter-type" onchange="_litterPage=1;renderComplaints()">
-          <option value="all">All Types</option>
-          <option value="dumped_furniture">Dumped Furniture</option>
-          <option value="rubbish_bags">Rubbish Bags</option>
-          <option value="construction">Construction Waste</option>
-          <option value="green_waste">Green Waste</option>
-          <option value="tyres">Tyres</option>
-          <option value="chemicals">Chemicals / Hazardous</option>
-          <option value="e_waste">E-Waste</option>
-          <option value="litter_scattered">Scattered Litter</option>
-          <option value="other">Other</option>
-        </select>
-        <select id="cr-page-size" onchange="_litterPage=1;_litterPageSize=+this.value;renderComplaints()">
-          <option value="10">10 per page</option>
-          <option value="20">20 per page</option>
-          <option value="50">50 per page</option>
-          <option value="100">100 per page</option>
-        </select>
-        <span class="complaints-count" id="cr-count"></span>
-        <button class="refresh-btn" onclick="loadComplaints()">↻ Refresh</button>
-        <button class="refresh-btn export-btn" onclick="exportLitterCSV()">&#11015; Export CSV</button>
+
+    <!-- Stats strip -->
+    <div class="stats-strip" id="stats-strip">
+      <div class="stat-item s-pending">
+        <div class="stat-num" id="st-pending">—</div>
+        <div class="stat-label">Pending</div>
       </div>
-      <div class="complaints-table-wrap">
-        <div class="complaints-loading" id="cr-loading">Loading reports…</div>
-        <table class="complaints-table" id="cr-table" style="display:none">
-          <thead>
-            <tr>
-              <th>Ref</th>
-              <th>Date</th>
-              <th>Reporter</th>
-              <th>Location</th>
-              <th>Type</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="cr-tbody"></tbody>
-        </table>
-        <div class="complaints-empty" id="cr-empty" style="display:none">No reports found.</div>
-        <div id="cr-pagination"></div>
+      <div class="stat-item s-attended">
+        <div class="stat-num" id="st-attended">—</div>
+        <div class="stat-label">Attended</div>
       </div>
+      <div class="stat-item s-dispatched">
+        <div class="stat-num" id="st-dispatched">—</div>
+        <div class="stat-label">Dispatched</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="st-total">—</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+
+    <!-- Report list -->
+    <div class="report-list" id="report-list">
+      <div class="list-state" id="list-loading">Loading reports…</div>
+    </div>
+
+    <!-- List footer: pagination + page size -->
+    <div class="list-footer">
+      <span class="page-info" id="page-info">—</span>
+      <div class="page-btns">
+        <select class="page-size-sel" id="page-size-sel" onchange="_page=1;_pageSize=+this.value;renderList()">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <button class="page-btn" id="btn-prev" onclick="_page--;renderList()" disabled>&#8249;</button>
+        <button class="page-btn" id="btn-next" onclick="_page++;renderList()" disabled>&#8250;</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAP ── -->
+  <div class="map-panel">
+    <div id="admin-map"></div>
+    <div class="map-legend">
+      <h4>Report Status</h4>
+      <div class="legend-row"><div class="legend-dot" style="background:#E74C3C"></div> Pending</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#F0A500"></div> Engaged / Attended</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#27AE60"></div> Dispatched</div>
+      <div style="border-top:1px solid #eee;margin:7px 0"></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#E74C3C;border-radius:3px"></div> Litter</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#2471A3;border-radius:3px"></div> Flood</div>
     </div>
   </div>
 
-  <!-- FLOOD RISK REPORTS CARD -->
-  <div class="form-card">
-    <div class="form-card-header open" onclick="toggleSection(this)">
-      <div class="fch-icon">🌊</div>
-      <h2>Flood Risk Reports — Community Submissions</h2>
-      <span class="chevron">▼</span>
-    </div>
-    <div class="form-card-body open">
-      <div style="position:relative;border-radius:8px;overflow:hidden;isolation:isolate;margin-bottom:16px">
-        <div id="flood-admin-map"></div>
-      </div>
-      <div class="complaints-toolbar">
-        <select id="fr-filter-status" onchange="_floodPage=1;renderFloodReports()">
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="engaged">Engaged</option>
-          <option value="dispatched">Dispatched</option>
-        </select>
-        <select id="fr-filter-type" onchange="_floodPage=1;renderFloodReports()">
-          <option value="all">All Types</option>
-          <option value="stormwater">Stormwater / Drain</option>
-          <option value="river">River / Creek</option>
-          <option value="flash">Flash Flooding</option>
-          <option value="property">Property Flooding</option>
-          <option value="road">Road Inundation</option>
-          <option value="other">Other</option>
-        </select>
-        <select id="fr-page-size" onchange="_floodPage=1;_floodPageSize=+this.value;renderFloodReports()">
-          <option value="10">10 per page</option>
-          <option value="20">20 per page</option>
-          <option value="50">50 per page</option>
-          <option value="100">100 per page</option>
-        </select>
-        <span class="complaints-count" id="fr-count"></span>
-        <button class="refresh-btn" onclick="loadFloodReports()">↻ Refresh</button>
-        <button class="refresh-btn export-btn" onclick="exportFloodCSV()">&#11015; Export CSV</button>
-      </div>
-      <div class="complaints-table-wrap">
-        <div class="complaints-loading" id="fr-loading">Loading reports…</div>
-        <table class="complaints-table" id="fr-table" style="display:none">
-          <thead>
-            <tr>
-              <th>Ref</th>
-              <th>Date</th>
-              <th>Reporter</th>
-              <th>Location</th>
-              <th>Type</th>
-              <th>Severity</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="fr-tbody"></tbody>
-        </table>
-        <div class="complaints-empty" id="fr-empty" style="display:none">No flood reports found.</div>
-        <div class="complaints-error" id="fr-error" style="display:none">Failed to load — check Firestore rules allow admin reads.</div>
-        <div id="fr-pagination"></div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /main-content -->
+</div>
 
 <div id="toast"></div>
 
 <script>
-function toggleSection(header) {
-  header.classList.toggle('open');
-  header.nextElementSibling.classList.toggle('open');
-}
-
+/* ══════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════ */
 function g(id) { return document.getElementById(id); }
-
 function escH(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-function toggleDesc(btn) {
-  const td = btn.closest('td');
-  const short = td.querySelector('.desc-short');
-  const full  = td.querySelector('.desc-full');
-  const expanded = full.style.display === 'inline';
-  short.style.display = expanded ? 'inline' : 'none';
-  full.style.display  = expanded ? 'none'   : 'inline';
-  btn.textContent     = expanded ? 'Show more' : 'Show less';
-}
-
 function showToast(msg, type='', duration=4000) {
   const el = g('toast');
   el.textContent = msg;
   el.className = 'show ' + type;
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.className = type; }, duration);
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = type; }, duration);
 }
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  closeExportMenu();
+}
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  g('export-menu').classList.toggle('open');
+}
+function closeExportMenu() { g('export-menu').classList.remove('open'); }
+document.addEventListener('click', closeExportMenu);
 
-/* ── FIREBASE ── */
+/* ══════════════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════════════ */
 firebase.initializeApp({
   apiKey:            'AIzaSyAX7c9il2yBXssH3LTYmGApW2OmGwE9WK4',
   authDomain:        'waste-401ac.firebaseapp.com',
@@ -526,10 +697,9 @@ firebase.initializeApp({
 });
 const fdb = firebase.firestore();
 
-/* ── LITTER REPORTS ── */
-let _allReports = [];
-let _litterPage = 1, _litterPageSize = 10;
-
+/* ══════════════════════════════════════════════════
+   LABELS
+══════════════════════════════════════════════════ */
 const LITTER_TYPE_LABELS = {
   dumped_furniture: 'Dumped Furniture',
   rubbish_bags:     'Rubbish Bags',
@@ -541,203 +711,6 @@ const LITTER_TYPE_LABELS = {
   litter_scattered: 'Scattered Litter',
   other:            'Other'
 };
-
-async function loadComplaints() {
-  g('cr-loading').style.display = 'block';
-  g('cr-table').style.display   = 'none';
-  g('cr-empty').style.display   = 'none';
-  g('cr-pagination').innerHTML  = '';
-  try {
-    const snap = await fdb.collection('litter_reports')
-      .orderBy('submittedAt', 'desc')
-      .limit(500)
-      .get();
-    _allReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    _litterPage = 1;
-    renderComplaints();
-  } catch (e) {
-    g('cr-loading').textContent = 'Failed to load — check Firestore rules allow admin reads.';
-    console.error(e);
-  }
-}
-
-function renderComplaints() {
-  const statusFilter = g('cr-filter-status').value;
-  const typeFilter   = g('cr-filter-type').value;
-
-  const filtered = _allReports.filter(r => {
-    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-    if (typeFilter   !== 'all' && r.litterType !== typeFilter) return false;
-    return true;
-  });
-
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / _litterPageSize));
-  if (_litterPage > totalPages) _litterPage = totalPages;
-  const start = (_litterPage - 1) * _litterPageSize;
-  const end   = Math.min(start + _litterPageSize, total);
-  const page  = filtered.slice(start, end);
-
-  g('cr-count').textContent = total + ' report' + (total !== 1 ? 's' : '');
-  g('cr-loading').style.display = 'none';
-
-  if (!total) {
-    g('cr-table').style.display = 'none';
-    g('cr-empty').style.display = 'block';
-    g('cr-pagination').innerHTML = '';
-    return;
-  }
-
-  g('cr-empty').style.display = 'none';
-  g('cr-table').style.display = 'table';
-
-  const tbody = g('cr-tbody');
-  tbody.innerHTML = page.map(r => {
-    const date    = r.submittedAt?.toDate ? r.submittedAt.toDate() : new Date(r.submittedAt?.seconds * 1000 || Date.now());
-    const dateStr = date.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' });
-    const timeStr = date.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' });
-
-    const mapUrl  = r.gps
-      ? `https://www.google.com/maps?q=${r.gps.lat},${r.gps.lng}`
-      : r.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : null;
-
-    const mapLink = mapUrl
-      ? `<br><a class="c-map-link" href="${mapUrl}" target="_blank" rel="noopener">
-           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-           View in Maps
-         </a>` : '';
-
-    const desc      = r.description || '';
-    const descShort = desc.length > 80 ? desc.slice(0, 80) + '…' : desc;
-    const descHtml  = desc.length > 80
-      ? `<span class="desc-short">${escH(descShort)}</span>
-         <span class="desc-full">${escH(desc)}</span>
-         <button class="show-more" onclick="toggleDesc(this)">Show more</button>`
-      : escH(desc);
-
-    const statusBadge = {
-      pending:    '<span class="badge badge-pending">Pending</span>',
-      attended:   '<span class="badge badge-attended">Attended</span>',
-      dispatched: '<span class="badge badge-dispatched">Dispatched</span>'
-    }[r.status] || '<span class="badge badge-pending">Pending</span>';
-
-    const attendedDone = r.status === 'attended' || r.status === 'dispatched';
-
-    return `<tr>
-      <td class="c-ref">${escH(r.refId || r.id.slice(0,8).toUpperCase())}</td>
-      <td class="c-date">${dateStr}<br>${timeStr}</td>
-      <td>
-        <div class="c-name">${escH(r.name || '—')}</div>
-        <div class="c-contact">${escH(r.email || '')}</div>
-        <div class="c-contact">${escH(r.phone || '')}</div>
-      </td>
-      <td class="c-addr">${escH(r.address || '—')}${mapLink}</td>
-      <td>${escH(LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—')}</td>
-      <td class="c-desc">${descHtml}</td>
-      <td>${statusBadge}</td>
-      <td class="c-actions">
-        <button class="cbtn cbtn-attend ${attendedDone ? 'done' : ''}"
-          ${attendedDone ? 'disabled' : ''}
-          onclick="markAttended('${r.id}', this)">
-          ✓ Attended
-        </button>
-        <button class="cbtn cbtn-dispatch" onclick="dispatchReport('${r.id}')">
-          ✉ Dispatch
-        </button>
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Pagination bar
-  const showFrom = total > 0 ? start + 1 : 0;
-  g('cr-pagination').innerHTML = `
-    <div class="pagination-bar">
-      <span class="page-info">Showing ${showFrom}–${end} of ${total}</span>
-      <button class="page-btn" onclick="_litterPage--;renderComplaints()" ${_litterPage <= 1 ? 'disabled' : ''}>&#8249; Prev</button>
-      <button class="page-btn" onclick="_litterPage++;renderComplaints()" ${_litterPage >= totalPages ? 'disabled' : ''}>Next &#8250;</button>
-    </div>`;
-}
-
-async function markAttended(id, btn) {
-  btn.disabled = true;
-  btn.textContent = '…';
-  try {
-    await fdb.collection('litter_reports').doc(id).update({ status: 'attended' });
-    const r = _allReports.find(x => x.id === id);
-    if (r) r.status = 'attended';
-    renderComplaints();
-    showToast('✅ Marked as attended', 'success', 3000);
-  } catch (e) {
-    btn.disabled = false;
-    btn.textContent = '✓ Attended';
-    showToast('⚠ Could not update — check connection', 'error');
-  }
-}
-
-function dispatchReport(id) {
-  const r = _allReports.find(x => x.id === id);
-  if (!r) return;
-  const date = r.submittedAt?.seconds
-    ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU')
-    : 'Unknown date';
-
-  const mapUrl = r.gps
-    ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
-    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : 'N/A';
-
-  const msg = [
-    `LITTER REPORT — ${r.refId || r.id}`,
-    `Date: ${date}`,
-    ``,
-    `REPORTER`,
-    `Name:  ${r.name || '—'}`,
-    `Email: ${r.email || '—'}`,
-    `Phone: ${r.phone || '—'}`,
-    ``,
-    `LOCATION`,
-    `Address: ${r.address || '—'}`,
-    `GPS:     ${r.gps ? `${r.gps.lat}, ${r.gps.lng}` : 'Not captured'}`,
-    `Map:     ${mapUrl}`,
-    ``,
-    `DETAILS`,
-    `Type:    ${LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—'}`,
-    `Description:`,
-    r.description || '—',
-    ``,
-    `Status: ${(r.status || 'pending').toUpperCase()}`,
-  ].join('\n');
-
-  navigator.clipboard.writeText(msg).then(() => {
-    fdb.collection('litter_reports').doc(r.id).update({ status: 'dispatched' }).catch(() => {});
-    const report = _allReports.find(x => x.id === r.id);
-    if (report) report.status = 'dispatched';
-    renderComplaints();
-    showToast('📋 Copied to clipboard — paste into email or SMS', 'success', 4000);
-  }).catch(() => {
-    const w = window.open('', '_blank', 'width=600,height=500');
-    w.document.write(`<pre style="font-family:monospace;padding:20px;white-space:pre-wrap">${msg.replace(/</g,'&lt;')}</pre>`);
-  });
-}
-
-function exportLitterCSV() {
-  const headers = ['Ref','Date','Name','Email','Phone','Address','GPS Lat','GPS Lng','Type','Description','Status'];
-  const rows = _allReports.map(r => [
-    r.refId || r.id,
-    r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : '',
-    r.name||'', r.email||'', r.phone||'', r.address||'',
-    r.gps?.lat||'', r.gps?.lng||'',
-    LITTER_TYPE_LABELS[r.litterType]||r.litterType||'',
-    (r.description||'').replace(/"/g,'""'),
-    r.status||'pending'
-  ]);
-  downloadCSV('litter_reports.csv', [headers, ...rows]);
-}
-
-/* ── FLOOD REPORTS ── */
-let _allFloodReports = [];
-let _floodAdminMap   = null;
-let _floodPage = 1, _floodPageSize = 10;
-
 const FLOOD_TYPE_LABELS = {
   stormwater: 'Stormwater / Drain',
   river:      'River / Creek',
@@ -746,252 +719,412 @@ const FLOOD_TYPE_LABELS = {
   road:       'Road Inundation',
   other:      'Other'
 };
-const FLOOD_SEVERITY_LABELS = {
-  minor:    'Minor',
-  moderate: 'Moderate',
-  severe:   'Severe'
-};
-const FLOOD_ACTIVE_LABELS = {
-  yes:    'Active now',
-  recent: 'Last 48 hrs',
-  risk:   'Risk area'
-};
+const FLOOD_SEVERITY_LABELS = { minor:'Minor', moderate:'Moderate', severe:'Severe' };
+const FLOOD_ACTIVE_LABELS   = { yes:'Active now', recent:'Last 48 hrs', risk:'Risk area' };
 
-function initFloodAdminMap(reports) {
-  if (!_floodAdminMap) {
-    _floodAdminMap = L.map('flood-admin-map', { zoomControl: true })
-      .setView([-36.0737, 146.9135], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19
-    }).addTo(_floodAdminMap);
-  } else {
-    _floodAdminMap.eachLayer(l => { if (!(l instanceof L.TileLayer)) _floodAdminMap.removeLayer(l); });
-  }
+/* ══════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════ */
+let _litter       = [];
+let _flood        = [];
+let _activeTab    = 'all';
+let _page         = 1;
+let _pageSize     = 10;
+let _activeId     = null;
+let _markers      = {};   // id → Leaflet marker
+let _map          = null;
 
-  const statusColors = { pending: '#E74C3C', engaged: '#F0A500', dispatched: '#27AE60' };
-  const bounds = [];
+/* ══════════════════════════════════════════════════
+   MAP SETUP
+══════════════════════════════════════════════════ */
+function initMap() {
+  _map = L.map('admin-map', { zoomControl: true })
+    .setView([-36.0737, 146.9135], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(_map);
+}
 
-  reports.forEach(r => {
+function statusColor(r) {
+  if (r.status === 'dispatched') return '#27AE60';
+  if (r.status === 'attended' || r.status === 'engaged') return '#F0A500';
+  return '#E74C3C';
+}
+
+function rebuildMarkers() {
+  // Clear existing
+  Object.values(_markers).forEach(m => _map.removeLayer(m));
+  _markers = {};
+
+  const all = [
+    ..._litter.map(r => ({...r, _kind:'litter'})),
+    ..._flood .map(r => ({...r, _kind:'flood'}))
+  ];
+
+  all.forEach(r => {
     if (!r.gps?.lat) return;
-    const color = statusColors[r.status] || '#E74C3C';
-    L.circleMarker([r.gps.lat, r.gps.lng], {
-      radius: 10, color, fillColor: color, fillOpacity: 0.7, weight: 2
-    }).addTo(_floodAdminMap)
-      .bindPopup(`<b>${r.refId || r.id}</b><br>${r.address || ''}<br>Type: ${FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—'}<br>Severity: ${FLOOD_SEVERITY_LABELS[r.severity] || r.severity || '—'}<br>Status: ${r.status || 'pending'}`);
-    bounds.push([r.gps.lat, r.gps.lng]);
+    const color = statusColor(r);
+    const isFlood = r._kind === 'flood';
+    // Litter = circle, Flood = rounded square (via iconAnchor trick with divIcon)
+    const marker = isFlood
+      ? L.marker([r.gps.lat, r.gps.lng], {
+          icon: L.divIcon({
+            html: `<div style="width:18px;height:18px;background:${color};border:2.5px solid rgba(0,0,0,0.2);border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.25)"></div>`,
+            iconSize: [18,18], iconAnchor: [9,9], className: ''
+          })
+        })
+      : L.circleMarker([r.gps.lat, r.gps.lng], {
+          radius: 9, color, fillColor: color, fillOpacity: 0.88, weight: 2
+        });
+
+    marker.bindPopup(buildPopupHtml(r), { maxWidth: 300, minWidth: 280 });
+    marker.on('click', () => setActive(r.id, false));
+    marker.addTo(_map);
+    _markers[r.id] = marker;
   });
 
-  if (bounds.length) {
-    try { _floodAdminMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 }); } catch(_) {}
+  // Fit bounds if we have any
+  const pts = all.filter(r => r.gps?.lat).map(r => [r.gps.lat, r.gps.lng]);
+  if (pts.length > 1) {
+    try { _map.fitBounds(pts, { padding: [50, 50], maxZoom: 15 }); } catch(_){}
+  } else if (pts.length === 1) {
+    _map.setView(pts[0], 15);
   }
+}
+
+function buildPopupHtml(r) {
+  const isFlood = r._kind === 'flood';
+  const ref   = escH(r.refId || r.id.slice(0,8).toUpperCase());
+  const name  = escH(r.name  || '—');
+  const addr  = escH(r.address || '—');
+  const type  = isFlood
+    ? escH(FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—')
+    : escH(LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—');
+  const sevLine = isFlood && r.severity
+    ? `<div class="popup-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${escH(FLOOD_SEVERITY_LABELS[r.severity]||r.severity)}</div>` : '';
+  const desc = r.description ? `<div class="popup-row" style="color:#555;font-size:11.5px">${escH(r.description.slice(0,120))}${r.description.length>120?'…':''}</div>` : '';
+  const date = r.submittedAt?.seconds
+    ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    : '—';
+  const badge = {
+    pending:    '<span class="badge badge-pending">Pending</span>',
+    attended:   '<span class="badge badge-attended">Attended</span>',
+    engaged:    '<span class="badge badge-engaged">Engaged</span>',
+    dispatched: '<span class="badge badge-dispatched">Dispatched</span>'
+  }[r.status] || '<span class="badge badge-pending">Pending</span>';
+
+  const attendedDone = r.status === 'attended' || r.status === 'dispatched';
+  const engagedDone  = r.status === 'engaged'  || r.status === 'dispatched';
+
+  const actions = isFlood
+    ? `<button class="popup-btn popup-btn-engage ${engagedDone?'':''}${engagedDone?'done':''}" ${engagedDone?'disabled':''} onclick="markFloodEngaged('${r.id}',this)">✓ Engaged</button>
+       <button class="popup-btn popup-btn-dispatch" onclick="dispatchFloodReport('${r.id}')">✉ Dispatch</button>`
+    : `<button class="popup-btn popup-btn-attend ${attendedDone?'done':''}" ${attendedDone?'disabled':''} onclick="markAttended('${r.id}',this)">✓ Attended</button>
+       <button class="popup-btn popup-btn-dispatch" onclick="dispatchReport('${r.id}')">✉ Dispatch</button>`;
+
+  return `<div class="popup-card">
+    <div class="popup-header ${isFlood?'flood':'litter'}">
+      <span class="popup-icon">${isFlood?'🌊':'🚨'}</span>
+      <span class="popup-ref">${ref}</span>
+      ${badge}
+    </div>
+    <div class="popup-body">
+      <div class="popup-row">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        ${name}
+      </div>
+      <div class="popup-row">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${addr}
+      </div>
+      <div class="popup-row">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ${date}
+      </div>
+      <div class="popup-row">${type}</div>
+      ${sevLine}
+      ${desc}
+    </div>
+    <div class="popup-actions">${actions}</div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════
+   LOAD DATA
+══════════════════════════════════════════════════ */
+async function loadComplaints() {
+  try {
+    const snap = await fdb.collection('litter_reports').orderBy('submittedAt','desc').limit(500).get();
+    _litter = snap.docs.map(d => ({...d.data(), id:d.id, _kind:'litter'}));
+  } catch(e) { console.error('litter load:', e); }
 }
 
 async function loadFloodReports() {
-  const loadEl  = g('fr-loading');
-  const tableEl = g('fr-table');
-  const emptyEl = g('fr-empty');
-  const errEl   = g('fr-error');
-  loadEl.style.display  = 'block';
-  tableEl.style.display = 'none';
-  emptyEl.style.display = 'none';
-  errEl.style.display   = 'none';
-  g('fr-pagination').innerHTML = '';
-
   try {
-    const snap = await fdb.collection('flood_reports')
-      .orderBy('submittedAt', 'desc').limit(500).get();
-    _allFloodReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    loadEl.style.display = 'none';
-    _floodPage = 1;
-    initFloodAdminMap(_allFloodReports);
-    renderFloodReports();
-  } catch (e) {
-    loadEl.style.display = 'none';
-    errEl.style.display  = 'block';
-    console.error(e);
-  }
+    const snap = await fdb.collection('flood_reports').orderBy('submittedAt','desc').limit(500).get();
+    _flood = snap.docs.map(d => ({...d.data(), id:d.id, _kind:'flood'}));
+  } catch(e) { console.error('flood load:', e); }
 }
 
-function renderFloodReports() {
-  const tableEl  = g('fr-table');
-  const emptyEl  = g('fr-empty');
-  const countEl  = g('fr-count');
-  const tbody    = g('fr-tbody');
-  const stFilter = g('fr-filter-status')?.value || 'all';
-  const tyFilter = g('fr-filter-type')?.value   || 'all';
+async function refreshAll() {
+  g('list-loading').textContent = 'Loading reports…';
+  g('list-loading').style.display = 'block';
+  g('report-list').innerHTML = '<div class="list-state" id="list-loading">Loading reports…</div>';
+  await Promise.all([loadComplaints(), loadFloodReports()]);
+  renderAll();
+  showToast('Refreshed', 'success', 2500);
+}
 
-  const filtered = _allFloodReports.filter(r => {
-    if (stFilter !== 'all' && r.status !== stFilter) return false;
-    if (tyFilter !== 'all' && r.floodType !== tyFilter) return false;
-    return true;
+/* ══════════════════════════════════════════════════
+   TAB & FILTER
+══════════════════════════════════════════════════ */
+function setTab(tab) {
+  _activeTab = tab;
+  _page = 1;
+  ['all','litter','flood'].forEach(t => {
+    g('tab-'+t).classList.toggle('active', t === tab);
   });
+  renderList();
+}
 
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / _floodPageSize));
-  if (_floodPage > totalPages) _floodPage = totalPages;
-  const start = (_floodPage - 1) * _floodPageSize;
-  const end   = Math.min(start + _floodPageSize, total);
+function getFiltered() {
+  const statusFilter = g('status-filter').value;
+  let pool = _activeTab === 'litter' ? _litter
+           : _activeTab === 'flood'  ? _flood
+           : [..._litter, ..._flood];
+  // Sort newest first
+  pool = pool.slice().sort((a,b) => {
+    const ta = a.submittedAt?.seconds || 0;
+    const tb = b.submittedAt?.seconds || 0;
+    return tb - ta;
+  });
+  if (statusFilter !== 'all') pool = pool.filter(r => r.status === statusFilter);
+  return pool;
+}
+
+/* ══════════════════════════════════════════════════
+   RENDER LIST
+══════════════════════════════════════════════════ */
+function renderList() {
+  const filtered   = getFiltered();
+  const total      = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / _pageSize));
+  if (_page > totalPages) _page = totalPages;
+  const start = (_page-1)*_pageSize;
+  const end   = Math.min(start+_pageSize, total);
   const page  = filtered.slice(start, end);
 
-  countEl.textContent = `${total} report${total !== 1 ? 's' : ''}`;
+  // Update tab counts
+  g('tc-all').textContent    = _litter.length + _flood.length;
+  g('tc-litter').textContent = _litter.length;
+  g('tc-flood').textContent  = _flood.length;
+
+  // Stats
+  const allPool = [..._litter,..._flood];
+  g('st-total').textContent     = allPool.length;
+  g('st-pending').textContent   = allPool.filter(r => !r.status || r.status === 'pending').length;
+  g('st-attended').textContent  = allPool.filter(r => r.status === 'attended' || r.status === 'engaged').length;
+  g('st-dispatched').textContent= allPool.filter(r => r.status === 'dispatched').length;
+
+  // Page info
+  g('page-info').textContent = total ? `${start+1}–${end} of ${total}` : '0 reports';
+  g('btn-prev').disabled = _page <= 1;
+  g('btn-next').disabled = _page >= totalPages;
 
   if (!total) {
-    tableEl.style.display = 'none';
-    emptyEl.style.display = 'block';
-    g('fr-pagination').innerHTML = '';
+    g('report-list').innerHTML = '<div class="list-state">No reports found.</div>';
     return;
   }
 
-  const statusBadgeMap = {
-    pending:    '<span class="badge badge-pending">Pending</span>',
-    engaged:    '<span class="badge badge-engaged">Engaged</span>',
-    dispatched: '<span class="badge badge-dispatched">Dispatched</span>'
-  };
-
-  tbody.innerHTML = page.map(r => {
+  g('report-list').innerHTML = page.map(r => {
+    const isFlood = r._kind === 'flood';
+    const ref   = r.refId || r.id.slice(0,8).toUpperCase();
+    const addr  = r.address || '—';
+    const type  = isFlood
+      ? (FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—')
+      : (LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—');
     const date = r.submittedAt?.seconds
-      ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+      ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
       : '—';
-    const mapUrl = r.gps
-      ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
-      : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : null;
-    const engagedDone = r.status === 'engaged' || r.status === 'dispatched';
-    const descShort = (r.description || '').length > 80
-      ? `<span class="desc-short">${escH(r.description.slice(0, 80))}…</span><span class="desc-full" style="display:none">${escH(r.description)}</span><button class="show-more" onclick="toggleDesc(this)">Show more</button>`
-      : escH(r.description || '—');
+    const badge = {
+      pending:    '<span class="badge badge-pending">Pending</span>',
+      attended:   '<span class="badge badge-attended">Attended</span>',
+      engaged:    '<span class="badge badge-engaged">Engaged</span>',
+      dispatched: '<span class="badge badge-dispatched">Dispatched</span>'
+    }[r.status] || '<span class="badge badge-pending">Pending</span>';
 
-    return `<tr>
-      <td class="c-ref">${escH(r.refId || r.id.slice(0,8).toUpperCase())}</td>
-      <td class="c-date">${date}</td>
-      <td>
-        <div class="c-name">${escH(r.name || '—')}</div>
-        <div class="c-contact">${escH(r.email || '')}${r.phone ? '<br>' + escH(r.phone) : ''}</div>
-      </td>
-      <td class="c-addr">${escH(r.address || '—')}${mapUrl ? `<br><a href="${mapUrl}" target="_blank" class="c-map-link"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>View in Maps</a>` : ''}</td>
-      <td>${escH(FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—')}</td>
-      <td>${escH(FLOOD_SEVERITY_LABELS[r.severity] || r.severity || '—')}<br><span style="font-size:11px;color:var(--text-sm)">${escH(FLOOD_ACTIVE_LABELS[r.isActive] || r.isActive || '')}</span></td>
-      <td class="c-desc">${descShort}</td>
-      <td>${statusBadgeMap[r.status] || statusBadgeMap.pending}</td>
-      <td class="c-actions">
-        <button class="cbtn cbtn-engage ${engagedDone ? 'done' : ''}"
-          ${engagedDone ? 'disabled' : ''}
-          onclick="markFloodEngaged('${r.id}', this)">
-          ✓ Engaged
-        </button>
-        <button class="cbtn cbtn-dispatch" onclick="dispatchFloodReport('${r.id}')">
-          ✉ Dispatch
-        </button>
-      </td>
-    </tr>`;
-  }).join('');
-
-  tableEl.style.display = 'table';
-  emptyEl.style.display = 'none';
-
-  // Pagination bar
-  const showFrom = total > 0 ? start + 1 : 0;
-  g('fr-pagination').innerHTML = `
-    <div class="pagination-bar">
-      <span class="page-info">Showing ${showFrom}–${end} of ${total}</span>
-      <button class="page-btn" onclick="_floodPage--;renderFloodReports()" ${_floodPage <= 1 ? 'disabled' : ''}>&#8249; Prev</button>
-      <button class="page-btn" onclick="_floodPage++;renderFloodReports()" ${_floodPage >= totalPages ? 'disabled' : ''}>Next &#8250;</button>
+    const isActive = _activeId === r.id;
+    return `<div class="report-item ${isActive?'active':''}" onclick="setActive('${r.id}',true)" id="li-${r.id}">
+      <div class="ri-type-icon ${isFlood?'flood':'litter'}">${isFlood?'🌊':'🚨'}</div>
+      <div class="ri-body">
+        <div class="ri-top">
+          <span class="ri-ref">${escH(ref)}</span>
+          <span class="ri-time">${date}</span>
+        </div>
+        <div class="ri-addr">${escH(addr)}</div>
+        <div class="ri-foot">
+          ${badge}
+          <span class="ri-type-tag">${escH(type)}</span>
+        </div>
+      </div>
     </div>`;
+  }).join('');
 }
 
-async function markFloodEngaged(id, btn) {
-  btn.disabled = true;
-  btn.textContent = '…';
-  try {
-    await fdb.collection('flood_reports').doc(id).update({ status: 'engaged' });
-    const r = _allFloodReports.find(x => x.id === id);
-    if (r) r.status = 'engaged';
-    renderFloodReports();
-    initFloodAdminMap(_allFloodReports);
-    showToast('Marked as engaged', 'success', 3000);
-  } catch (_) {
-    btn.disabled = false;
-    btn.textContent = '✓ Engaged';
-    showToast('Could not update — check connection', 'error', 3000);
+/* ══════════════════════════════════════════════════
+   ACTIVE SELECTION (list ↔ map sync)
+══════════════════════════════════════════════════ */
+function setActive(id, flyToMarker) {
+  _activeId = id;
+  // Re-render list to update active class
+  renderList();
+  // Scroll list item into view
+  const li = g('li-'+id);
+  if (li) li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Open/fly to marker
+  const marker = _markers[id];
+  if (marker) {
+    if (flyToMarker) {
+      const ll = marker.getLatLng();
+      _map.flyTo(ll, Math.max(_map.getZoom(), 15), { duration: 0.8 });
+      setTimeout(() => marker.openPopup(), 900);
+    } else {
+      marker.openPopup();
+    }
   }
 }
 
-function dispatchFloodReport(id) {
-  const r = _allFloodReports.find(x => x.id === id);
+/* ══════════════════════════════════════════════════
+   RENDER ALL (initial + refresh)
+══════════════════════════════════════════════════ */
+function renderAll() {
+  rebuildMarkers();
+  renderList();
+}
+
+/* ══════════════════════════════════════════════════
+   ACTIONS
+══════════════════════════════════════════════════ */
+async function markAttended(id, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fdb.collection('litter_reports').doc(id).update({ status:'attended' });
+    const r = _litter.find(x => x.id === id);
+    if (r) r.status = 'attended';
+    renderAll();
+    showToast('✅ Marked as attended', 'success', 3000);
+  } catch(_) {
+    btn.disabled = false; btn.textContent = '✓ Attended';
+    showToast('Could not update — check connection', 'error');
+  }
+}
+
+async function markFloodEngaged(id, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fdb.collection('flood_reports').doc(id).update({ status:'engaged' });
+    const r = _flood.find(x => x.id === id);
+    if (r) r.status = 'engaged';
+    renderAll();
+    showToast('✅ Marked as engaged', 'success', 3000);
+  } catch(_) {
+    btn.disabled = false; btn.textContent = '✓ Engaged';
+    showToast('Could not update — check connection', 'error');
+  }
+}
+
+function dispatchReport(id) {
+  const r = _litter.find(x => x.id === id);
   if (!r) return;
-
-  const date = r.submittedAt?.seconds
-    ? new Date(r.submittedAt.seconds * 1000).toLocaleString('en-AU')
-    : 'Unknown date';
-  const mapUrl = r.gps
-    ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
-    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ', Albury NSW')}` : 'N/A';
-
+  const date = r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : 'Unknown';
+  const mapUrl = r.gps ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
+    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address+', Albury NSW')}` : 'N/A';
   const msg = [
-    `FLOOD RISK REPORT — ${r.refId || r.id}`,
-    `Date: ${date}`,
-    ``,
-    `REPORTER`,
-    `Name:  ${r.name  || '—'}`,
-    `Email: ${r.email || '—'}`,
-    `Phone: ${r.phone || '—'}`,
-    ``,
-    `LOCATION`,
-    `Address:  ${r.address || '—'}`,
-    `GPS:      ${r.gps ? `${r.gps.lat}, ${r.gps.lng}` : 'Not captured'}`,
-    `Map:      ${mapUrl}`,
-    ``,
-    `FLOOD DETAILS`,
-    `Type:     ${FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—'}`,
-    `Severity: ${FLOOD_SEVERITY_LABELS[r.severity] || r.severity || '—'}`,
-    `Active:   ${FLOOD_ACTIVE_LABELS[r.isActive] || r.isActive || '—'}`,
-    `Description:`,
-    r.description || '—',
-    ``,
-    `Status: ${(r.status || 'pending').toUpperCase()}`,
+    `LITTER REPORT — ${r.refId||r.id}`, `Date: ${date}`, ``,
+    `REPORTER`, `Name:  ${r.name||'—'}`, `Email: ${r.email||'—'}`, `Phone: ${r.phone||'—'}`, ``,
+    `LOCATION`, `Address: ${r.address||'—'}`,
+    `GPS:     ${r.gps?`${r.gps.lat}, ${r.gps.lng}`:'Not captured'}`, `Map:     ${mapUrl}`, ``,
+    `DETAILS`, `Type:    ${LITTER_TYPE_LABELS[r.litterType]||r.litterType||'—'}`,
+    `Description:`, r.description||'—', ``, `Status: ${(r.status||'pending').toUpperCase()}`
   ].join('\n');
-
   navigator.clipboard.writeText(msg).then(() => {
-    fdb.collection('flood_reports').doc(r.id).update({ status: 'dispatched' }).catch(() => {});
-    const report = _allFloodReports.find(x => x.id === r.id);
-    if (report) report.status = 'dispatched';
-    renderFloodReports();
-    initFloodAdminMap(_allFloodReports);
-    showToast('📋 Copied to clipboard — paste into email or SMS', 'success', 4000);
+    fdb.collection('litter_reports').doc(r.id).update({ status:'dispatched' }).catch(()=>{});
+    const x = _litter.find(x => x.id === r.id); if (x) x.status = 'dispatched';
+    renderAll();
+    showToast('📋 Copied — paste into email or SMS', 'success', 4000);
   }).catch(() => {
-    const w = window.open('', '_blank', 'width=600,height=500');
+    const w = window.open('','_blank','width=600,height=500');
     if (w) w.document.write(`<pre style="font-family:monospace;padding:20px;white-space:pre-wrap">${msg.replace(/</g,'&lt;')}</pre>`);
   });
 }
 
+function dispatchFloodReport(id) {
+  const r = _flood.find(x => x.id === id);
+  if (!r) return;
+  const date = r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : 'Unknown';
+  const mapUrl = r.gps ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
+    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address+', Albury NSW')}` : 'N/A';
+  const msg = [
+    `FLOOD RISK REPORT — ${r.refId||r.id}`, `Date: ${date}`, ``,
+    `REPORTER`, `Name:  ${r.name||'—'}`, `Email: ${r.email||'—'}`, `Phone: ${r.phone||'—'}`, ``,
+    `LOCATION`, `Address: ${r.address||'—'}`,
+    `GPS:     ${r.gps?`${r.gps.lat}, ${r.gps.lng}`:'Not captured'}`, `Map:     ${mapUrl}`, ``,
+    `FLOOD DETAILS`, `Type:     ${FLOOD_TYPE_LABELS[r.floodType]||r.floodType||'—'}`,
+    `Severity: ${FLOOD_SEVERITY_LABELS[r.severity]||r.severity||'—'}`,
+    `Active:   ${FLOOD_ACTIVE_LABELS[r.isActive]||r.isActive||'—'}`,
+    `Description:`, r.description||'—', ``, `Status: ${(r.status||'pending').toUpperCase()}`
+  ].join('\n');
+  navigator.clipboard.writeText(msg).then(() => {
+    fdb.collection('flood_reports').doc(r.id).update({ status:'dispatched' }).catch(()=>{});
+    const x = _flood.find(x => x.id === r.id); if (x) x.status = 'dispatched';
+    renderAll();
+    showToast('📋 Copied — paste into email or SMS', 'success', 4000);
+  }).catch(() => {
+    const w = window.open('','_blank','width=600,height=500');
+    if (w) w.document.write(`<pre style="font-family:monospace;padding:20px;white-space:pre-wrap">${msg.replace(/</g,'&lt;')}</pre>`);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   CSV EXPORT
+══════════════════════════════════════════════════ */
+function exportLitterCSV() {
+  const h = ['Ref','Date','Name','Email','Phone','Address','GPS Lat','GPS Lng','Type','Description','Status'];
+  const rows = _litter.map(r => [
+    r.refId||r.id,
+    r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : '',
+    r.name||'', r.email||'', r.phone||'', r.address||'',
+    r.gps?.lat||'', r.gps?.lng||'',
+    LITTER_TYPE_LABELS[r.litterType]||r.litterType||'',
+    (r.description||'').replace(/"/g,'""'), r.status||'pending'
+  ]);
+  downloadCSV('litter_reports.csv', [h, ...rows]);
+}
+
 function exportFloodCSV() {
-  const headers = ['Ref','Date','Name','Email','Phone','Address','GPS Lat','GPS Lng','Type','Severity','Active','Description','Status'];
-  const rows = _allFloodReports.map(r => [
-    r.refId || r.id,
+  const h = ['Ref','Date','Name','Email','Phone','Address','GPS Lat','GPS Lng','Type','Severity','Active','Description','Status'];
+  const rows = _flood.map(r => [
+    r.refId||r.id,
     r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : '',
     r.name||'', r.email||'', r.phone||'', r.address||'',
     r.gps?.lat||'', r.gps?.lng||'',
     FLOOD_TYPE_LABELS[r.floodType]||r.floodType||'',
     FLOOD_SEVERITY_LABELS[r.severity]||r.severity||'',
     FLOOD_ACTIVE_LABELS[r.isActive]||r.isActive||'',
-    (r.description||'').replace(/"/g,'""'),
-    r.status||'pending'
+    (r.description||'').replace(/"/g,'""'), r.status||'pending'
   ]);
-  downloadCSV('flood_reports.csv', [headers, ...rows]);
+  downloadCSV('flood_reports.csv', [h, ...rows]);
 }
 
-function downloadCSV(filename, rows) {
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-}
-
-// Load on page open
-loadComplaints();
-loadFloodReports();
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+initMap();
+(async () => {
+  await Promise.all([loadComplaints(), loadFloodReports()]);
+  renderAll();
+})();
 </script>
 </body>
 </html>
