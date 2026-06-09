@@ -1102,26 +1102,26 @@ const PACKAGING_RULES = [
     pattern: /tetra.?pak|tetra.?pack|tetrapak|aseptic.?carton|uht.?carton|long.?life.*carton/i,
     tags: ['tetra-pak','aseptic-carton','carton','tetrapak'],
     type: 'Tetra Pak / Aseptic Carton',
-    bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
-    why: 'Tetra Pak cartons are made from layers of paperboard, plastic, and aluminium that cannot be separated in standard kerbside MRF machinery. They are not accepted in the yellow recycling bin.',
-    tip: 'Take Tetra Pak cartons to a dedicated Tetra Pak recycling drop-off point. Check RecyclingNearYou.com.au for the nearest location in Albury-Wodonga.',
+    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
+    why: 'Tetra Pak cartons are accepted in the AlburyCity yellow lid recycling bin. Empty all fluids and flatten the carton before placing in the bin.',
+    tip: 'Empty, flatten, and place in the yellow recycling bin. Small juice boxes are also accepted at Return and Earn Container Deposit Schemes. The plastic straw or cap goes in the red general waste bin.',
     secondary: { part: 'Plastic straw / cap', bin: 'red', bandClass: 'band-red', icon: '🔴', label: 'Red Lid - General Waste' }
   },
   {
     pattern: /\bcork\b/i,
     tags: ['cork','natural-cork'],
     type: 'Cork',
-    bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
-    why: 'Natural wine corks cannot go in kerbside recycling bins. They are accepted through specialist cork collection programmes at participating bottle shops.',
-    tip: 'Collect corks and drop them at participating bottle shops or wine retailers. Cork is recycled into flooring, insulation, and sporting goods.'
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Natural wine corks go in the red general waste bin for kerbside collection in AlburyCity.',
+    tip: 'Place wine corks in the red general waste bin.'
   },
   {
     pattern: /blister.?pack|blister.?card|pill.?pack|tablet.?pack|capsule.?pack|push.?through|carded.?pack/i,
     tags: ['blister-pack','blister-card','pill-pack','tablet-pack','carded-packaging'],
     type: 'Blister Pack',
-    bin: 'dropoff', bandClass: 'band-dropoff', icon: '🔵',
-    why: 'Blister packs are made from bonded layers of aluminium and PVC that standard kerbside recycling cannot separate or process. They must not go in the yellow recycling bin or the red general waste bin.',
-    tip: 'PharmaCycle recovers blister pack materials. Drop empty packs at any Chemist Warehouse or participating pharmacy — all accept them across Australia. Find your nearest drop-off at pharmacycle.com.au/find-a-location. Tip: keep a small jar at home to collect packs so you can drop them off on your next chemist visit.',
+    bin: 'red', bandClass: 'band-red', icon: '🔴',
+    why: 'Blister packs go in the red general waste bin. Alternatively, take them to the nearest Pharmacycle drop-off point at any Chemist Warehouse for specialist recycling.',
+    tip: 'Place in the red bin, or take to Chemist Warehouse or any participating pharmacy for Pharmacycle recycling. Find your nearest drop-off at pharmacycle.com.au.',
     secondary: { part: 'Cardboard outer box', bin: 'yellow', bandClass: 'band-yellow', icon: '🟡', label: 'Yellow Lid - Recycling' }
   },
   {
@@ -1168,10 +1168,9 @@ const PACKAGING_RULES = [
     pattern: /pizza.?box|pizza.?carton|pizza.?packaging/i,
     tags: ['pizza-box','pizza-carton'],
     type: 'Pizza Box',
-    bin: 'yellow', bandClass: 'band-yellow', icon: '🟡',
-    why: 'Clean, grease-free cardboard sections of a pizza box are recyclable in the yellow bin. Grease soaks into the fibres and contaminates other recyclables.',
-    tip: 'Tear off the clean dry lid for the yellow bin. Put the greasy base in the FOGO green bin — food-soiled cardboard composts well.',
-    secondary: { part: 'Greasy base', bin: 'fogo', bandClass: 'band-fogo', icon: '🟢', label: 'Green Lid - FOGO' }
+    bin: 'fogo', bandClass: 'band-fogo', icon: '🟢',
+    why: 'AlburyCity Council accepts the whole pizza box — including greasy sections — in the green lid FOGO/organics bin.',
+    tip: 'Place the entire pizza box, clean lid and greasy base, in the green FOGO bin. No need to separate the sections.'
   },
   {
     pattern: /cereal|corn.?flakes|muesli|granola|weetbix|weet-bix|rolled.?oats|cracker.*box|biscuit.*box/i,
@@ -1269,6 +1268,148 @@ function makeARLBadge(bin, small = false) {
 }
 
 /* ============================================================
+   HALVEWASTE LOCAL LOOKUP (AlburyCity, NSW — halvewaste.com.au)
+   Authoritative local data checked BEFORE Groq API calls.
+   Each entry: [search_key_lowercase, bin, tip]
+   ============================================================ */
+const HALVEWASTE_DB = [
+  ['aerosol can',               'yellow', 'Must be completely empty. Take non-empty cans to the Transfer Station.'],
+  ['aluminium can',             'yellow', 'Accepted in Return and Earn Container Deposit Schemes.'],
+  ['aluminum can',              'yellow', 'Accepted in Return and Earn Container Deposit Schemes.'],
+  ['aluminium foil',            'yellow', 'Scrunch into a fist-size ball before placing in the yellow bin.'],
+  ['aluminum foil',             'yellow', 'Scrunch into a fist-size ball before placing in the yellow bin.'],
+  ['foil tray',                 'yellow', 'Scrunch scrunched foil trays before recycling in the yellow bin.'],
+  ['ash',                       'red',    'Ensure ash is completely cold before disposal.'],
+  ['charcoal',                  'red',    'Ensure ash/charcoal is completely cold before disposal.'],
+  ['baking paper',              'red',    'Includes eco/biodegradable baking paper — still goes in the red bin.'],
+  ['bamboo cutlery',            'red',    'Place in the red general waste bin.'],
+  ['wooden cutlery',            'red',    'Place in the red general waste bin.'],
+  ['wooden chopstick',          'red',    'Place in the red general waste bin.'],
+  ['battery',                   'dropoff','Take to a free battery drop-off point — do NOT put in any kerbside bin.'],
+  ['biodegradable plastic',     'red',    'Only council-supplied green liners are approved for the FOGO bin.'],
+  ['blister pack',              'red',    'Place in the red bin. Alternatively take to the nearest Pharmacycle drop-off for recycling.'],
+  ['blister card',              'red',    'Place in the red bin. Alternatively take to the nearest Pharmacycle drop-off for recycling.'],
+  ['pill pack',                 'red',    'Place in the red bin. Alternatively take to the nearest Pharmacycle drop-off for recycling.'],
+  ['tablet pack',               'red',    'Place in the red bin. Alternatively take to the nearest Pharmacycle drop-off for recycling.'],
+  ['bubble wrap',               'red',    'Soft plastic — red bin or orange council soft-plastic recycling bag.'],
+  ['cereal box',                'yellow', 'Clean dry cardboard box. Remove the inner plastic bag liner — it goes in the red bin.'],
+  ['ceramic',                   'red',    'Ceramics contaminate glass recycling — always red bin.'],
+  ['crockery',                  'red',    'Ceramics contaminate glass recycling — always red bin.'],
+  ['chip packet',               'red',    'Soft plastic — red bin or orange council soft-plastic recycling bag.'],
+  ['crisp packet',              'red',    'Soft plastic — red bin or orange council soft-plastic recycling bag.'],
+  ['cigarette butt',            'red',    'Soak butts in water to ensure fully extinguished before disposal.'],
+  ['cling wrap',                'red',    'Soft plastic — red bin or orange council soft-plastic recycling bag.'],
+  ['glad wrap',                 'red',    'Soft plastic — red bin or orange council soft-plastic recycling bag.'],
+  ['coffee cup',                'red',    'Paper cup body → red. Clean plastic lid → yellow recycling bin.'],
+  ['paper cup',                 'red',    'Includes all disposable coffee and soft drink cups. Clean plastic lid → yellow.'],
+  ['coffee ground',             'fogo',   'Place in the green FOGO bin.'],
+  ['filter paper',              'fogo',   'Coffee filter paper goes in the green FOGO bin.'],
+  ['cork',                      'red',    'Place wine corks in the red general waste bin.'],
+  ['wine cork',                 'red',    'Place wine corks in the red general waste bin.'],
+  ['cooking oil',               'fogo',   'Absorb in paper towel or newspaper before placing in the green FOGO bin.'],
+  ['deodorant can',             'yellow', 'Must be completely empty. Non-empty cans to Transfer Station.'],
+  ['detergent bottle',          'yellow', 'Empty bottle goes in the yellow recycling bin.'],
+  ['nappy',                     'red',    'Place in the red general waste bin.'],
+  ['diaper',                    'red',    'Place in the red general waste bin.'],
+  ['egg carton',                'yellow', 'Clean egg cartons go in the yellow recycling bin.'],
+  ['eggshell',                  'fogo',   'Place in the green FOGO bin.'],
+  ['envelope',                  'yellow', 'Includes envelopes with plastic windows — yellow bin.'],
+  ['fabric',                    'red',    'Donate good-quality fabric; non-donatable fabric → red bin.'],
+  ['feather',                   'fogo',   'Place in the green FOGO bin.'],
+  ['fish',                      'fogo',   'Including shells — place in the green FOGO bin.'],
+  ['seafood',                   'fogo',   'Including shells — place in the green FOGO bin.'],
+  ['foam box',                  'red',    'Transfer Station may accept for specialist recycling.'],
+  ['polystyrene',               'red',    'Small amounts in red bin; Transfer Station for larger amounts.'],
+  ['styrofoam',                 'red',    'Small amounts in red bin; Transfer Station for larger amounts.'],
+  ['foam meat tray',            'red',    'Place in the red general waste bin.'],
+  ['food scrap',                'fogo',   'Place all food scraps in the green FOGO bin.'],
+  ['kitchen scrap',             'fogo',   'Place all food and kitchen scraps in the green FOGO bin.'],
+  ['garden clipping',           'fogo',   'Place in the green FOGO bin.'],
+  ['grass clipping',            'fogo',   'Place in the green FOGO bin.'],
+  ['gift wrap paper',           'yellow', 'Paper gift wrap goes in the yellow recycling bin.'],
+  ['wrapping paper',            'yellow', 'Paper wrapping paper → yellow. Metallic, plastic-coated or glittery wrap → red bin.'],
+  ['glass bottle',              'yellow', 'Place in the yellow recycling bin.'],
+  ['glass jar',                 'yellow', 'Place in the yellow recycling bin.'],
+  ['broken glass',              'red',    'Wrap safely in newspaper and place in the red general waste bin.'],
+  ['hard plastic',              'yellow', 'Rigid/hard plastic packaging goes in the yellow recycling bin.'],
+  ['ice cream stick',           'fogo',   'Place in the green FOGO bin.'],
+  ['icy pole',                  'fogo',   'Icy pole and ice cream sticks go in the green FOGO bin.'],
+  ['jar lid',                   'yellow', 'Place in the yellow recycling bin.'],
+  ['junk mail',                 'yellow', 'Place in the yellow recycling bin.'],
+  ['leather',                   'red',    'Place in the red general waste bin.'],
+  ['magazine',                  'yellow', 'Place in the yellow recycling bin.'],
+  ['meat tray',                 'yellow', 'Hard plastic (non-foam) only. Remove soft plastic film and moisture absorber first.'],
+  ['meat',                      'fogo',   'Raw and cooked meat including bones — green FOGO bin.'],
+  ['bone',                      'fogo',   'Including cooked bones — green FOGO bin.'],
+  ['milk carton',               'yellow', 'Empty and flatten before placing in the yellow bin.'],
+  ['juice carton',              'yellow', 'Empty and flatten before placing in the yellow bin.'],
+  ['tetra pak',                 'yellow', 'Empty and flatten the carton. Small juice boxes accepted at Return and Earn.'],
+  ['tetra pack',                'yellow', 'Empty and flatten the carton. Small juice boxes accepted at Return and Earn.'],
+  ['tetrapak',                  'yellow', 'Empty and flatten the carton. Small juice boxes accepted at Return and Earn.'],
+  ['uht milk',                  'yellow', 'Empty and flatten before placing in the yellow bin.'],
+  ['long life milk',            'yellow', 'Empty and flatten before placing in the yellow bin.'],
+  ['longlife milk',             'yellow', 'Empty and flatten before placing in the yellow bin.'],
+  ['mirror',                    'red',    'Good quality mirrors can be donated. Broken mirrors → red bin (wrap safely).'],
+  ['napkin',                    'fogo',   'Paper napkins and serviettes go in the green FOGO bin.'],
+  ['serviette',                 'fogo',   'Paper serviettes go in the green FOGO bin.'],
+  ['newspaper',                 'yellow', 'Place in the yellow recycling bin.'],
+  ['notepad',                   'yellow', 'Remove any metal spiral binding before recycling.'],
+  ['paint',                     'dropoff','Take to the Transfer Station — do NOT place in any kerbside bin.'],
+  ['shredded paper',            'fogo',   'Shredded paper goes in the green FOGO bin (not yellow).'],
+  ['paper shredded',            'fogo',   'Shredded paper goes in the green FOGO bin (not yellow).'],
+  ['paper towel roll',          'yellow', 'Cardboard tube goes in the yellow recycling bin.'],
+  ['toilet roll',               'yellow', 'Cardboard tube goes in the yellow recycling bin.'],
+  ['paper towel',               'fogo',   'Used paper towel goes in the green FOGO bin.'],
+  ['paper plate',               'red',    'Place in the red general waste bin.'],
+  ['paper straw',               'red',    'Place in the red general waste bin.'],
+  ['pet food tin',              'yellow', 'Empty tin/can goes in the yellow recycling bin.'],
+  ['pet food can',              'yellow', 'Empty tin/can goes in the yellow recycling bin.'],
+  ['phone book',                'yellow', 'Place in the yellow recycling bin.'],
+  ['pizza box',                 'fogo',   'The whole pizza box — clean lid and greasy base — goes in the green FOGO bin.'],
+  ['pizza carton',              'fogo',   'The whole pizza box — clean lid and greasy base — goes in the green FOGO bin.'],
+  ['plastic bag',               'red',    'Soft plastic — red bin or orange council soft-plastic recycling bag.'],
+  ['plastic bottle',            'yellow', 'Rinse, leave cap on, and place in the yellow recycling bin.'],
+  ['plastic cup',               'yellow', 'Clean rigid plastic cups go in the yellow recycling bin.'],
+  ['plastic food container',    'yellow', 'Rinse clean before placing in the yellow bin.'],
+  ['plastic plant pot',         'yellow', 'Empty plastic pots go in the yellow recycling bin.'],
+  ['plastic plate',             'yellow', 'Clean plastic plates only — food-residue plates go in red.'],
+  ['plastic strapping',         'red',    'Place in the red general waste bin.'],
+  ['pool noodle',               'red',    'Place in the red general waste bin.'],
+  ['sanitary product',          'red',    'Place in the red general waste bin.'],
+  ['tampon',                    'red',    'Place in the red general waste bin.'],
+  ['shampoo bottle',            'yellow', 'Empty bottle goes in the yellow recycling bin.'],
+  ['conditioner bottle',        'yellow', 'Empty bottle goes in the yellow recycling bin.'],
+  ['soft plastic',              'red',    'Soft plastics go in the red bin or orange council soft-plastic recycling bag.'],
+  ['takeaway container plastic','yellow', 'Clean plastic takeaway containers → yellow. Food-soiled → red bin.'],
+  ['takeaway container cardboard','red',  'Cardboard takeaway containers go in the red bin.'],
+  ['tea bag',                   'red',    'Place in the red general waste bin.'],
+  ['tissue',                    'fogo',   'Used tissues go in the green FOGO bin.'],
+  ['tin can',                   'yellow', 'Place in the yellow recycling bin.'],
+  ['steel can',                 'yellow', 'Place in the yellow recycling bin.'],
+  ['toothbrush',                'red',    'TerraCycle offers a free Oral Care Recycling Program.'],
+  ['toothpaste tube',           'red',    'TerraCycle offers a free Oral Care Recycling Program.'],
+  ['waxed cardboard',           'red',    'Place in the red general waste bin.'],
+  ['waxed paper',               'red',    'Place in the red general waste bin.'],
+  ['wine bottle',               'yellow', 'Lids should go in the red bin.'],
+  ['wine cask',                 'red',    'Soft plastic wine cask bladder — red bin or orange council soft-plastic bag.'],
+  ['wipe',                      'red',    'All wipes (baby, cleaning, personal, compostable) go in the red bin.'],
+  ['wooden utensil',            'red',    'Place in the red general waste bin.'],
+  ['x-ray',                     'red',    'Visit RecyclingNearYou.com.au/xray to find a specialist recycler.'],
+];
+
+function halvewasteLookup(query) {
+  const q = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  let best = null, bestLen = 0;
+  for (const [key, bin, tip] of HALVEWASTE_DB) {
+    if ((q === key || q.includes(key) || key.includes(q)) && key.length > bestLen) {
+      best = { bin, tip };
+      bestLen = key.length;
+    }
+  }
+  return best;
+}
+
+/* ============================================================
    GROQ AI FALLBACK
    Called when Open Food Facts has no packaging data for a product.
    ============================================================ */
@@ -1302,20 +1443,24 @@ async function classifyWithGroq(product) {
 Classify the item or its primary packaging. The item may be a packaged product, a household object, or any waste — classify what was actually asked about.
 
 BINS:
-- "yellow": Rigid glass bottles/jars, rigid hard plastic bottles/tubs/cups (#1/#2/#5 PET/HDPE), cardboard boxes, steel/aluminium/metal cans, empty aerosol cans
-- "red": Soft plastic bags/pouches/sachets/chip packets/flexible film, ceramics/crockery/mugs/plates/cookware, broken glass, glass cookware (Pyrex), mirrors, light bulbs, paper coffee cup bodies, general household waste
-- "fogo": ONLY actual food scraps or garden organics. NEVER use fogo for manufactured items or packaging.
-- "dropoff": Tetra Pak laminated brick cartons ONLY (long-life milk, stock, juice), batteries, blister packs, e-waste, paint, medicines
+- "yellow": Rigid glass bottles/jars, rigid hard plastic bottles/tubs/cups (#1/#2/#5 PET/HDPE), cardboard boxes, steel/aluminium/metal cans, empty aerosol cans, Tetra Pak/aseptic cartons (empty and flattened), paper (not shredded), magazines, newspapers, envelopes, paper gift wrap/wrapping paper (NOT metallic/glitter)
+- "red": Soft plastic bags/pouches/sachets/chip packets/flexible film, ceramics/crockery/mugs/plates/cookware, broken glass, glass cookware (Pyrex), mirrors, light bulbs, paper coffee cup bodies, blister packs (aluminium/PVC pill packs), baking paper, waxed cardboard/paper, cork, metallic/plastic-coated gift wrap, general household waste
+- "fogo": Food scraps, garden organics, pizza boxes (entire box including greasy sections), paper towel (used), tissues, shredded paper, napkins/serviettes (paper), coffee grounds, tea bags, eggshells, food-soiled paper
+- "dropoff": batteries, e-waste, paint, medicines, motor oil, chemicals
 
 CRITICAL DISTINCTIONS:
 1. CERAMICS / CROCKERY (mugs, cups, plates, bowls, vases, ceramic pots) → "red" ALWAYS. Cannot be recycled, contaminates glass recycling. Never yellow, never fogo.
-2. FOGO IS NOT A FALLBACK. If unsure → "red". Fogo = food scraps and garden organics only.
+2. FOGO includes: pizza boxes, paper towel, tissues, shredded paper, napkins, coffee grounds, food scraps, garden organics. FOGO is NOT a generic fallback for uncertainty.
 3. METAL CANS (tin/steel/aluminium) → "yellow". Canned coconut milk, baked beans, soup cans, pet food cans → all yellow.
-4. TETRA PAK → "dropoff" ONLY for brick-shaped laminated cartons (long-life milk, stock, juice). NOT pouches. NOT cans.
-5. SQUEEZE POUCHES / DOYPACK (baby food, fruit puree, drink pouches) → "red" (soft flexible plastic).
-6. GLASS BOTTLES/JARS → "yellow". Glass cookware/Pyrex/oven dishes → "red".
-7. RIGID PLASTIC BOTTLES/TUBS → "yellow". Soft plastic bags → "red".
-8. CUPS: Rigid clear PET cup (transparent, hard, springs back) → "yellow", lid → "yellow" (no secondary). Paper coffee cup (opaque paper body) → "red", lid → "yellow" (secondary).
+4. TETRA PAK → "yellow" (empty, flattened). NOT dropoff. Plastic straw/cap still → "red" (secondary).
+5. BLISTER PACKS (pill packs, tablet packs, foil-backed blister packaging) → "red". Can also be taken to Pharmacycle drop-offs.
+6. PIZZA BOX → "fogo" (entire box including greasy sections). AlburyCity accepts whole pizza boxes in FOGO.
+7. PAPER TOWEL / TISSUES → "fogo". Paper towel roll cardboard tubes → "yellow".
+8. SHREDDED PAPER → "fogo". Unshredded clean paper → "yellow".
+9. SQUEEZE POUCHES / DOYPACK (baby food, fruit puree, drink pouches) → "red" (soft flexible plastic).
+10. GLASS BOTTLES/JARS → "yellow". Glass cookware/Pyrex/oven dishes → "red".
+11. RIGID PLASTIC BOTTLES/TUBS → "yellow". Soft plastic bags → "red".
+12. CUPS: Rigid clear PET cup (transparent, hard, springs back) → "yellow", lid → "yellow" (no secondary). Paper coffee cup (opaque paper body) → "red", lid → "yellow" (secondary).
 
 MULTI-PART RULES (secondary only when parts go in DIFFERENT bins):
 - Aerosol can → yellow, plastic cap → red
@@ -1324,7 +1469,7 @@ MULTI-PART RULES (secondary only when parts go in DIFFERENT bins):
 - Paper takeaway coffee cup → red, plastic lid → yellow
 - Rigid clear plastic cup → yellow, lid → yellow (SAME bin — no secondary)
 - Pringles tube → red, plastic lid → yellow
-- Tetra Pak carton → dropoff, plastic straw/cap → red
+- Tetra Pak carton → yellow, plastic straw/cap → red
 
 Respond ONLY with valid JSON (no markdown):
 {"bin":"<bin>","type":"<short packaging type, e.g. Metal Can>","why":"<one sentence>","tip":"<one sentence>","secondary":{"part":"<component name>","bin":"<bin>"}}`
@@ -1370,15 +1515,17 @@ A user has identified a specific component of a product that needs its own bin c
 Classify ONLY the named component — not the whole product.
 
 BINS:
-- "yellow": Rigid glass bottles/jars, rigid hard plastic (#1/#2/#5 PET/HDPE), cardboard boxes, metal cans, empty aerosols
-- "red": Soft plastic bags/pouches/film, greasy or contaminated packaging, ceramics, broken glass, general waste
-- "fogo": ONLY actual food scraps or garden organics
-- "dropoff": Tetra Pak cartons, batteries, e-waste, blister packs, paint, medicines, CLEAN soft plastics (REDcycle)
+- "yellow": Rigid glass bottles/jars, rigid hard plastic (#1/#2/#5 PET/HDPE), cardboard boxes, metal cans, empty aerosols, Tetra Pak cartons (empty, flattened)
+- "red": Soft plastic bags/pouches/film, greasy or contaminated packaging, ceramics, broken glass, blister packs, baking paper, waxed paper, general waste
+- "fogo": Food scraps, garden organics, pizza boxes, paper towel, tissues, shredded paper, napkins
+- "dropoff": batteries, e-waste, paint, medicines, motor oil
 
 CRITICAL:
-- Greasy or food-contaminated plastic → "red" (not drop-off, not yellow)
-- Clean soft plastic bags/film → "dropoff"
-- Cardboard/paper → "yellow"
+- Greasy or food-contaminated plastic → "red" (not yellow)
+- Clean soft plastic bags/film → "red"
+- Blister packs → "red" (can also go to Pharmacycle drop-off)
+- Tetra Pak cartons → "yellow" (NOT dropoff)
+- Cardboard/paper (clean) → "yellow"; shredded paper → "fogo"
 - Ceramics → "red" ALWAYS
 
 Respond ONLY with valid JSON — put the component as "secondary":
@@ -1461,24 +1608,28 @@ async function classifyWithGroqVision(base64Image) {
         content: [
           {
             type: 'text',
-            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Identify what is in the image and classify it for the correct bin. The item may be a packaged product, a household object, food, or any waste item — classify the actual item shown, not its retail packaging box.
+            text: `You are a waste classification expert for AlburyCity Council, NSW Australia. Identify what is in the image and classify it for the correct bin. The item may be a packaged product, a household object, food, or any waste item — classify the actual item shown.
 
 BINS:
-- yellow: rigid plastic bottles/tubs/cups (hard PET, HDPE), glass bottles/jars, metal/aluminium/steel cans, cardboard boxes, aerosol cans, empty rigid plastic containers
-- red: soft plastic bags/pouches/flexible film, paper coffee cup bodies, ceramics/crockery/mugs/plates/cookware (NEVER recyclable), broken glass (wrap safely), mirrors, light bulbs, nappies, general household waste with no recycling symbol
-- fogo: ONLY actual food scraps or garden organics (fruit peels, vegetable scraps, meat, bones, grass, leaves, soiled paper). NEVER use fogo for manufactured items, household objects, or packaging.
-- dropoff: batteries, e-waste (electronics), paint, medicines, motor oil, Tetra Pak laminated brick cartons (long-life milk/stock/juice only), blister packs
+- yellow: rigid plastic bottles/tubs/cups (hard PET, HDPE), glass bottles/jars, metal/aluminium/steel cans, cardboard boxes, aerosol cans, empty rigid plastic containers, Tetra Pak/aseptic cartons (empty, flattened), paper (not shredded), envelopes, magazines
+- red: soft plastic bags/pouches/flexible film, paper coffee cup bodies, ceramics/crockery/mugs/plates/cookware (NEVER recyclable), broken glass (wrap safely), mirrors, light bulbs, nappies, blister packs, baking paper, waxed cardboard, cork, general household waste
+- fogo: food scraps, garden organics, pizza boxes (whole box including greasy sections), paper towel (used), tissues, shredded paper, napkins/serviettes, coffee grounds, eggshells, soiled paper
+- dropoff: batteries, e-waste (electronics), paint, medicines, motor oil
 
 CRITICAL RULES:
-- CERAMICS / CROCKERY (mugs, cups, plates, bowls, vases, pots) → red lid ALWAYS. They cannot be recycled and contaminate glass recycling. Never put ceramics in yellow or fogo.
-- FOGO IS NOT A FALLBACK. If unsure, use red — not fogo. Fogo = food and garden organics only.
-- Rigid clear plastic cup (transparent hard PET, McDonald's cold drink cup) → yellow, lid → yellow (same bin, no secondary).
+- CERAMICS / CROCKERY (mugs, cups, plates, bowls, vases, pots) → red ALWAYS. Never yellow or fogo.
+- TETRA PAK → yellow (empty, flattened). NOT dropoff. Plastic straw/cap → red (secondary).
+- BLISTER PACKS (pill packs, foil-backed tablet packaging) → red. Can also be taken to Pharmacycle drop-off.
+- PIZZA BOX → fogo (entire box including greasy sections).
+- PAPER TOWEL / TISSUES → fogo. Paper towel roll cardboard tubes → yellow.
+- SHREDDED PAPER → fogo. Unshredded clean paper → yellow.
+- Rigid clear plastic cup (transparent hard PET) → yellow, lid → yellow (same bin, no secondary).
 - Paper coffee cup (opaque paper body) → red, plastic lid → yellow (secondary).
 - Glass cookware (Pyrex, oven dishes) → red (not recyclable with glass bottles).
-- Metal tins/cans → yellow. Tetra Pak brick cartons → dropoff. Soft pouches/doy-packs → red.
+- Metal tins/cans → yellow. Soft pouches/doy-packs → red.
 
 MULTI-PART (secondary only when parts go in DIFFERENT bins):
-aerosol→yellow/cap→red | cereal box→yellow/inner bag→red | yogurt tub→yellow/foil lid→red | paper cup→red/lid→yellow | Pringles→red/lid→yellow | Tetra Pak→dropoff/straw→red
+aerosol→yellow/cap→red | cereal box→yellow/inner bag→red | yogurt tub→yellow/foil lid→red | paper cup→red/lid→yellow | Pringles→red/lid→yellow | Tetra Pak→yellow/straw→red
 
 Reply ONLY with raw JSON, no markdown:
 {"name":"item name","bin":"yellow|red|fogo|dropoff","type":"item type","why":"one sentence","tip":"one sentence or empty","secondary":{"part":"component name","bin":"bin"}}`
@@ -1791,6 +1942,23 @@ async function searchByName() {
   }
 
   const mockProduct = { product_name: query, brands: '', categories: '', image_url: null, quantity: '' };
+
+  // Check authoritative local AlburyCity data first (halvewaste.com.au)
+  const localMatch = halvewasteLookup(query);
+  if (localMatch) {
+    const meta = BIN_META[localMatch.bin];
+    const localRule = {
+      bin:       localMatch.bin,
+      bandClass: meta.bandClass,
+      icon:      meta.icon,
+      type:      'AlburyCity Classification',
+      why:       `Classified as ${meta.label} by AlburyCity Council (halvewaste.com.au).`,
+      tip:       localMatch.tip
+    };
+    showResult(query, mockProduct, localRule, false);
+    setState('result');
+    return;
+  }
 
   document.getElementById('analysing-barcode').textContent = '"' + query + '"';
   document.querySelector('#state-analysing .analysing-body h2').textContent = 'Asking AI…';
