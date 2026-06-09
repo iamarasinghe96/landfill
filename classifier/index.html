@@ -2157,16 +2157,24 @@ function showResult(identifier, product, rule, isAI = false, sourceLabel = null)
   document.getElementById('r-detected').textContent = name + (brand ? ' by ' + brand : '') + (qty ? ' (' + qty + ')' : '');
   document.getElementById('r-why').textContent = rule.why;
 
-  // Show 💡 tip for drop-off items and multi-part items
+  // Show 💡 tip — always when one exists
   const tipWrap = document.getElementById('r-tip-wrap');
-  if (rule.bin === 'dropoff') {
+  let tipText = rule.tip || '';
+
+  // If no tip yet, try halvewaste lookup using product name or rule type
+  if (!tipText) {
+    const hwMatch = halvewasteLookup(product.product_name || '') || halvewasteLookup(rule.type || '');
+    if (hwMatch) tipText = hwMatch.tip;
+  }
+
+  // Fallback tip for dropoff AI results
+  if (!tipText && rule.bin === 'dropoff' && isAI) {
+    tipText = 'Do not place in any kerbside bin. Take to an AlburyCity Council drop-off point or call 02 6023 8111 for drop-off locations near you.';
+  }
+
+  if (tipText) {
     tipWrap.style.display = 'flex';
-    document.getElementById('r-tip').textContent = isAI
-      ? 'Do not place in any kerbside bin. Take to an AlburyCity Council drop-off point or call 02 6023 8111 for drop-off locations near you.'
-      : rule.tip;
-  } else if (rule.secondary && rule.tip) {
-    tipWrap.style.display = 'flex';
-    document.getElementById('r-tip').textContent = rule.tip;
+    document.getElementById('r-tip').textContent = tipText;
   } else {
     tipWrap.style.display = 'none';
   }
