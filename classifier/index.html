@@ -2291,6 +2291,19 @@ async function checkForCorrection(barcode) {
 function firestoreDocToRule(data) {
   const meta = BIN_META[data.bin] || BIN_META.red;
   const binTypes = { yellow: 'Yellow Lid — Recycling', red: 'General Waste', fogo: 'FOGO — Food & Organics', dropoff: 'Drop-off Required' };
+
+  let secondary = null;
+  if (data.secondary?.bin && BIN_META[data.secondary.bin]) {
+    const sMeta = BIN_META[data.secondary.bin];
+    secondary = {
+      part:      data.secondary.part      || '',
+      bin:       data.secondary.bin,
+      bandClass: data.secondary.bandClass || sMeta.bandClass,
+      icon:      data.secondary.icon      || sMeta.icon,
+      label:     data.secondary.label     || sMeta.label
+    };
+  }
+
   return {
     bin:       data.bin,
     bandClass: meta.bandClass,
@@ -2298,7 +2311,7 @@ function firestoreDocToRule(data) {
     type:      binTypes[data.bin] || (data.type || 'Community Classification'),
     why:       data.why  || 'This classification was submitted and verified by a community member.',
     tip:       data.tip  || '',
-    secondary: data.secondary || null,
+    secondary,
     _community: true
   };
 }
