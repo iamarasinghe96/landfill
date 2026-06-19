@@ -800,25 +800,6 @@
       transition: background 0.15s;
     }
     .btn-inquiry-submit:hover { background: #922B21; }
-    .inquiry-photo-label {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; border-radius: 7px;
-      border: 1.5px dashed #F1948A; background: #fff;
-      cursor: pointer; font-size: 12.5px; color: #7B241C;
-      margin-bottom: 8px; transition: border-color 0.15s;
-    }
-    .inquiry-photo-label:hover { border-color: #E74C3C; }
-    .inquiry-photo-label input { display: none; }
-    .inquiry-photo-preview {
-      width: 100%; max-height: 120px; object-fit: cover;
-      border-radius: 6px; margin-bottom: 8px; display: none;
-    }
-    .inquiry-consent {
-      display: flex; align-items: flex-start; gap: 8px;
-      font-size: 11.5px; color: #7B241C; margin-bottom: 8px;
-      line-height: 1.4;
-    }
-    .inquiry-consent input { margin-top: 2px; flex-shrink: 0; }
     .btn-inquiry-cancel {
       display: block; width: 100%; margin-top: 6px;
       padding: 7px; border-radius: 8px; border: none;
@@ -828,7 +809,6 @@
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -2707,19 +2687,9 @@ function openInquiryForm(barcode, product, rule, submittedBin, aiExplanation, ai
   wrap.id = 'inquiry-form-wrap';
   wrap.className = 'inquiry-form';
   wrap.innerHTML = `
-    <p>Tell us why the classification is wrong and we'll send it to an AlburyCity waste expert for review.</p>
+    <p>Tell us why the classification is wrong. When you hit send, your email app will open with a pre-filled message to AlburyCity Council — you can attach a photo there before sending.</p>
     <textarea class="inquiry-reason" id="inquiry-reason-text" placeholder="e.g. This is a plastic roll-on bottle that should go in the yellow recycling bin — the ARL label on the product says Bottle → Recycle." rows="3"></textarea>
-    <label class="inquiry-photo-label">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <span id="inquiry-photo-label-text">Attach a photo (optional)</span>
-      <input type="file" id="inquiry-photo-input" accept="image/*" onchange="previewInquiryPhoto(this)">
-    </label>
-    <img id="inquiry-photo-preview" class="inquiry-photo-preview" alt="Photo preview">
-    <label class="inquiry-consent" id="inquiry-consent-wrap" style="display:none">
-      <input type="checkbox" id="inquiry-consent-check">
-      I consent to submitting this photo to AlburyCity Council staff for the purpose of reviewing this waste classification inquiry.
-    </label>
-    <button class="btn-inquiry-submit" onclick="submitInquiry('${barcode||''}','${(product?.product_name||'').replace(/'/g,"\\'")}','${rule.bin}','${submittedBin}')">Submit for Admin Review</button>
+    <button class="btn-inquiry-submit" onclick="submitInquiry('${barcode||''}','${(product?.product_name||'').replace(/'/g,"\\'")}','${rule.bin}','${submittedBin}')">📧 Send via Email</button>
     <button class="btn-inquiry-cancel" onclick="closeInquiryForm()">Cancel</button>
   `;
   const toast = document.getElementById('flag-toast');
@@ -2734,83 +2704,86 @@ function closeInquiryForm() {
   if (btn) btn.style.display = '';
 }
 
-function previewInquiryPhoto(input) {
-  const preview = document.getElementById('inquiry-photo-preview');
-  const consentWrap = document.getElementById('inquiry-consent-wrap');
-  const labelText = document.getElementById('inquiry-photo-label-text');
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-      consentWrap.style.display = 'flex';
-      labelText.textContent = input.files[0].name;
-    };
-    reader.readAsDataURL(input.files[0]);
-  } else {
-    preview.style.display = 'none';
-    consentWrap.style.display = 'none';
-    labelText.textContent = 'Attach a photo (optional)';
-  }
-}
+const INQUIRY_EMAIL = 'info@alburycity.nsw.gov.au';
+const BIN_LABELS_FULL = {
+  yellow:  'Yellow Lid (Recycling)',
+  red:     'Red Lid (General Waste)',
+  fogo:    'Green Lid (FOGO / Organics)',
+  dropoff: 'Drop-off Required'
+};
 
 async function submitInquiry(barcode, productName, originalBin, suggestedBin) {
   const reasonEl  = document.getElementById('inquiry-reason-text');
   const reason    = (reasonEl?.value || '').trim();
   const submitBtn = document.querySelector('.btn-inquiry-submit');
-  const photoInput   = document.getElementById('inquiry-photo-input');
-  const consentCheck = document.getElementById('inquiry-consent-check');
 
-  const photoFile = photoInput?.files?.[0] || null;
-  if (photoFile && !consentCheck?.checked) {
-    alert('Please tick the consent checkbox before submitting your photo.');
+  if (!reason) {
+    alert('Please describe what is wrong before sending.');
+    reasonEl?.focus();
     return;
   }
 
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Preparing…'; }
 
+  const container = document.getElementById('feedback-widget-container');
+  const product   = container?._product || null;
+  const name      = productName || product?.product_name || 'Unknown item';
+  const brand     = product?.brands || '';
+
+  // Log to Firestore so the admin panel keeps a record and we get a case number.
+  // If this fails (offline etc.) we still open the email with a time-based reference.
+  let caseNumber = 'AC-' + Date.now().toString(36).toUpperCase();
   try {
-    const container = document.getElementById('feedback-widget-container');
-    const product   = container?._product || null;
-    const flagExpl  = document.getElementById('flag-explanation')?.value || '';
-
-    let photoUrl = null;
-    if (photoFile && consentCheck?.checked) {
-      if (submitBtn) submitBtn.textContent = 'Uploading photo…';
-      const storage  = firebase.storage();
-      const uid      = SESSION_ID + '_' + Date.now();
-      const ext      = photoFile.name.split('.').pop() || 'jpg';
-      const ref      = storage.ref(`classification_inquiries/${uid}.${ext}`);
-      const snapshot = await ref.put(photoFile);
-      photoUrl = await snapshot.ref.getDownloadURL();
-    }
-
-    if (submitBtn) submitBtn.textContent = 'Submitting…';
-
-    await db.collection('classification_inquiries').add({
+    const docRef = await db.collection('classification_inquiries').add({
       barcode:         barcode || null,
-      productName:     productName || product?.product_name || null,
-      productBrand:    product?.brands || null,
+      productName:     name,
+      productBrand:    brand || null,
       originalBin,
       suggestedBin,
-      userExplanation: reason || flagExpl || null,
-      photoUrl:        photoUrl || null,
+      userExplanation: reason,
       sessionId:       SESSION_ID,
       status:          'pending',
+      channel:         'email',
       submittedAt:     firebase.firestore.FieldValue.serverTimestamp(),
       userAgent:       navigator.userAgent.slice(0, 200)
     });
-
-    const wrap = document.getElementById('inquiry-form-wrap');
-    if (wrap) {
-      wrap.innerHTML = '<p style="color:#1B5E20;font-weight:700;text-align:center;padding:6px 0">✅ Submitted! An AlburyCity waste expert will review this.</p>';
-    }
-    const btn = document.getElementById('btn-inquiry-escalate');
-    if (btn) btn.style.display = 'none';
+    caseNumber = docRef.id.slice(0, 8).toUpperCase();
   } catch (e) {
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Admin Review'; }
-    alert('Could not submit — check your connection and try again.');
+    // Non-fatal — proceed to email with the fallback reference.
   }
+
+  const subject = `Waste Classification Inquiry — Case #${caseNumber}`;
+  const bodyLines = [
+    `Case Number: ${caseNumber}`,
+    '',
+    'Item details',
+    `• Product: ${name}${brand ? ` (${brand})` : ''}`,
+    barcode ? `• Barcode: ${barcode}` : '• Barcode: not available',
+    `• Current classification: ${BIN_LABELS_FULL[originalBin] || originalBin}`,
+    `• I believe it should be: ${BIN_LABELS_FULL[suggestedBin] || suggestedBin}`,
+    '',
+    'My explanation',
+    reason,
+    '',
+    '— Please attach a photo of the item to this email before sending. —',
+    '',
+    'Sent from the AlburyCity Waste Identifier'
+  ];
+  const mailto = `mailto:${INQUIRY_EMAIL}`
+    + `?subject=${encodeURIComponent(subject)}`
+    + `&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+
+  window.location.href = mailto;
+
+  const wrap = document.getElementById('inquiry-form-wrap');
+  if (wrap) {
+    wrap.innerHTML = `<p style="color:#1B5E20;font-weight:700;text-align:center;padding:6px 0">
+        ✅ Your email app should now be open with Case #${caseNumber}.<br>
+        <span style="font-weight:500;color:#33691E">Attach your photo and hit send to reach AlburyCity Council.</span>
+      </p>`;
+  }
+  const btn = document.getElementById('btn-inquiry-escalate');
+  if (btn) btn.style.display = 'none';
 }
 
 function openMissingForm() {
