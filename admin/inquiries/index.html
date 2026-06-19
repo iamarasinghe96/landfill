@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlburyCity — Classification Inquiries</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #1B3A6B;
+      --navy-dk: #122850;
+      --blue:    #2471A3;
+      --green:   #1E8449;
+      --red:     #C0392B;
+      --bg:      #EEF2F7;
+      --card:    #FFFFFF;
+      --text:    #1C2833;
+      --text-md: #4A5568;
+      --text-sm: #718096;
+      --border:  #CBD5E0;
+      --shadow:  0 2px 10px rgba(27,58,107,0.10);
+      --radius:  10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, var(--navy-dk) 0%, var(--navy) 60%, #2557A7 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-wrap img {
+      height: 44px;
+      background: #fff;
+      border-radius: 7px;
+      padding: 4px 7px;
+    }
+    .logo-fallback {
+      height: 44px;
+      background: #fff;
+      border-radius: 7px;
+      padding: 5px 11px;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--navy);
+      display: flex; align-items: center;
+    }
+    .header-text { flex: 1; }
+    .header-text h1 { font-size: 18px; font-weight: 700; }
+    .admin-tag {
+      background: rgba(231,76,60,0.85);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-top: 3px;
+    }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-hd {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-hd:hover { background: rgba(255,255,255,0.20); }
+
+    /* MAIN */
+    .main-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* STATS STRIP */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 640px) {
+      .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 18px;
+      text-align: center;
+    }
+    .stat-card .stat-val {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-card .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-sm);
+    }
+    .stat-card.pending .stat-val  { color: #D4860B; }
+    .stat-card.approved .stat-val { color: var(--green); }
+    .stat-card.rejected .stat-val { color: var(--red); }
+    .stat-card.total .stat-val    { color: var(--navy); }
+
+    /* FILTER TABS */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .tab-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .tab-btn.active {
+      background: var(--navy);
+      color: #fff;
+      border-color: var(--navy);
+    }
+    .filter-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .per-page-select {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      background: var(--card);
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    /* TABLE CARD */
+    .table-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      background: var(--bg);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-md);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #F7FAFC; }
+
+    /* BIN BADGES */
+    .bin-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1C2833;
+      white-space: nowrap;
+    }
+    .bin-badge.yellow  { background: #FFD100; }
+    .bin-badge.red     { background: #E10600; color: #fff; }
+    .bin-badge.fogo    { background: #78BE20; }
+    .bin-badge.dropoff { background: #7F8C8D; color: #fff; }
+
+    /* STATUS BADGES */
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-badge.pending  { background: #FEF3C7; color: #92400E; }
+    .status-badge.approved { background: #D1FAE5; color: #065F46; }
+    .status-badge.rejected { background: #FEE2E2; color: #991B1B; }
+
+    /* ACTION BUTTONS */
+    .btn-approve, .btn-reject {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-approve {
+      background: #D1FAE5;
+      color: #065F46;
+      margin-right: 6px;
+    }
+    .btn-approve:hover { background: #A7F3D0; }
+    .btn-reject {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+    .btn-reject:hover { background: #FECACA; }
+    .btn-approve:disabled, .btn-reject:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .ref-id {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--text-sm);
+      white-space: nowrap;
+    }
+    .product-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .product-brand {
+      font-size: 11px;
+      color: var(--text-sm);
+      margin-top: 2px;
+    }
+    .barcode-val {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--text-md);
+      margin-top: 2px;
+    }
+    .explanation-cell {
+      max-width: 260px;
+      font-size: 12px;
+      color: var(--text-md);
+      line-height: 1.5;
+    }
+    .no-barcode-note {
+      font-size: 11px;
+      color: #B45309;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* PAGINATION */
+    .pagination-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .page-info {
+      font-size: 12px;
+      color: var(--text-sm);
+    }
+    .page-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .page-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text-md);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+    .page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .page-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-sm);
+    }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* LOADING */
+    .loading-row td {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-sm);
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--navy);
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      max-width: 360px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { background: var(--green); }
+    #toast.error   { background: var(--red); }
+    #toast.warning { background: #D4860B; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <img src="https://www.alburycity.nsw.gov.au/__data/assets/image/0009/368064/AC-logo.png"
+           alt="AlburyCity Council"
+           onerror="this.style.display='none';document.getElementById('lfb').style.display='flex'">
+      <div class="logo-fallback" id="lfb" style="display:none">AlburyCity</div>
+    </div>
+    <div class="header-text">
+      <h1>Classification Inquiries</h1>
+      <span class="admin-tag">Administration Panel</span>
+    </div>
+    <div class="header-actions">
+      <a href="../../admin.html" class="btn-hd">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Admin
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="main-wrap">
+
+  <!-- STATS STRIP -->
+  <div class="stats-strip">
+    <div class="stat-card pending">
+      <div class="stat-val" id="stat-pending">—</div>
+      <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-card approved">
+      <div class="stat-val" id="stat-approved">—</div>
+      <div class="stat-label">Approved</div>
+    </div>
+    <div class="stat-card rejected">
+      <div class="stat-val" id="stat-rejected">—</div>
+      <div class="stat-label">Rejected</div>
+    </div>
+    <div class="stat-card total">
+      <div class="stat-val" id="stat-total">—</div>
+      <div class="stat-label">Total</div>
+    </div>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div class="filter-row">
+    <button class="tab-btn active" data-filter="all"      onclick="setFilter('all',this)">All</button>
+    <button class="tab-btn"        data-filter="pending"  onclick="setFilter('pending',this)">Pending</button>
+    <button class="tab-btn"        data-filter="approved" onclick="setFilter('approved',this)">Approved</button>
+    <button class="tab-btn"        data-filter="rejected" onclick="setFilter('rejected',this)">Rejected</button>
+    <div class="filter-right">
+      <label for="per-page" style="font-size:12px;color:var(--text-sm)">Per page:</label>
+      <select id="per-page" class="per-page-select" onchange="setPerPage(parseInt(this.value))">
+        <option value="10">10</option>
+        <option value="20" selected>20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TABLE CARD -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Date</th>
+            <th>Product / Barcode</th>
+            <th>Original Bin</th>
+            <th>AI Suggested</th>
+            <th>User Explanation</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inquiry-tbody">
+          <tr class="loading-row"><td colspan="8">Loading inquiries…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination-row" id="pagination-row" style="display:none">
+      <div class="page-info" id="page-info"></div>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<div id="toast"></div>
+
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyAX7c9il2yBXssH3LTYmGApW2OmGwE9WK4',
+    authDomain: 'waste-401ac.firebaseapp.com',
+    projectId: 'waste-401ac',
+    storageBucket: 'waste-401ac.firebasestorage.app',
+    messagingSenderId: '632432606402',
+    appId: '1:632432606402:web:545f2faf4ac8daccdacf5b'
+  };
+
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
+
+  let allInquiries = [];
+  let currentFilter = 'all';
+  let currentPage   = 1;
+  let perPage       = 20;
+
+  // ── Load all inquiries ──
+  async function loadInquiries() {
+    try {
+      const snap = await db.collection('classification_inquiries')
+        .orderBy('submittedAt', 'desc')
+        .get();
+
+      allInquiries = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      updateStats();
+      render();
+    } catch (e) {
+      document.getElementById('inquiry-tbody').innerHTML =
+        `<tr class="loading-row"><td colspan="8" style="color:var(--red)">Error loading inquiries: ${e.message}</td></tr>`;
+    }
+  }
+
+  function updateStats() {
+    const pending  = allInquiries.filter(i => i.status === 'pending').length;
+    const approved = allInquiries.filter(i => i.status === 'approved').length;
+    const rejected = allInquiries.filter(i => i.status === 'rejected').length;
+    document.getElementById('stat-pending').textContent  = pending;
+    document.getElementById('stat-approved').textContent = approved;
+    document.getElementById('stat-rejected').textContent = rejected;
+    document.getElementById('stat-total').textContent    = allInquiries.length;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    currentPage   = 1;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function setPerPage(n) {
+    perPage = n;
+    currentPage = 1;
+    render();
+  }
+
+  function filteredInquiries() {
+    if (currentFilter === 'all') return allInquiries;
+    return allInquiries.filter(i => i.status === currentFilter);
+  }
+
+  function render() {
+    const items = filteredInquiries();
+    const total = items.length;
+    const pages = Math.max(1, Math.ceil(total / perPage));
+    if (currentPage > pages) currentPage = pages;
+
+    const start = (currentPage - 1) * perPage;
+    const slice = items.slice(start, start + perPage);
+
+    const tbody = document.getElementById('inquiry-tbody');
+
+    if (total === 0) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>No inquiries found for this filter.</p></div></td></tr>`;
+      document.getElementById('pagination-row').style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = slice.map(inq => renderRow(inq)).join('');
+
+    // Pagination
+    const paginationRow = document.getElementById('pagination-row');
+    paginationRow.style.display = 'flex';
+
+    const startDisplay = start + 1;
+    const endDisplay   = Math.min(start + perPage, total);
+    document.getElementById('page-info').textContent =
+      `Showing ${startDisplay}–${endDisplay} of ${total} inquiries`;
+
+    const btnsEl = document.getElementById('page-btns');
+    let btnsHtml = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹ Prev</button>`;
+
+    // Show up to 7 page buttons
+    const WINDOW = 3;
+    let pageStart = Math.max(1, currentPage - WINDOW);
+    let pageEnd   = Math.min(pages, currentPage + WINDOW);
+    if (pageStart > 1) btnsHtml += `<button class="page-btn" onclick="goPage(1)">1</button>${pageStart>2?'<span style="padding:0 4px;color:var(--text-sm)">…</span>':''}`;
+    for (let p = pageStart; p <= pageEnd; p++) {
+      btnsHtml += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    }
+    if (pageEnd < pages) btnsHtml += `${pageEnd<pages-1?'<span style="padding:0 4px;color:var(--text-sm)">…</span>':''}<button class="page-btn" onclick="goPage(${pages})">${pages}</button>`;
+    btnsHtml += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===pages?'disabled':''}>Next ›</button>`;
+    btnsEl.innerHTML = btnsHtml;
+  }
+
+  function goPage(p) {
+    const items = filteredInquiries();
+    const pages = Math.max(1, Math.ceil(items.length / perPage));
+    if (p < 1 || p > pages) return;
+    currentPage = p;
+    render();
+  }
+
+  function binBadge(bin) {
+    if (!bin) return '<span style="color:var(--text-sm);font-size:12px">—</span>';
+    const labels = {
+      yellow:  'Yellow Lid',
+      red:     'Red Lid',
+      fogo:    'Green Lid (FOGO)',
+      dropoff: 'Drop-off'
+    };
+    const cls = bin === 'dropoff' ? 'dropoff' : bin;
+    return `<span class="bin-badge ${cls}">${labels[bin] || bin}</span>`;
+  }
+
+  function statusBadge(status) {
+    const labels = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
+    return `<span class="status-badge ${status||'pending'}">${labels[status]||status||'pending'}</span>`;
+  }
+
+  function formatDate(ts) {
+    if (!ts) return '—';
+    try {
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' })
+        + ' ' + d.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' });
+    } catch { return '—'; }
+  }
+
+  function renderRow(inq) {
+    const isPending  = !inq.status || inq.status === 'pending';
+    const ref        = inq.id.slice(0, 8).toUpperCase();
+    const date       = formatDate(inq.submittedAt);
+    const explanation = inq.userExplanation
+      ? `<div class="explanation-cell">${escHtml(inq.userExplanation)}</div>`
+      : '<span style="color:var(--text-sm);font-size:12px">—</span>';
+
+    const productCell = `
+      ${inq.productName ? `<div class="product-name">${escHtml(inq.productName)}</div>` : ''}
+      ${inq.productBrand ? `<div class="product-brand">${escHtml(inq.productBrand)}</div>` : ''}
+      ${inq.barcode ? `<div class="barcode-val">🔖 ${escHtml(String(inq.barcode))}</div>` : '<div class="barcode-val" style="color:var(--text-sm)">No barcode</div>'}
+    `;
+
+    const actionBtns = isPending
+      ? `<button class="btn-approve" onclick="approveInquiry('${inq.id}',this)">✓ Approve</button>
+         <button class="btn-reject"  onclick="rejectInquiry('${inq.id}',this)">✕ Reject</button>`
+      : `<span style="font-size:12px;color:var(--text-sm)">—</span>`;
+
+    return `<tr id="row-${inq.id}">
+      <td><span class="ref-id">#${ref}</span></td>
+      <td style="white-space:nowrap;font-size:12px;color:var(--text-md)">${date}</td>
+      <td>${productCell}</td>
+      <td>${binBadge(inq.originalBin)}</td>
+      <td>${binBadge(inq.suggestedBin)}</td>
+      <td>${explanation}</td>
+      <td>${statusBadge(inq.status)}</td>
+      <td style="white-space:nowrap">${actionBtns}</td>
+    </tr>`;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function approveInquiry(id, btn) {
+    const inq = allInquiries.find(i => i.id === id);
+    if (!inq) return;
+
+    // Disable buttons
+    const row = document.getElementById('row-' + id);
+    row.querySelectorAll('button').forEach(b => b.disabled = true);
+
+    try {
+      const batch = db.batch();
+
+      // Update inquiry status
+      batch.update(db.collection('classification_inquiries').doc(id), {
+        status: 'approved',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // If barcode exists, write correction
+      if (inq.barcode) {
+        batch.set(db.collection('corrections').doc(String(inq.barcode)), {
+          bin: inq.suggestedBin,
+          type: 'Admin Approved Correction',
+          voteCount: 1,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+          promotedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          source: 'admin',
+          tip: '',
+          secondary: null
+        }, { merge: true });
+      }
+
+      await batch.commit();
+
+      // Update local state
+      inq.status = 'approved';
+      updateStats();
+      render();
+
+      if (inq.barcode) {
+        showToast('Approved and correction saved for barcode ' + inq.barcode, 'success');
+      } else {
+        showToast('Approved — note: no barcode, correction cannot be auto-promoted to scanner.', 'warning', 6000);
+      }
+    } catch (e) {
+      row.querySelectorAll('button').forEach(b => b.disabled = false);
+      showToast('Error approving inquiry: ' + e.message, 'error');
+    }
+  }
+
+  async function rejectInquiry(id, btn) {
+    const inq = allInquiries.find(i => i.id === id);
+    if (!inq) return;
+
+    const row = document.getElementById('row-' + id);
+    row.querySelectorAll('button').forEach(b => b.disabled = true);
+
+    try {
+      await db.collection('classification_inquiries').doc(id).update({
+        status: 'rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      inq.status = 'rejected';
+      updateStats();
+      render();
+      showToast('Inquiry rejected.', '');
+    } catch (e) {
+      row.querySelectorAll('button').forEach(b => b.disabled = false);
+      showToast('Error rejecting inquiry: ' + e.message, 'error');
+    }
+  }
+
+  function showToast(msg, type = '', duration = 4000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show ' + type;
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.className = type; }, duration);
+  }
+
+  // Init
+  loadInquiries();
+</script>
+</body>
+</html>

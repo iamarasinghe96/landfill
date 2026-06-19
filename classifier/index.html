@@ -772,6 +772,40 @@
       font-family: inherit; min-height: 68px;
     }
     .flag-explanation:focus { outline: none; border-color: var(--blue); }
+    .btn-inquiry {
+      display: block; width: 100%; margin-top: 10px;
+      padding: 10px 14px; border-radius: 8px;
+      border: 1.5px solid #E74C3C; color: #C0392B;
+      background: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; text-align: center; transition: background 0.15s;
+    }
+    .btn-inquiry:hover { background: #FFEBEE; }
+    .inquiry-form {
+      margin-top: 10px; padding: 12px 14px; border-radius: 8px;
+      border: 1.5px solid #E74C3C; background: #FFF5F5;
+    }
+    .inquiry-form p { font-size: 12.5px; color: #7B241C; margin-bottom: 8px; font-weight: 600; }
+    .inquiry-reason {
+      width: 100%; padding: 8px 10px; border-radius: 7px;
+      border: 1.5px solid #F1948A; background: #fff;
+      font-size: 13px; color: #1C2833; resize: vertical;
+      font-family: inherit; min-height: 60px; margin-bottom: 8px;
+    }
+    .inquiry-reason:focus { outline: none; border-color: #E74C3C; }
+    .btn-inquiry-submit {
+      display: block; width: 100%;
+      padding: 9px 14px; border-radius: 8px;
+      background: #C0392B; color: #fff; border: none;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-inquiry-submit:hover { background: #922B21; }
+    .btn-inquiry-cancel {
+      display: block; width: 100%; margin-top: 6px;
+      padding: 7px; border-radius: 8px; border: none;
+      background: none; color: #922B21; font-size: 12px;
+      cursor: pointer; font-weight: 600;
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -2588,7 +2622,7 @@ async function doSubmitFeedback(barcode, isAI) {
       toast.textContent = 'Could not save correction. Check your connection and try again.';
     }
   } else if (agrees === false) {
-    // Groq disagrees — log the report and explain why
+    // Groq disagrees — log the report and show inquiry escalation option
     db.collection('feedback').add({
       barcode: barcode ? String(barcode) : null,
       submittedBin, originalBin: rule.bin,
@@ -2598,11 +2632,24 @@ async function doSubmitFeedback(barcode, isAI) {
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userAgent: navigator.userAgent.slice(0, 200)
     }).catch(() => {});
-    const sugLabel = BIN_META[suggestedBin] ? (suggestedBin === 'red' ? 'Red Lid (General Waste)' : suggestedBin === 'yellow' ? 'Yellow Lid (Recycling)' : suggestedBin === 'fogo' ? 'Green Lid (FOGO)' : 'Drop-off Required') : null;
+    const sugLabel = BIN_META[suggestedBin]
+      ? (suggestedBin === 'red' ? 'Red Lid (General Waste)' : suggestedBin === 'yellow' ? 'Yellow Lid (Recycling)' : suggestedBin === 'fogo' ? 'Green Lid (FOGO)' : 'Drop-off Required')
+      : null;
     toast.className   = 'flag-toast info';
     toast.textContent = sugLabel
       ? `Our AI thinks this is ${sugLabel}. ${why || ''}`
       : (why || 'Thanks for the report!');
+    toast.style.display = 'block';
+    // Show escalation button below the toast
+    const existingInquiryBtn = document.getElementById('btn-inquiry-escalate');
+    if (!existingInquiryBtn) {
+      const btn = document.createElement('button');
+      btn.id        = 'btn-inquiry-escalate';
+      btn.className = 'btn-inquiry';
+      btn.textContent = 'Still gotten it wrong? Submit an inquiry ›';
+      btn.onclick = () => openInquiryForm(barcode, product, rule, submittedBin, explanation, why);
+      toast.insertAdjacentElement('afterend', btn);
+    }
   } else {
     // Groq unavailable — save correction directly (user explanation logged)
     db.collection('feedback').add({
@@ -2616,6 +2663,70 @@ async function doSubmitFeedback(barcode, isAI) {
     }).catch(() => {});
     toast.className   = 'flag-toast info';
     toast.textContent = 'Thanks for the report! Your feedback has been logged for review.';
+  }
+}
+
+function openInquiryForm(barcode, product, rule, submittedBin, aiExplanation, aiWhy) {
+  const escalateBtn = document.getElementById('btn-inquiry-escalate');
+  if (escalateBtn) escalateBtn.style.display = 'none';
+
+  const existing = document.getElementById('inquiry-form-wrap');
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'inquiry-form-wrap';
+  wrap.className = 'inquiry-form';
+  wrap.innerHTML = `
+    <p>Tell us why the AI classification is wrong and we'll send it to an AlburyCity waste expert for review.</p>
+    <textarea class="inquiry-reason" id="inquiry-reason-text" placeholder="e.g. This is a plastic roll-on bottle that should go in the yellow recycling bin — the ARL label on the product says Bottle → Recycle." rows="3"></textarea>
+    <button class="btn-inquiry-submit" onclick="submitInquiry('${barcode||''}','${(product?.product_name||'').replace(/'/g,"\\'")}','${rule.bin}','${submittedBin}')">Submit for Admin Review</button>
+    <button class="btn-inquiry-cancel" onclick="closeInquiryForm()">Cancel</button>
+  `;
+  const toast = document.getElementById('flag-toast');
+  toast.insertAdjacentElement('afterend', wrap);
+  setTimeout(() => document.getElementById('inquiry-reason-text')?.focus(), 50);
+}
+
+function closeInquiryForm() {
+  const wrap = document.getElementById('inquiry-form-wrap');
+  if (wrap) wrap.remove();
+  const btn = document.getElementById('btn-inquiry-escalate');
+  if (btn) btn.style.display = '';
+}
+
+async function submitInquiry(barcode, productName, originalBin, suggestedBin) {
+  const reasonEl = document.getElementById('inquiry-reason-text');
+  const reason   = (reasonEl?.value || '').trim();
+  const submitBtn = document.querySelector('.btn-inquiry-submit');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
+
+  try {
+    const container = document.getElementById('feedback-widget-container');
+    const product   = container?._product || null;
+    const flagExpl  = document.getElementById('flag-explanation')?.value || '';
+
+    await db.collection('classification_inquiries').add({
+      barcode:        barcode || null,
+      productName:    productName || product?.product_name || null,
+      productBrand:   product?.brands || null,
+      originalBin,
+      suggestedBin,
+      userExplanation: reason || flagExpl || null,
+      sessionId:      SESSION_ID,
+      status:         'pending',
+      submittedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent:      navigator.userAgent.slice(0, 200)
+    });
+
+    const wrap = document.getElementById('inquiry-form-wrap');
+    if (wrap) {
+      wrap.innerHTML = '<p style="color:#1B5E20;font-weight:700;text-align:center;padding:6px 0">✅ Submitted! An AlburyCity waste expert will review this.</p>';
+    }
+    const btn = document.getElementById('btn-inquiry-escalate');
+    if (btn) btn.style.display = 'none';
+  } catch (e) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Admin Review'; }
+    alert('Could not submit — check your connection and try again.');
   }
 }
 
