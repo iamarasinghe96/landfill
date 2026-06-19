@@ -443,7 +443,7 @@
             <th>Date</th>
             <th>Product / Barcode</th>
             <th>Original Bin</th>
-            <th>AI Suggested</th>
+            <th>User Suggested</th>
             <th>User Explanation</th>
             <th>Status</th>
             <th>Actions</th>
@@ -609,8 +609,15 @@
     const isPending  = !inq.status || inq.status === 'pending';
     const ref        = inq.id.slice(0, 8).toUpperCase();
     const date       = formatDate(inq.submittedAt);
-    const explanation = inq.userExplanation
-      ? `<div class="explanation-cell">${escHtml(inq.userExplanation)}</div>`
+    const photoEl = inq.photoUrl
+      ? `<a href="${escHtml(inq.photoUrl)}" target="_blank" rel="noopener" title="View photo">
+           <img src="${escHtml(inq.photoUrl)}" alt="User photo"
+             style="width:54px;height:40px;object-fit:cover;border-radius:5px;display:block;margin-top:6px;border:1px solid var(--border)">
+         </a>`
+      : '';
+
+    const explanation = (inq.userExplanation || inq.photoUrl)
+      ? `<div class="explanation-cell">${inq.userExplanation ? escHtml(inq.userExplanation) : ''}${photoEl}</div>`
       : '<span style="color:var(--text-sm);font-size:12px">—</span>';
 
     const productCell = `
