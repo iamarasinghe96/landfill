@@ -2592,6 +2592,16 @@ async function doSubmitFeedback(barcode, isAI) {
     toast.style.display = 'block';
     toast.className     = 'flag-toast info';
     toast.textContent   = 'The current classification is already correct — no change made. Thanks for checking!';
+    // Still offer escalation in case they're trying to flag the secondary component or disagree with the product type
+    const existingBtn = document.getElementById('btn-inquiry-escalate');
+    if (!existingBtn) {
+      const btn = document.createElement('button');
+      btn.id        = 'btn-inquiry-escalate';
+      btn.className = 'btn-inquiry';
+      btn.textContent = 'Still think something is wrong? Submit an inquiry ›';
+      btn.onclick = () => openInquiryForm(barcode, product, rule, submittedBin, explanation, '');
+      toast.insertAdjacentElement('afterend', btn);
+    }
     return;
   }
 
