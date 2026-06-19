@@ -2754,6 +2754,8 @@ async function submitInquiry(barcode, productName, originalBin, suggestedBin) {
 
   const subject = `Waste Classification Inquiry — Case #${caseNumber}`;
   const bodyLines = [
+    '*** PLEASE ATTACH A PHOTO OF THE ITEM TO THIS EMAIL BEFORE SENDING ***',
+    '',
     `Case Number: ${caseNumber}`,
     '',
     'Item details',
@@ -2764,8 +2766,6 @@ async function submitInquiry(barcode, productName, originalBin, suggestedBin) {
     '',
     'My explanation',
     reason,
-    '',
-    '— Please attach a photo of the item to this email before sending. —',
     '',
     'Sent from the AlburyCity Waste Identifier'
   ];
