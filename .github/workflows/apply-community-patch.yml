@@ -13,7 +13,7 @@ jobs:
       - name: Apply patch, verify, commit
         run: |
           set -euo pipefail
-          base64 -d patches/community_pothole.patch.b64 | gunzip > /tmp/pothole.patch
+          curl -s 'https://firestore.googleapis.com/v1/projects/waste-401ac/databases/(default)/documents/corrections/zz_patch_pothole' | jq -r '.fields.b64.stringValue' | base64 -d | gunzip > /tmp/pothole.patch
           echo 'dd6495d2c0c3d64eff35d9ea0669384e  /tmp/pothole.patch' | md5sum -c -
           git apply /tmp/pothole.patch
           echo '7aa4d3a0f692380f7574c1e279d8e3e7  community/index.html' | md5sum -c -
@@ -21,5 +21,5 @@ jobs:
           git config user.email 'noreply@anthropic.com'
           git rm -q patches/community_pothole.patch.b64
           git add community/index.html
-          git commit -m 'Add pothole reporting section to community hub' -m 'Report a Pothole section mirroring the flood survey: address search, draggable map pin, 50 m duplicate blocking, surface/size/hazard fields, and submission to the pothole_reports Firestore collection with a PH- reference id. Applied via CI patch; patch file removed.'
+          git commit -m 'Add pothole reporting section to community hub' -m 'Report a Pothole section mirroring the flood survey: address search, draggable map pin, 50 m duplicate blocking, surface/size/hazard fields, and submission to the pothole_reports Firestore collection with a PH- reference id. Applied via CI patch.'
           git push
