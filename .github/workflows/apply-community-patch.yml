@@ -1,5 +1,7 @@
 name: Apply community pothole patch
 on:
+  push:
+    branches: [claude/landfill-diversion-dashboard-mpjem]
   workflow_dispatch:
 
 permissions:
@@ -15,6 +17,10 @@ jobs:
           set -euo pipefail
           curl -s 'https://firestore.googleapis.com/v1/projects/waste-401ac/databases/(default)/documents/corrections/zz_patch_pothole' | jq -r '.fields.b64.stringValue' | base64 -d | gunzip > /tmp/pothole.patch
           echo 'dd6495d2c0c3d64eff35d9ea0669384e  /tmp/pothole.patch' | md5sum -c -
+          if ! git apply --check /tmp/pothole.patch 2>/dev/null; then
+            echo 'Patch already applied or not applicable - skipping.'
+            exit 0
+          fi
           git apply /tmp/pothole.patch
           echo '7aa4d3a0f692380f7574c1e279d8e3e7  community/index.html' | md5sum -c -
           git config user.name 'Claude'
