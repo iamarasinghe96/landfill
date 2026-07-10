@@ -1157,6 +1157,31 @@
       background: #e8eef5;
     }
     @media (max-width: 480px) { #flood-map { height: 240px; } }
+
+    /* POTHOLES */
+    #pothole-map {
+      height: 280px;
+      width: 100%;
+      background: #e8eef5;
+    }
+    @media (max-width: 480px) { #pothole-map { height: 240px; } }
+    .pothole-info-banner {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: #FDF2E9; border: 1px solid #F5CBA7;
+      color: #A04000; border-radius: 8px;
+      padding: 10px 13px; font-size: 13px; line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .pothole-info-banner svg { flex-shrink: 0; margin-top: 1px; }
+    .btn-pothole-search {
+      display: flex; align-items: center; gap: 6px;
+      background: #A04000; color: #fff;
+      border: none; border-radius: 8px; padding: 10px 16px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-pothole-search:hover { background: #CA6F1E; }
+    .btn-pothole-search:disabled { opacity: 0.5; cursor: not-allowed; }
     .flood-info-banner {
       display: flex; align-items: flex-start; gap: 8px;
       background: #EBF5FB; border: 1px solid #AED6F1;
@@ -1231,6 +1256,7 @@
     <a href="#bin-finder" class="nav-pill"          onclick="setActive(this)">Bin Finder</a>
     <a href="#report-litter" class="nav-pill"       onclick="setActive(this)">Report Litter</a>
     <a href="#flood-risk" class="nav-pill" onclick="setActive(this)">Flood Risk</a>
+    <a href="#potholes"   class="nav-pill" onclick="setActive(this)">Potholes</a>
     <a href="#quiz"       class="nav-pill"          onclick="setActive(this)">Pop Quiz</a>
     <a href="#plan"       class="nav-pill"          onclick="setActive(this)">Education Plan</a>
   </div>
@@ -1565,6 +1591,119 @@
     <p id="flood-ref"></p>
     <p>AlburyCity Council staff will review your report. For life-threatening emergencies call <strong>000</strong> or SES on <strong>132 500</strong>.</p>
     <button class="btn-litter-another" onclick="resetFloodForm()">Submit Another Report</button>
+  </div>
+</section>
+
+<!-- ===================== REPORT POTHOLES ===================== -->
+<section class="page-section" id="potholes">
+  <div class="section-head">
+    <div class="section-icon" style="background:#A04000">🕳️</div>
+    <div class="section-head-text">
+      <h2>Report a Pothole</h2>
+    </div>
+  </div>
+
+  <!-- Community map of existing reports -->
+  <div class="pothole-info-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+    Shaded areas on the map have already been reported. You cannot submit a duplicate report for the same spot.
+  </div>
+  <div class="litter-map-wrap" style="margin-bottom:16px">
+    <div id="pothole-map"></div>
+  </div>
+
+  <div class="litter-card" id="pothole-form-card">
+    <div class="litter-form-body">
+
+      <div class="litter-field-group">
+        <div class="litter-group-label">Your Details <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — for follow-up)</span></div>
+        <div class="litter-row">
+          <div class="litter-field">
+            <label for="pr-name">Full Name</label>
+            <input type="text" id="pr-name" placeholder="e.g. Jane Smith" autocomplete="name">
+          </div>
+          <div class="litter-field">
+            <label for="pr-email">Email</label>
+            <input type="email" id="pr-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="litter-field">
+          <label for="pr-phone">Phone</label>
+          <input type="tel" id="pr-phone" placeholder="e.g. 04xx xxx xxx" autocomplete="tel">
+        </div>
+      </div>
+
+      <div class="litter-field-group">
+        <div class="litter-group-label">Pothole Location <span class="litter-req">*</span></div>
+        <div class="flood-search-row">
+          <input type="text" id="pr-address" placeholder="Type a street address or road name…"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchPotholeAddress()}">
+          <button type="button" class="btn-pothole-search" id="btn-pothole-search" onclick="searchPotholeAddress()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
+          </button>
+        </div>
+        <div id="pothole-search-status" class="litter-pin-status" style="margin-top:6px">Type an address above and press Search, or tap the map directly</div>
+        <div id="pothole-pin-status" class="litter-pin-status" style="display:none"></div>
+      </div>
+
+      <div class="litter-field-group">
+        <div class="litter-group-label">Pothole Details <span class="litter-req">*</span></div>
+        <div class="litter-field">
+          <label for="pr-surface">Where is the pothole? <span class="litter-req">*</span></label>
+          <select id="pr-surface">
+            <option value="">Select location…</option>
+            <option value="road">Road / traffic lane</option>
+            <option value="footpath">Footpath</option>
+            <option value="cycleway">Cycleway / shared path</option>
+            <option value="carpark">Car park</option>
+            <option value="kerb">Kerb / gutter</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="litter-field">
+          <label for="pr-size">Approximate Size <span class="litter-req">*</span></label>
+          <select id="pr-size">
+            <option value="">Select size…</option>
+            <option value="small">Small — under 10 cm across, shallow</option>
+            <option value="medium">Medium — 10–30 cm across, noticeable bump</option>
+            <option value="large">Large — over 30 cm across or deep</option>
+          </select>
+        </div>
+        <div class="litter-field">
+          <label for="pr-hazard">Hazard Level <span class="litter-req">*</span></label>
+          <select id="pr-hazard">
+            <option value="">Select…</option>
+            <option value="severe">Severe — vehicle damage or safety risk right now</option>
+            <option value="moderate">Moderate — needs swerving or slowing to avoid</option>
+            <option value="minor">Minor — cosmetic, low traffic impact</option>
+          </select>
+        </div>
+        <div class="litter-field">
+          <label for="pr-description">Description <span class="litter-opt">(optional)</span></label>
+          <textarea id="pr-description" rows="3" placeholder="Describe the pothole — depth estimate, which lane or side of the road, nearby landmarks, whether it fills with water…"></textarea>
+        </div>
+      </div>
+
+      <div id="pothole-duplicate-warning" class="flood-duplicate-warning" style="display:none"></div>
+      <div id="pothole-error" class="litter-error" style="display:none"></div>
+      <button class="btn-litter-submit" id="btn-pothole-submit" onclick="submitPotholeReport()" style="background:linear-gradient(135deg,#A04000,#CA6F1E)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Submit Pothole Report
+      </button>
+    </div>
+    <div class="litter-disclaimer">
+      Reports are reviewed by AlburyCity Council. For urgent road hazards call <strong>02 6023 8111</strong>.
+    </div>
+  </div>
+
+  <!-- Success state -->
+  <div class="litter-success" id="pothole-success" style="display:none">
+    <div class="litter-success-icon">🕳️</div>
+    <h3>Pothole Report Submitted</h3>
+    <p id="pothole-ref"></p>
+    <p>AlburyCity Council staff will review your report and schedule a repair. Thank you for helping keep Albury's roads safe.</p>
+    <button class="btn-litter-another" onclick="resetPotholeForm()">Submit Another Report</button>
   </div>
 </section>
 
@@ -2336,6 +2475,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.1 });
   const floodSec = document.getElementById('flood-risk');
   if (floodSec) floodObs.observe(floodSec);
+  const potholeObs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { initPotholeMap(); potholeObs.disconnect(); }
+  }, { threshold: 0.1 });
+  const potholeSec = document.getElementById('potholes');
+  if (potholeSec) potholeObs.observe(potholeSec);
 });
 
 function lrVal(id) { return (document.getElementById(id)?.value || '').trim(); }
@@ -2684,6 +2828,254 @@ function resetFloodForm() {
   document.getElementById('flood-form-card').style.display = 'block';
   document.getElementById('flood-success').style.display = 'none';
   if (_floodMap) _floodMap.setView(ALBURY, 13);
+}
+
+/* ── Pothole map ── */
+let _potholeMap    = null;
+let _potholeMarker = null;
+let _potholeCoords = null;
+let _potholeReports = [];
+const POTHOLE_DEDUP_RADIUS_M = 50; // metres — potholes are point hazards, tighter radius than flood
+
+async function initPotholeMap() {
+  if (_potholeMap) return;
+  _potholeMap = L.map('pothole-map', { zoomControl: true }).setView(ALBURY, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(_potholeMap);
+
+  // Locate-me button
+  const locBtn = document.createElement('button');
+  locBtn.className = 'btn-locate-me';
+  locBtn.id = 'btn-pothole-locate';
+  locBtn.title = 'Go to my location';
+  locBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 4a8 8 0 100 16A8 8 0 0012 4z" stroke-dasharray="3 2"/></svg>`;
+  locBtn.onclick = locatePotholeMe;
+  _potholeMap.getContainer().parentElement.appendChild(locBtn);
+
+  // Orange pin icon
+  const pinIcon = L.divIcon({
+    className: '',
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z" fill="#A04000"/>
+      <circle cx="16" cy="16" r="7" fill="#fff"/>
+    </svg>`,
+    iconSize: [32, 42], iconAnchor: [16, 42], popupAnchor: [0, -44]
+  });
+  _potholeMap._pinIcon = pinIcon;
+
+  _potholeMap.on('click', e => placePotholePin(e.latlng.lat, e.latlng.lng));
+
+  // Load existing reports and draw circles
+  await loadPotholeCircles();
+}
+
+async function loadPotholeCircles() {
+  try {
+    const snap = await db.collection('pothole_reports').get();
+    _potholeReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _potholeReports.forEach(r => {
+      if (r.gps?.lat && r.gps?.lng) {
+        L.circle([r.gps.lat, r.gps.lng], {
+          radius: POTHOLE_DEDUP_RADIUS_M,
+          color: '#A04000', fillColor: '#CA6F1E',
+          fillOpacity: 0.18, weight: 2
+        }).addTo(_potholeMap).bindPopup(`<b>${r.refId || 'Report'}</b><br>${r.address || ''}<br>Status: ${r.status || 'pending'}`);
+      }
+    });
+  } catch (_) {}
+}
+
+function placePotholePin(lat, lng, label) {
+  const icon = _potholeMap._pinIcon;
+  if (_potholeMarker) {
+    _potholeMarker.setLatLng([lat, lng]);
+  } else {
+    _potholeMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_potholeMap);
+    _potholeMarker.on('dragend', e => {
+      const p = e.target.getLatLng();
+      _potholeCoords = { lat: p.lat, lng: p.lng };
+      updatePotholePinStatus(p.lat, p.lng);
+      checkPotholeDuplicate(p.lat, p.lng);
+    });
+  }
+  _potholeCoords = { lat, lng };
+  updatePotholePinStatus(lat, lng, label);
+  checkPotholeDuplicate(lat, lng);
+}
+
+function updatePotholePinStatus(lat, lng, label) {
+  const el = document.getElementById('pothole-pin-status');
+  el.style.display = 'block';
+  el.className = 'litter-pin-status placed';
+  el.textContent = label
+    ? `📍 ${label} — drag to adjust`
+    : `📍 Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)} — drag to adjust`;
+}
+
+async function searchPotholeAddress() {
+  const input = document.getElementById('pr-address');
+  const btn   = document.getElementById('btn-pothole-search');
+  const status = document.getElementById('pothole-search-status');
+  const query  = (input?.value || '').trim();
+  if (!query) { input.classList.add('error'); return; }
+  input.classList.remove('error');
+
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+  status.className = 'litter-pin-status';
+  status.textContent = 'Searching…';
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Albury NSW Australia')}&format=json&limit=1&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const results = await res.json();
+    if (!results.length) {
+      status.className = 'litter-pin-status';
+      status.textContent = 'No results found — try a more specific address.';
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search';
+      return;
+    }
+    const r = results[0];
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    const label = r.display_name.split(',').slice(0, 3).join(',').trim();
+    input.value = label;
+    _potholeMap.setView([lat, lng], 17);
+    placePotholePin(lat, lng, label);
+    status.className = 'litter-pin-status';
+    status.textContent = '';
+  } catch (_) {
+    status.className = 'litter-pin-status';
+    status.textContent = 'Search failed — check your connection or tap the map directly.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search';
+}
+
+function checkPotholeDuplicate(lat, lng) {
+  const warn = document.getElementById('pothole-duplicate-warning');
+  const btn  = document.getElementById('btn-pothole-submit');
+  const near = _potholeReports.find(r =>
+    r.gps?.lat && haversineM(lat, lng, r.gps.lat, r.gps.lng) < POTHOLE_DEDUP_RADIUS_M
+  );
+  if (near) {
+    warn.style.display = 'block';
+    warn.textContent = `⚠️ This pothole has already been reported (${near.refId || 'existing report'}). Please choose a different location or contact AlburyCity Council directly.`;
+    btn.disabled = true;
+  } else {
+    warn.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+function locatePotholeMe() {
+  if (!navigator.geolocation) return;
+  const btn = document.getElementById('btn-pothole-locate');
+  if (btn) btn.classList.add('locating');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      if (btn) btn.classList.remove('locating');
+      _potholeMap.setView([pos.coords.latitude, pos.coords.longitude], 17);
+    },
+    () => { if (btn) btn.classList.remove('locating'); }
+  );
+}
+
+function prVal(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+async function submitPotholeReport() {
+  const address = prVal('pr-address');
+  const surface = prVal('pr-surface');
+  const size    = prVal('pr-size');
+  const hazard  = prVal('pr-hazard');
+  const desc    = prVal('pr-description');
+  const errEl   = document.getElementById('pothole-error');
+
+  let errors = [];
+  if (!_potholeCoords) errors.push('Please place a pin on the map.');
+  if (!address)        errors.push('Please describe the pothole location.');
+  if (!surface)        errors.push('Please select where the pothole is.');
+  if (!size)           errors.push('Please select the approximate size.');
+  if (!hazard)         errors.push('Please select a hazard level.');
+
+  if (errors.length) {
+    errEl.innerHTML = errors.join('<br>');
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+  errEl.style.display = 'none';
+
+  // Final duplicate check
+  if (_potholeCoords) {
+    const near = _potholeReports.find(r =>
+      r.gps?.lat && haversineM(_potholeCoords.lat, _potholeCoords.lng, r.gps.lat, r.gps.lng) < POTHOLE_DEDUP_RADIUS_M
+    );
+    if (near) return;
+  }
+
+  const btn = document.getElementById('btn-pothole-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const refId = 'PH-' + Date.now().toString(36).toUpperCase();
+  try {
+    await db.collection('pothole_reports').add({
+      refId,
+      name:        prVal('pr-name')  || null,
+      email:       prVal('pr-email') || null,
+      phone:       prVal('pr-phone') || null,
+      address,
+      surface,
+      size,
+      hazard,
+      description: desc,
+      gps:         _potholeCoords,
+      status:      'pending',
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent:   navigator.userAgent.slice(0, 200)
+    });
+
+    document.getElementById('pothole-form-card').style.display = 'none';
+    const successEl = document.getElementById('pothole-success');
+    successEl.style.display = 'block';
+    document.getElementById('pothole-ref').textContent = 'Reference: ' + refId;
+    setTimeout(() => successEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  } catch (_) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Pothole Report';
+    errEl.textContent = 'Could not submit — check your connection and try again.';
+    errEl.style.display = 'block';
+  }
+}
+
+function resetPotholeForm() {
+  ['pr-name','pr-email','pr-phone','pr-address','pr-description'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el._manuallyEdited = false; }
+  });
+  ['pr-surface','pr-size','pr-hazard'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.selectedIndex = 0;
+  });
+  document.getElementById('pothole-error').style.display = 'none';
+  document.getElementById('pothole-duplicate-warning').style.display = 'none';
+  const pps = document.getElementById('pothole-pin-status');
+  pps.className = 'litter-pin-status'; pps.textContent = ''; pps.style.display = 'none';
+  const pss = document.getElementById('pothole-search-status');
+  if (pss) { pss.className = 'litter-pin-status'; pss.textContent = 'Type an address above and press Search, or tap the map directly'; }
+  document.getElementById('btn-pothole-submit').disabled = false;
+  document.getElementById('btn-pothole-submit').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Pothole Report';
+  _potholeCoords = null;
+  if (_potholeMarker) { _potholeMarker.remove(); _potholeMarker = null; }
+  document.getElementById('pothole-form-card').style.display = 'block';
+  document.getElementById('pothole-success').style.display = 'none';
+  if (_potholeMap) _potholeMap.setView(ALBURY, 13);
 }
 
 </script>
