@@ -256,8 +256,9 @@
       flex-shrink: 0;
       margin-top: 1px;
     }
-    .ri-type-icon.litter { background: #FDECEA; }
-    .ri-type-icon.flood  { background: #EAF2FF; }
+    .ri-type-icon.litter  { background: #FDECEA; }
+    .ri-type-icon.flood   { background: #EAF2FF; }
+    .ri-type-icon.pothole { background: #FDF2E9; }
     .ri-body { flex: 1; min-width: 0; }
     .ri-top {
       display: flex;
@@ -416,8 +417,9 @@
       align-items: center;
       gap: 8px;
     }
-    .popup-header.litter { background: #FDECEA; }
-    .popup-header.flood  { background: #EAF2FF; }
+    .popup-header.litter  { background: #FDECEA; }
+    .popup-header.flood   { background: #EAF2FF; }
+    .popup-header.pothole { background: #FDF2E9; }
     .popup-icon { font-size: 18px; }
     .popup-ref  { font-weight: 700; font-size: 13px; color: var(--navy); flex: 1; }
     .popup-body { padding: 10px 14px; }
@@ -561,6 +563,9 @@
           <button class="type-tab" id="tab-flood"  onclick="setTab('flood')">
             🌊 Flood <span class="tab-count" id="tc-flood">0</span>
           </button>
+          <button class="type-tab" id="tab-pothole" onclick="setTab('pothole')">
+            🕳️ Potholes <span class="tab-count" id="tc-pothole">0</span>
+          </button>
         </div>
       </div>
       <!-- Secondary filters -->
@@ -587,6 +592,7 @@
             <div class="export-menu" id="export-menu">
               <button class="export-opt" onclick="exportLitterCSV()">🚨 Litter Reports (.csv)</button>
               <button class="export-opt" onclick="exportFloodCSV()">🌊 Flood Reports (.csv)</button>
+              <button class="export-opt" onclick="exportPotholeCSV()">🕳️ Pothole Reports (.csv)</button>
             </div>
           </div>
         </div>
@@ -646,6 +652,7 @@
       <div style="border-top:1px solid #eee;margin:7px 0"></div>
       <div class="legend-row"><div class="legend-dot" style="background:#E74C3C;border-radius:3px"></div> Litter</div>
       <div class="legend-row"><div class="legend-dot" style="background:#2471A3;border-radius:3px"></div> Flood</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#CA6F1E;border-radius:3px;transform:rotate(45deg)"></div> Pothole</div>
     </div>
   </div>
 
@@ -721,12 +728,23 @@ const FLOOD_TYPE_LABELS = {
 };
 const FLOOD_SEVERITY_LABELS = { minor:'Minor', moderate:'Moderate', severe:'Severe' };
 const FLOOD_ACTIVE_LABELS   = { yes:'Active now', recent:'Last 48 hrs', risk:'Risk area' };
+const POTHOLE_SURFACE_LABELS = {
+  road:     'Road / Traffic Lane',
+  footpath: 'Footpath',
+  cycleway: 'Cycleway / Shared Path',
+  carpark:  'Car Park',
+  kerb:     'Kerb / Gutter',
+  other:    'Other'
+};
+const POTHOLE_SIZE_LABELS   = { small:'Small (<10 cm)', medium:'Medium (10–30 cm)', large:'Large (>30 cm)' };
+const POTHOLE_HAZARD_LABELS = { minor:'Minor', moderate:'Moderate', severe:'Severe' };
 
 /* ══════════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════════ */
 let _litter       = [];
 let _flood        = [];
+let _pothole      = [];
 let _activeTab    = 'all';
 let _page         = 1;
 let _pageSize     = 10;
@@ -758,19 +776,26 @@ function rebuildMarkers() {
   _markers = {};
 
   const all = [
-    ..._litter.map(r => ({...r, _kind:'litter'})),
-    ..._flood .map(r => ({...r, _kind:'flood'}))
+    ..._litter .map(r => ({...r, _kind:'litter'})),
+    ..._flood  .map(r => ({...r, _kind:'flood'})),
+    ..._pothole.map(r => ({...r, _kind:'pothole'}))
   ];
 
   all.forEach(r => {
     if (!r.gps?.lat) return;
     const color = statusColor(r);
-    const isFlood = r._kind === 'flood';
-    // Litter = circle, Flood = rounded square (via iconAnchor trick with divIcon)
-    const marker = isFlood
+    // Litter = circle, Flood = rounded square, Pothole = diamond (rotated square)
+    const marker = r._kind === 'flood'
       ? L.marker([r.gps.lat, r.gps.lng], {
           icon: L.divIcon({
             html: `<div style="width:18px;height:18px;background:${color};border:2.5px solid rgba(0,0,0,0.2);border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.25)"></div>`,
+            iconSize: [18,18], iconAnchor: [9,9], className: ''
+          })
+        })
+      : r._kind === 'pothole'
+      ? L.marker([r.gps.lat, r.gps.lng], {
+          icon: L.divIcon({
+            html: `<div style="width:16px;height:16px;background:${color};border:2.5px solid rgba(0,0,0,0.2);border-radius:3px;transform:rotate(45deg);box-shadow:0 2px 6px rgba(0,0,0,0.25)"></div>`,
             iconSize: [18,18], iconAnchor: [9,9], className: ''
           })
         })
@@ -794,15 +819,22 @@ function rebuildMarkers() {
 }
 
 function buildPopupHtml(r) {
-  const isFlood = r._kind === 'flood';
+  const isFlood   = r._kind === 'flood';
+  const isPothole = r._kind === 'pothole';
   const ref   = escH(r.refId || r.id.slice(0,8).toUpperCase());
   const name  = escH(r.name  || '—');
   const addr  = escH(r.address || '—');
   const type  = isFlood
     ? escH(FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—')
+    : isPothole
+    ? escH(POTHOLE_SURFACE_LABELS[r.surface] || r.surface || '—')
     : escH(LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—');
+  const warnSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   const sevLine = isFlood && r.severity
-    ? `<div class="popup-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${escH(FLOOD_SEVERITY_LABELS[r.severity]||r.severity)}</div>` : '';
+    ? `<div class="popup-row">${warnSvg}${escH(FLOOD_SEVERITY_LABELS[r.severity]||r.severity)}</div>`
+    : isPothole && (r.size || r.hazard)
+    ? `<div class="popup-row">${warnSvg}${escH(POTHOLE_SIZE_LABELS[r.size]||r.size||'—')} · ${escH(POTHOLE_HAZARD_LABELS[r.hazard]||r.hazard||'—')} hazard</div>`
+    : '';
   const desc = r.description ? `<div class="popup-row" style="color:#555;font-size:11.5px">${escH(r.description.slice(0,120))}${r.description.length>120?'…':''}</div>` : '';
   const date = r.submittedAt?.seconds
     ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
@@ -820,12 +852,15 @@ function buildPopupHtml(r) {
   const actions = isFlood
     ? `<button class="popup-btn popup-btn-engage ${engagedDone?'':''}${engagedDone?'done':''}" ${engagedDone?'disabled':''} onclick="markFloodEngaged('${r.id}',this)">✓ Engaged</button>
        <button class="popup-btn popup-btn-dispatch" onclick="dispatchFloodReport('${r.id}')">✉ Dispatch</button>`
+    : isPothole
+    ? `<button class="popup-btn popup-btn-attend ${attendedDone?'done':''}" ${attendedDone?'disabled':''} onclick="markPotholeAttended('${r.id}',this)">✓ Attended</button>
+       <button class="popup-btn popup-btn-dispatch" onclick="dispatchPotholeReport('${r.id}')">✉ Dispatch</button>`
     : `<button class="popup-btn popup-btn-attend ${attendedDone?'done':''}" ${attendedDone?'disabled':''} onclick="markAttended('${r.id}',this)">✓ Attended</button>
        <button class="popup-btn popup-btn-dispatch" onclick="dispatchReport('${r.id}')">✉ Dispatch</button>`;
 
   return `<div class="popup-card">
-    <div class="popup-header ${isFlood?'flood':'litter'}">
-      <span class="popup-icon">${isFlood?'🌊':'🚨'}</span>
+    <div class="popup-header ${isFlood?'flood':isPothole?'pothole':'litter'}">
+      <span class="popup-icon">${isFlood?'🌊':isPothole?'🕳️':'🚨'}</span>
       <span class="popup-ref">${ref}</span>
       ${badge}
     </div>
@@ -867,11 +902,18 @@ async function loadFloodReports() {
   } catch(e) { console.error('flood load:', e); }
 }
 
+async function loadPotholeReports() {
+  try {
+    const snap = await fdb.collection('pothole_reports').orderBy('submittedAt','desc').limit(500).get();
+    _pothole = snap.docs.map(d => ({...d.data(), id:d.id, _kind:'pothole'}));
+  } catch(e) { console.error('pothole load:', e); }
+}
+
 async function refreshAll() {
   g('list-loading').textContent = 'Loading reports…';
   g('list-loading').style.display = 'block';
   g('report-list').innerHTML = '<div class="list-state" id="list-loading">Loading reports…</div>';
-  await Promise.all([loadComplaints(), loadFloodReports()]);
+  await Promise.all([loadComplaints(), loadFloodReports(), loadPotholeReports()]);
   renderAll();
   showToast('Refreshed', 'success', 2500);
 }
@@ -882,7 +924,7 @@ async function refreshAll() {
 function setTab(tab) {
   _activeTab = tab;
   _page = 1;
-  ['all','litter','flood'].forEach(t => {
+  ['all','litter','flood','pothole'].forEach(t => {
     g('tab-'+t).classList.toggle('active', t === tab);
   });
   renderList();
@@ -890,9 +932,10 @@ function setTab(tab) {
 
 function getFiltered() {
   const statusFilter = g('status-filter').value;
-  let pool = _activeTab === 'litter' ? _litter
-           : _activeTab === 'flood'  ? _flood
-           : [..._litter, ..._flood];
+  let pool = _activeTab === 'litter'  ? _litter
+           : _activeTab === 'flood'   ? _flood
+           : _activeTab === 'pothole' ? _pothole
+           : [..._litter, ..._flood, ..._pothole];
   // Sort newest first
   pool = pool.slice().sort((a,b) => {
     const ta = a.submittedAt?.seconds || 0;
@@ -916,12 +959,13 @@ function renderList() {
   const page  = filtered.slice(start, end);
 
   // Update tab counts
-  g('tc-all').textContent    = _litter.length + _flood.length;
-  g('tc-litter').textContent = _litter.length;
-  g('tc-flood').textContent  = _flood.length;
+  g('tc-all').textContent     = _litter.length + _flood.length + _pothole.length;
+  g('tc-litter').textContent  = _litter.length;
+  g('tc-flood').textContent   = _flood.length;
+  g('tc-pothole').textContent = _pothole.length;
 
   // Stats
-  const allPool = [..._litter,..._flood];
+  const allPool = [..._litter,..._flood,..._pothole];
   g('st-total').textContent     = allPool.length;
   g('st-pending').textContent   = allPool.filter(r => !r.status || r.status === 'pending').length;
   g('st-attended').textContent  = allPool.filter(r => r.status === 'attended' || r.status === 'engaged').length;
@@ -938,11 +982,14 @@ function renderList() {
   }
 
   g('report-list').innerHTML = page.map(r => {
-    const isFlood = r._kind === 'flood';
+    const isFlood   = r._kind === 'flood';
+    const isPothole = r._kind === 'pothole';
     const ref   = r.refId || r.id.slice(0,8).toUpperCase();
     const addr  = r.address || '—';
     const type  = isFlood
       ? (FLOOD_TYPE_LABELS[r.floodType] || r.floodType || '—')
+      : isPothole
+      ? (POTHOLE_SURFACE_LABELS[r.surface] || r.surface || '—')
       : (LITTER_TYPE_LABELS[r.litterType] || r.litterType || '—');
     const date = r.submittedAt?.seconds
       ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
@@ -956,7 +1003,7 @@ function renderList() {
 
     const isActive = _activeId === r.id;
     return `<div class="report-item ${isActive?'active':''}" onclick="setActive('${r.id}',true)" id="li-${r.id}">
-      <div class="ri-type-icon ${isFlood?'flood':'litter'}">${isFlood?'🌊':'🚨'}</div>
+      <div class="ri-type-icon ${isFlood?'flood':isPothole?'pothole':'litter'}">${isFlood?'🌊':isPothole?'🕳️':'🚨'}</div>
       <div class="ri-body">
         <div class="ri-top">
           <span class="ri-ref">${escH(ref)}</span>
@@ -1059,6 +1106,47 @@ function dispatchReport(id) {
   });
 }
 
+async function markPotholeAttended(id, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await fdb.collection('pothole_reports').doc(id).update({ status:'attended' });
+    const r = _pothole.find(x => x.id === id);
+    if (r) r.status = 'attended';
+    renderAll();
+    showToast('✅ Marked as attended', 'success', 3000);
+  } catch(_) {
+    btn.disabled = false; btn.textContent = '✓ Attended';
+    showToast('Could not update — check connection', 'error');
+  }
+}
+
+function dispatchPotholeReport(id) {
+  const r = _pothole.find(x => x.id === id);
+  if (!r) return;
+  const date = r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : 'Unknown';
+  const mapUrl = r.gps ? `https://maps.google.com/?q=${r.gps.lat},${r.gps.lng}`
+    : r.address ? `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address+', Albury NSW')}` : 'N/A';
+  const msg = [
+    `POTHOLE REPORT — ${r.refId||r.id}`, `Date: ${date}`, ``,
+    `REPORTER`, `Name:  ${r.name||'—'}`, `Email: ${r.email||'—'}`, `Phone: ${r.phone||'—'}`, ``,
+    `LOCATION`, `Address: ${r.address||'—'}`,
+    `GPS:     ${r.gps?`${r.gps.lat}, ${r.gps.lng}`:'Not captured'}`, `Map:     ${mapUrl}`, ``,
+    `POTHOLE DETAILS`, `Surface: ${POTHOLE_SURFACE_LABELS[r.surface]||r.surface||'—'}`,
+    `Size:    ${POTHOLE_SIZE_LABELS[r.size]||r.size||'—'}`,
+    `Hazard:  ${POTHOLE_HAZARD_LABELS[r.hazard]||r.hazard||'—'}`,
+    `Description:`, r.description||'—', ``, `Status: ${(r.status||'pending').toUpperCase()}`
+  ].join('\n');
+  navigator.clipboard.writeText(msg).then(() => {
+    fdb.collection('pothole_reports').doc(r.id).update({ status:'dispatched' }).catch(()=>{});
+    const x = _pothole.find(x => x.id === r.id); if (x) x.status = 'dispatched';
+    renderAll();
+    showToast('📋 Copied — paste into email or SMS', 'success', 4000);
+  }).catch(() => {
+    const w = window.open('','_blank','width=600,height=500');
+    if (w) w.document.write(`<pre style="font-family:monospace;padding:20px;white-space:pre-wrap">${msg.replace(/</g,'&lt;')}</pre>`);
+  });
+}
+
 function dispatchFloodReport(id) {
   const r = _flood.find(x => x.id === id);
   if (!r) return;
@@ -1117,12 +1205,27 @@ function exportFloodCSV() {
   downloadCSV('flood_reports.csv', [h, ...rows]);
 }
 
+function exportPotholeCSV() {
+  const h = ['Ref','Date','Name','Email','Phone','Address','GPS Lat','GPS Lng','Surface','Size','Hazard','Description','Status'];
+  const rows = _pothole.map(r => [
+    r.refId||r.id,
+    r.submittedAt?.seconds ? new Date(r.submittedAt.seconds*1000).toLocaleString('en-AU') : '',
+    r.name||'', r.email||'', r.phone||'', r.address||'',
+    r.gps?.lat||'', r.gps?.lng||'',
+    POTHOLE_SURFACE_LABELS[r.surface]||r.surface||'',
+    POTHOLE_SIZE_LABELS[r.size]||r.size||'',
+    POTHOLE_HAZARD_LABELS[r.hazard]||r.hazard||'',
+    (r.description||'').replace(/"/g,'""'), r.status||'pending'
+  ]);
+  downloadCSV('pothole_reports.csv', [h, ...rows]);
+}
+
 /* ══════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════ */
 initMap();
 (async () => {
-  await Promise.all([loadComplaints(), loadFloodReports()]);
+  await Promise.all([loadComplaints(), loadFloodReports(), loadPotholeReports()]);
   renderAll();
 })();
 </script>
