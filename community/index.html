@@ -1249,7 +1249,8 @@
     <a href="#flood-risk" class="nav-pill" onclick="setActive(this)">Flood Risk</a>
     <a href="#potholes"   class="nav-pill" onclick="setActive(this)">Potholes</a>
     <a href="#quiz"       class="nav-pill"          onclick="setActive(this)">Pop Quiz</a>
-    <a href="#plan"       class="nav-pill"          onclick="setActive(this)">Education Plan</a>
+    <!-- Education Plan deactivated — hidden but retained. To re-enable, remove the style="display:none" here and on the #plan section. -->
+    <a href="#plan"       class="nav-pill"          onclick="setActive(this)" style="display:none">Education Plan</a>
     <a href="diversion/"  class="nav-pill">Current Diversion Info</a>
   </div>
 </nav>
@@ -1745,7 +1746,8 @@
   </section>
 
   <!-- ===================== EDUCATION PLAN ===================== -->
-  <section class="page-section" id="plan">
+  <!-- Education Plan deactivated — hidden but retained. To re-enable, remove style="display:none" here and on the nav pill above. -->
+  <section class="page-section" id="plan" style="display:none">
     <div class="section-head">
       <div class="section-icon">📋</div>
       <div class="section-head-text">
@@ -1975,6 +1977,56 @@ function setActive(el) {
   document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
 }
+
+/* Scroll-spy: keep the nav underline on whichever section is currently in view */
+(function initScrollSpy() {
+  const navEl = document.querySelector('.page-nav');
+
+  function collectEntries() {
+    // Only in-page anchors whose target section is visible (skips deactivated ones like #plan)
+    const entries = [];
+    document.querySelectorAll('.nav-pill').forEach(pill => {
+      const href = pill.getAttribute('href') || '';
+      if (!href.startsWith('#')) return;
+      const sec = document.querySelector(href);
+      if (sec && sec.offsetParent !== null) entries.push({ pill, sec });
+    });
+    return entries;
+  }
+
+  let ticking = false;
+  function update() {
+    ticking = false;
+    const entries = collectEntries();
+    if (!entries.length) return;
+
+    const offset = (navEl ? navEl.offsetHeight : 0) + 24;
+    let currentIdx = 0;
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].sec.getBoundingClientRect().top - offset <= 0) currentIdx = i;
+    }
+
+    document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+    const active = entries[currentIdx].pill;
+    active.classList.add('active');
+
+    // Keep the active pill within the horizontally-scrolling nav
+    if (navEl) {
+      const navRect  = navEl.getBoundingClientRect();
+      const pillRect = active.getBoundingClientRect();
+      if (pillRect.left < navRect.left)        navEl.scrollLeft -= (navRect.left - pillRect.left) + 16;
+      else if (pillRect.right > navRect.right) navEl.scrollLeft += (pillRect.right - navRect.right) + 16;
+    }
+  }
+
+  function onScroll() {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+})();
 
 function setFilter(bin, el) {
   activeFilter = bin;
