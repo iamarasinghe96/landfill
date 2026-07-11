@@ -813,7 +813,7 @@
     <div class="targets-grid">
       <div class="target-card">
         <div class="target-header">
-          <h3>AlburyCity Annual Target</h3>
+          <h3>Our Community Annual Target</h3>
           <span class="target-badge" id="council-badge">...</span>
         </div>
         <div class="target-numbers">
@@ -930,7 +930,7 @@
         </div>
         <div class="info-item">
           <h4>Why it matters</h4>
-          <p>Every tonne kept out of landfill reduces greenhouse gas emissions, saves resources, and helps AlburyCity meet state and local sustainability targets.</p>
+          <p>Every tonne kept out of landfill reduces greenhouse gas emissions, saves resources, and helps our community meet state and local sustainability targets.</p>
         </div>
         <div class="info-item">
           <h4>How you can help</h4>
@@ -1190,7 +1190,7 @@ function renderTrend(d) {
           order: 1
         },
         {
-          label: 'Council Target (' + at + '%)',
+          label: 'Community Target (' + at + '%)',
           data: hist.map(() => at),
           borderColor: '#27AE60',
           borderWidth: 2,
@@ -1313,7 +1313,7 @@ function downloadCSV() {
     row('Population Served', d.context.populationServed),
     row(''),
     row('TARGETS'),
-    row('AlburyCity Annual Diversion Target (%)', d.targets.annualTarget),
+    row('Community Annual Diversion Target (%)', d.targets.annualTarget),
     row('NSW Government Diversion Target (%)', d.targets.nswTarget),
     row('NSW Target Achievement Year', d.targets.nswTargetYear || 2030),
     row('Previous Financial Year Diversion Rate (%)', d.context.previousYearRate),
@@ -1449,7 +1449,7 @@ function downloadPDF() {
   y += 12;
 
   const targets = [
-    { label: 'AlburyCity Annual Target', current: rate, goal: d.targets.annualTarget, year: 'FY ' + d.fiscalYear },
+    { label: 'Community Annual Target', current: rate, goal: d.targets.annualTarget, year: 'FY ' + d.fiscalYear },
     { label: 'NSW Government Target', current: rate, goal: d.targets.nswTarget, year: 'By ' + (d.targets.nswTargetYear || 2030) },
     { label: 'Year-on-Year Improvement', current: rate - d.context.previousYearRate, goal: null, year: 'vs. prev year: ' + d.context.previousYearRate + '%' }
   ];
