@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groq API Diagnostic — Albury Citizens</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:#1B3A6B; --navy-dk:#122850; --blue:#2471A3;
+    --green:#1E8449; --amber:#D4860B; --red:#C0392B;
+    --bg:#F0F4F8; --card:#fff; --text:#1C2833; --text-md:#4A5568;
+    --text-sm:#718096; --border:#D1DCE8;
+  }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+  }
+  header {
+    background:linear-gradient(135deg,var(--navy-dk),var(--navy) 60%,#2557A7);
+    color:#fff; padding:18px 20px;
+  }
+  header h1 { font-size:19px; font-weight:700; }
+  header p  { font-size:12.5px; opacity:.85; margin-top:3px; }
+  main { max-width:760px; margin:0 auto; padding:22px 18px 60px; }
+
+  .intro {
+    background:#EBF5FB; border:1.5px solid #AED6F1; color:#1A5276;
+    border-radius:10px; padding:13px 16px; font-size:13.5px;
+    line-height:1.55; margin-bottom:18px;
+  }
+  .btn-run {
+    display:block; width:100%; padding:14px;
+    background:var(--navy); color:#fff; border:none; border-radius:10px;
+    font-size:15px; font-weight:700; cursor:pointer; margin-bottom:20px;
+    transition:background .15s;
+  }
+  .btn-run:hover:not(:disabled) { background:var(--navy-dk); }
+  .btn-run:disabled { opacity:.55; cursor:not-allowed; }
+
+  .test {
+    background:var(--card); border-radius:10px; padding:16px 18px;
+    margin-bottom:12px; box-shadow:0 2px 10px rgba(27,58,107,.08);
+    border-left:5px solid var(--border);
+  }
+  .test.pass { border-left-color:var(--green); }
+  .test.fail { border-left-color:var(--red); }
+  .test.warn { border-left-color:var(--amber); }
+  .test.run  { border-left-color:var(--blue); }
+  .test-head { display:flex; align-items:center; gap:9px; margin-bottom:4px; }
+  .test-icon { font-size:17px; }
+  .test-name { font-weight:700; font-size:14.5px; flex:1; }
+  .test-code {
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px;
+    color:var(--text-sm); background:var(--bg); padding:2px 8px; border-radius:20px;
+  }
+  .test-msg { font-size:13px; color:var(--text-md); line-height:1.55; margin-top:5px; }
+  .test-raw {
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11.5px;
+    background:#F7FAFD; border:1px solid var(--border); border-radius:7px;
+    padding:9px 11px; margin-top:9px; white-space:pre-wrap; word-break:break-word;
+    color:#4A5568; max-height:190px; overflow:auto;
+  }
+
+  .verdict {
+    border-radius:10px; padding:17px 19px; margin-top:22px;
+    font-size:14px; line-height:1.62; display:none;
+  }
+  .verdict.show { display:block; }
+  .verdict h2 { font-size:16px; margin-bottom:9px; }
+  .verdict.ok   { background:#E0F5EC; border:1.5px solid #A9DFBF; color:#145A32; }
+  .verdict.bad  { background:#FDECEA; border:1.5px solid #F5B7B1; color:#7B241C; }
+  .verdict.mid  { background:#FEF9EC; border:1.5px solid #F9E79F; color:#7E5109; }
+  .verdict ol, .verdict ul { margin:9px 0 0 20px; }
+  .verdict li { margin-bottom:6px; }
+  .verdict code {
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px;
+    background:rgba(0,0,0,.07); padding:1px 5px; border-radius:4px;
+  }
+  .models-list {
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11.5px;
+    line-height:1.75; color:var(--text-md);
+  }
+  .models-list b { color:var(--green); }
+  a { color:var(--blue); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Groq API Diagnostic</h1>
+  <p>Checks whether the Waste Identifier's AI key and models still work</p>
+</header>
+
+<main>
+  <div class="intro">
+    This page calls the Groq API directly from your browser using the same key and
+    models the Waste Identifier uses. Run it to find out exactly why AI classification
+    is failing — the app itself hides the real error behind a generic message.
+  </div>
+
+  <button class="btn-run" id="btn-run" onclick="runAll()">Run Diagnostic</button>
+
+  <div id="results"></div>
+  <div class="verdict" id="verdict"></div>
+</main>
+
+<script>
+/* Same key construction as the classifier — never store as one plain string */
+const GROQ_KEY   = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
+const TEXT_MODEL   = 'llama-3.3-70b-versatile';
+const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+const state = { auth:null, models:[], text:null, vision:null };
+
+function card(id, name) {
+  const el = document.createElement('div');
+  el.className = 'test run';
+  el.id = id;
+  el.innerHTML = `<div class="test-head">
+      <span class="test-icon">⏳</span>
+      <span class="test-name">${name}</span>
+      <span class="test-code">running…</span>
+    </div>
+    <div class="test-msg">Contacting api.groq.com…</div>`;
+  document.getElementById('results').appendChild(el);
+  return el;
+}
+
+function finish(el, status, code, msg, raw) {
+  el.className = 'test ' + status;
+  const icon = status === 'pass' ? '✅' : status === 'warn' ? '⚠️' : '❌';
+  el.querySelector('.test-icon').textContent = icon;
+  el.querySelector('.test-code').textContent = code;
+  el.querySelector('.test-msg').innerHTML = msg;
+  if (raw) {
+    const pre = document.createElement('div');
+    pre.className = 'test-raw';
+    pre.textContent = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
+    el.appendChild(pre);
+  }
+}
+
+/* ---- Test 1: key validity + which models the key can reach ---- */
+async function testAuth() {
+  const el = card('t-auth', 'API key & model access');
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY }
+    });
+    const body = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      state.auth = 'invalid';
+      finish(el, 'fail', 'HTTP 401',
+        '<b>The API key is invalid or has been revoked.</b> This is the most common cause — ' +
+        'keys published in a public repository get automatically revoked by Groq or by ' +
+        'GitHub secret scanning. A new key is required.', body);
+      return;
+    }
+    if (res.status === 429) {
+      state.auth = 'ratelimited';
+      finish(el, 'warn', 'HTTP 429',
+        '<b>The key is valid but rate-limited or out of quota.</b> Because the key is public, ' +
+        'other people may be consuming its free-tier quota.', body);
+      return;
+    }
+    if (!res.ok) {
+      state.auth = 'error';
+      finish(el, 'fail', 'HTTP ' + res.status, 'Unexpected response from Groq.', body);
+      return;
+    }
+
+    state.auth = 'ok';
+    state.models = (body.data || []).map(m => m.id).sort();
+    const hasText   = state.models.includes(TEXT_MODEL);
+    const hasVision = state.models.includes(VISION_MODEL);
+    const list = state.models.map(m =>
+      (m === TEXT_MODEL || m === VISION_MODEL) ? `<b>${m}  ← used by the app</b>` : m
+    ).join('<br>');
+
+    finish(el, 'pass', 'HTTP 200',
+      `Key is <b>valid</b>. ${state.models.length} models available.<br>` +
+      `Text model <code>${TEXT_MODEL}</code>: ${hasText ? '<b>available</b>' : '<b style="color:#C0392B">NOT in the list — decommissioned</b>'}<br>` +
+      `Vision model <code>${VISION_MODEL}</code>: ${hasVision ? '<b>available</b>' : '<b style="color:#C0392B">NOT in the list — decommissioned</b>'}` +
+      `<div class="models-list" style="margin-top:10px">${list}</div>`);
+  } catch (e) {
+    state.auth = 'network';
+    finish(el, 'fail', 'network',
+      'Could not reach api.groq.com at all. This is a network/DNS/CORS problem rather than ' +
+      'a key problem — check your internet connection, VPN, or ad-blocker.', String(e));
+  }
+}
+
+/* ---- Test 2 & 3: actually run each model ---- */
+async function testModel(model, label, key) {
+  const el = card('t-' + key, label + ' — ' + model);
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        max_tokens: 12,
+        messages: [{ role:'user', content:'Reply with the single word: ok' }]
+      })
+    });
+    const body = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      state[key] = 'ok';
+      finish(el, 'pass', 'HTTP 200',
+        'Model responded correctly: <code>' +
+        (body.choices?.[0]?.message?.content || '').trim() + '</code>');
+      return;
+    }
+
+    const errCode = body.error?.code || '';
+    const errMsg  = body.error?.message || 'No error message returned.';
+
+    if (errCode === 'model_decommissioned' || res.status === 404) {
+      state[key] = 'decommissioned';
+      finish(el, 'fail', 'HTTP ' + res.status,
+        '<b>This model has been decommissioned by Groq.</b> The app must be pointed at a ' +
+        'current model — the key itself is fine.', body);
+    } else if (res.status === 401) {
+      state[key] = 'invalid';
+      finish(el, 'fail', 'HTTP 401', '<b>Key rejected.</b> ' + errMsg, body);
+    } else if (res.status === 429) {
+      state[key] = 'ratelimited';
+      finish(el, 'warn', 'HTTP 429', '<b>Rate limited / quota exhausted.</b> ' + errMsg, body);
+    } else {
+      state[key] = 'error';
+      finish(el, 'fail', 'HTTP ' + res.status, errMsg, body);
+    }
+  } catch (e) {
+    state[key] = 'network';
+    finish(el, 'fail', 'network', 'Request failed before reaching Groq.', String(e));
+  }
+}
+
+/* ---- Verdict ---- */
+function verdict() {
+  const v = document.getElementById('verdict');
+  v.className = 'verdict show';
+
+  if (state.auth === 'network') {
+    v.classList.add('bad');
+    v.innerHTML = `<h2>Cannot reach Groq at all</h2>
+      Every request failed before getting a response. That points at the network rather than
+      the key — a VPN, firewall, corporate network or ad-blocker blocking
+      <code>api.groq.com</code>. Try again on a different connection (e.g. mobile data).`;
+    return;
+  }
+
+  if (state.auth === 'invalid' || state.text === 'invalid') {
+    v.classList.add('bad');
+    v.innerHTML = `<h2>The API key has been revoked</h2>
+      The key returns <code>401 Unauthorized</code>, so every AI feature fails.
+      <b>Why this happened:</b> the key sits in client-side JavaScript in a public GitHub
+      repository. Splitting it across two strings does not hide it — it is fully readable in
+      the published page and in the repo, so Groq's automated scanning revokes it (and anyone
+      could have used it in the meantime).
+      <ol>
+        <li>Create a new key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.</li>
+        <li>Replace <code>GROQ_KEY</code> in <code>classifier/index.html</code>, <code>community/index.html</code> and this page.</li>
+        <li>Be aware a replacement key in public client-side code is likely to be revoked again — the durable fix is a small serverless proxy that holds the key.</li>
+      </ol>`;
+    return;
+  }
+
+  if (state.text === 'decommissioned' || state.vision === 'decommissioned' ||
+      (state.auth === 'ok' && !state.models.includes(TEXT_MODEL))) {
+    v.classList.add('mid');
+    const alt = state.models.filter(m =>
+      /llama|gpt-oss|qwen|kimi/i.test(m) && !/whisper|guard|tts/i.test(m));
+    v.innerHTML = `<h2>The model has been decommissioned</h2>
+      The key works, but a model the app requests no longer exists, so Groq rejects the call.
+      Point the app at a current model instead:
+      <ol>
+        <li>In <code>classifier/index.html</code> change <code>GROQ_MODEL</code>.</li>
+        <li>Update the vision model string in the photo-identification call.</li>
+        <li>Change the same model names in <code>community/index.html</code>.</li>
+      </ol>
+      <b>Models currently available to this key:</b>
+      <div class="models-list" style="margin-top:7px">${alt.join('<br>') || '(none listed)'}</div>`;
+    return;
+  }
+
+  if (state.auth === 'ratelimited' || state.text === 'ratelimited') {
+    v.classList.add('mid');
+    v.innerHTML = `<h2>Rate limited / out of quota</h2>
+      The key and models are valid, but Groq is refusing requests with
+      <code>429</code>. On the free tier this resets over time — but because the key is public,
+      other people may be consuming the quota. Check usage at
+      <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>.`;
+    return;
+  }
+
+  if (state.text === 'ok' && state.vision === 'ok') {
+    v.classList.add('ok');
+    v.innerHTML = `<h2>The API is working</h2>
+      The key is valid and both models responded. So the failures you are seeing are
+      <b>not</b> caused by a dead API. Most likely causes now:
+      <ul>
+        <li>Intermittent rate limiting (<code>429</code>) during real use — several rapid scans.</li>
+        <li>A 15-second timeout on a slow mobile connection.</li>
+        <li>The product genuinely has no packaging data and the AI reply failed to parse.</li>
+      </ul>
+      The app now shows the real error code on screen, so scan again and note what it says.`;
+    return;
+  }
+
+  v.classList.add('bad');
+  v.innerHTML = `<h2>Requests are failing</h2>
+    See the status codes above — the error body from Groq states the exact reason.`;
+}
+
+async function runAll() {
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('verdict').className = 'verdict';
+
+  await testAuth();
+  await testModel(TEXT_MODEL,   'Text model',   'text');
+  await testModel(VISION_MODEL, 'Vision model', 'vision');
+  verdict();
+
+  btn.disabled = false;
+  btn.textContent = 'Run Diagnostic Again';
+}
+</script>
+</body>
+</html>

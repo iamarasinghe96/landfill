@@ -2112,7 +2112,7 @@ async function askGroqBinFinder(query) {
         ]
       })
     });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.ok) throw await groqError(resp);
     const data = await resp.json();
     const ai   = JSON.parse(data.choices[0].message.content);
     const bin  = ['fogo','yellow','red','dropoff'].includes(ai.bin) ? ai.bin : 'red';
@@ -2125,8 +2125,11 @@ async function askGroqBinFinder(query) {
     };
     document.getElementById('ai-result-wrap').innerHTML = renderCard(item, true);
     showSearchState('ai');
-  } catch {
+  } catch (err) {
+    console.error('Bin Finder AI failed:', err);
     showSearchState('empty');
+    const ph = document.getElementById('no-results');
+    if (ph && err?.status) ph.textContent = aiFailureReason(err);
   }
 }
 
@@ -2239,6 +2242,34 @@ function showResult() {
    ============================================================ */
 const WASTE_PDF_URL = 'https://www.alburycity.nsw.gov.au/__data/assets/pdf_file/0019/372223/AlburyCity-Waste-Management-Strategy.pdf';
 const GROQ_ADVISOR_KEY = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
+
+/* Carries Groq's real status + error code so failures are reported accurately
+   instead of always being blamed on the user's connection. */
+async function groqError(res) {
+  let detail = '';
+  try {
+    const body = await res.json();
+    detail = body?.error?.code || body?.error?.message || '';
+  } catch (_) { /* error body was not JSON */ }
+  const err = new Error('Groq ' + res.status + (detail ? ': ' + detail : ''));
+  err.status = res.status;
+  err.detail = detail;
+  return err;
+}
+
+function aiFailureReason(err) {
+  if (err?.name === 'AbortError')
+    return 'The AI request timed out. Check your connection and try again.';
+  if (err?.status === 401)
+    return 'The AI service rejected our access key (401). The key needs to be renewed — please report this.';
+  if (err?.status === 429)
+    return 'The AI service is rate limited right now (429). Please wait a moment and try again.';
+  if (err?.status === 404 || err?.detail === 'model_decommissioned')
+    return 'The AI model is no longer available (' + (err.detail || 404) + '). The app needs updating — please report this.';
+  if (err?.status)
+    return 'The AI service returned an error (' + err.status + (err.detail ? ': ' + err.detail : '') + ').';
+  return 'Could not reach the AI service. Check your internet connection and try again.';
+}
 let _wasteDocText  = null;
 let _wasteDocReady = false;
 
@@ -2345,17 +2376,18 @@ async function askAdvisor() {
       })
     });
 
-    if (!res.ok) throw new Error('API ' + res.status);
+    if (!res.ok) throw await groqError(res);
     const data   = await res.json();
     const answer = data.choices?.[0]?.message?.content || 'No response received.';
 
     loadEl.style.display = 'none';
     respEl.style.display = 'block';
     respEl.innerHTML     = renderMarkdown(answer);
-  } catch (_) {
+  } catch (err) {
+    console.error('Waste advisor AI failed:', err);
     loadEl.style.display = 'none';
     respEl.style.display = 'block';
-    respEl.textContent   = 'Could not get a response — check your internet connection and try again.';
+    respEl.textContent   = aiFailureReason(err);
   }
 
   sendBtn.disabled = false;

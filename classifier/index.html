@@ -1450,6 +1450,35 @@ function halvewasteLookup(query) {
 const GROQ_KEY   = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
+/* Builds an Error carrying Groq's real status + error code, so failures can be
+   reported accurately instead of being blamed on the network. */
+async function groqError(res) {
+  let detail = '';
+  try {
+    const body = await res.json();
+    detail = body?.error?.code || body?.error?.message || '';
+  } catch (_) { /* error body was not JSON */ }
+  const err = new Error('Groq ' + res.status + (detail ? ': ' + detail : ''));
+  err.status = res.status;
+  err.detail = detail;
+  return err;
+}
+
+/* Turns a thrown AI error into a sentence a resident can act on. */
+function aiFailureReason(err) {
+  if (err?.name === 'AbortError')
+    return 'The AI request timed out. Check your connection and try again.';
+  if (err?.status === 401)
+    return 'The AI service rejected our access key (401). The key needs to be renewed — please report this.';
+  if (err?.status === 429)
+    return 'The AI service is rate limited right now (429). Please wait a moment and try again.';
+  if (err?.status === 404 || err?.detail === 'model_decommissioned')
+    return 'The AI model is no longer available (' + (err.detail || 404) + '). The app needs updating — please report this.';
+  if (err?.status)
+    return 'The AI service returned an error (' + err.status + (err.detail ? ': ' + err.detail : '') + ').';
+  return 'Could not reach the AI service. Check your internet connection and try again.';
+}
+
 async function classifyWithGroq(product) {
   const name  = product.product_name || 'Unknown product';
   const brand = product.brands       || '';
@@ -1517,7 +1546,7 @@ Respond ONLY with valid JSON (no markdown):
   });
 
   clearTimeout(timeout);
-  if (!res.ok) throw new Error('Groq ' + res.status);
+  if (!res.ok) throw await groqError(res);
 
   const data = await res.json();
   const parsed = JSON.parse(data.choices[0].message.content);
@@ -1574,7 +1603,7 @@ Respond ONLY with valid JSON — put the component as "secondary":
   });
 
   clearTimeout(timeout);
-  if (!res.ok) throw new Error('Groq ' + res.status);
+  if (!res.ok) throw await groqError(res);
 
   const data   = await res.json();
   const parsed = JSON.parse(data.choices[0].message.content);
@@ -1677,7 +1706,7 @@ Reply ONLY with raw JSON, no markdown:
     })
   });
 
-  if (!res.ok) throw new Error('API ' + res.status);
+  if (!res.ok) throw await groqError(res);
   const data = await res.json();
   const text = data.choices[0].message.content || '';
   const match = text.match(/\{[\s\S]*\}/);
@@ -2002,8 +2031,9 @@ async function searchByName() {
   try {
     const aiResult = await classifyWithGroq(mockProduct);
     showResult(query, mockProduct, groqToRule(aiResult), true);
-  } catch (_) {
-    showUncertain('Search Failed', 'Could not get a result from AI. Check your internet connection and try again.', null);
+  } catch (err) {
+    console.error('AI search failed:', err);
+    showUncertain('Search Failed', aiFailureReason(err), null);
   }
 
   document.querySelector('#state-analysing .analysing-body h2').textContent = 'Looking up product...';
@@ -2086,8 +2116,21 @@ async function fetchOpenFoodFacts(barcode) {
       try {
         const aiResult = await classifyWithGroq(product);
         showResult(barcode, product, groqToRule(aiResult), true);
-      } catch (_) {
-        showNoPackaging(barcode, product);
+      } catch (err) {
+        console.error('AI classification failed:', err);
+        // Fall back to the local AlburyCity (halvewaste) table before giving up
+        const local = halvewasteLookup(pname) || halvewasteLookup(pbrand);
+        if (local) {
+          const meta = BIN_META[local.bin];
+          showResult(barcode, product, {
+            bin: local.bin, bandClass: meta.bandClass, icon: meta.icon,
+            type: 'AlburyCity Classification',
+            why:  `Classified as ${meta.label} by AlburyCity Council (halvewaste.com.au).`,
+            tip:  local.tip
+          }, false);
+        } else {
+          showNoPackaging(barcode, product, aiFailureReason(err));
+        }
       }
       // reset analysing text for next scan
       document.querySelector('#state-analysing .analysing-body h2').textContent  = 'Looking up product...';
@@ -2231,7 +2274,7 @@ function showResult(identifier, product, rule, isAI = false, sourceLabel = null)
   renderFeedbackWidget(bc, rule, isAI, String(identifier), product);
 }
 
-function showNoPackaging(barcode, product) {
+function showNoPackaging(barcode, product, aiReason) {
   const name  = product.product_name || 'Unknown product';
   const brand = product.brands       || '';
 
@@ -2255,8 +2298,10 @@ function showNoPackaging(barcode, product) {
   `;
 
   showUncertain(
-    'Packaging Data Unavailable',
-    'Product found but no packaging information is listed in Open Food Facts.',
+    aiReason ? 'AI Classification Unavailable' : 'Packaging Data Unavailable',
+    aiReason
+      ? 'No packaging data is listed in Open Food Facts, and the AI fallback did not respond. ' + aiReason
+      : 'Product found but no packaging information is listed in Open Food Facts.',
     null
   );
 }
@@ -2557,7 +2602,7 @@ Respond ONLY with valid JSON:
     });
 
     clearTimeout(timeout);
-    if (!res.ok) throw new Error('Groq ' + res.status);
+    if (!res.ok) throw await groqError(res);
 
     const data   = await res.json();
     const parsed = JSON.parse(data.choices[0].message.content);
