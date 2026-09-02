@@ -2670,8 +2670,9 @@ Respond ONLY with valid JSON:
       tip:          parsed.tip  || '',
       secondary
     };
-  } catch (_) {
-    return { agrees: null };
+  } catch (err) {
+    console.error('AI verification failed:', err);
+    return { agrees: null, error: err };
   }
 }
 
@@ -2709,7 +2710,8 @@ async function doSubmitFeedback(barcode, isAI) {
   toast.className     = 'flag-toast info';
   toast.textContent   = 'Verifying with AI…';
 
-  const { agrees, suggestedBin, why, tip, secondary } = await verifyWithGroq(product, submittedBin, explanation, rule.bin);
+  const { agrees, suggestedBin, why, tip, secondary, error: verifyError } =
+    await verifyWithGroq(product, submittedBin, explanation, rule.bin);
 
   if (agrees === true) {
     // Groq agrees with the user — apply correction (including any secondary component)
@@ -2759,18 +2761,32 @@ async function doSubmitFeedback(barcode, isAI) {
       toast.insertAdjacentElement('afterend', btn);
     }
   } else {
-    // Groq unavailable — save correction directly (user explanation logged)
-    db.collection('feedback').add({
-      barcode: barcode ? String(barcode) : null,
-      submittedBin, originalBin: rule.bin,
-      originalSource: rule._community ? 'community' : (isAI ? 'ai' : 'rules'),
-      aiVerified: null, sessionId: SESSION_ID,
-      userExplanation: explanation || null,
-      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      userAgent: navigator.userAgent.slice(0, 200)
-    }).catch(() => {});
-    toast.className   = 'flag-toast info';
-    toast.textContent = 'Thanks for the report! Your feedback has been logged for review.';
+    /* AI could not verify (service error, or it genuinely could not decide).
+       Escalate straight to the admin panel as a pending inquiry — the feedback
+       collection is write-only, so anything logged only there is never seen. */
+    try {
+      const docRef = await db.collection('classification_inquiries').add({
+        barcode:         barcode ? String(barcode) : null,
+        productName:     product?.product_name || null,
+        productBrand:    product?.brands || null,
+        originalBin:     rule.bin,
+        suggestedBin,
+        userExplanation: explanation || null,
+        sessionId:       SESSION_ID,
+        status:          'pending',
+        channel:         'auto-escalated',
+        aiVerification:  verifyError ? 'failed: ' + verifyError.message : 'undetermined',
+        submittedAt:     firebase.firestore.FieldValue.serverTimestamp(),
+        userAgent:       navigator.userAgent.slice(0, 200)
+      });
+      const ref = docRef.id.slice(0, 8).toUpperCase();
+      toast.className   = 'flag-toast info';
+      toast.textContent = `Thanks — our AI could not verify this automatically, so it has been sent to an AlburyCity waste expert for review. Reference #${ref}.`;
+    } catch (e) {
+      console.error('Could not escalate flag to admin review:', e);
+      toast.className   = 'flag-toast error';
+      toast.textContent = 'Could not submit your report — check your connection and try again.';
+    }
   }
 }
 

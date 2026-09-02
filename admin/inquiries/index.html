@@ -616,8 +616,14 @@
          </a>`
       : '';
 
-    const explanation = (inq.userExplanation || inq.photoUrl)
-      ? `<div class="explanation-cell">${inq.userExplanation ? escHtml(inq.userExplanation) : ''}${photoEl}</div>`
+    // Flags the AI could not verify are escalated here automatically — say so,
+    // since an admin has no other way to know why it arrived.
+    const autoTag = inq.channel === 'auto-escalated'
+      ? `<div style="margin-top:6px"><span style="display:inline-block;background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:20px">Auto-escalated — AI could not verify</span></div>`
+      : '';
+
+    const explanation = (inq.userExplanation || inq.photoUrl || autoTag)
+      ? `<div class="explanation-cell">${inq.userExplanation ? escHtml(inq.userExplanation) : '<span style="color:var(--text-sm)">No explanation given</span>'}${photoEl}${autoTag}</div>`
       : '<span style="color:var(--text-sm);font-size:12px">—</span>';
 
     const productCell = `
