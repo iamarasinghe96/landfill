@@ -108,8 +108,13 @@
 <script>
 /* Same key construction as the classifier — never store as one plain string */
 const GROQ_KEY   = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
-const TEXT_MODEL   = 'llama-3.3-70b-versatile';
-const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const TEXT_MODEL   = 'openai/gpt-oss-120b';
+const VISION_MODEL = 'groq/compound';
+
+/* Image-capable candidates the classifier falls back through, in order */
+const VISION_CANDIDATES = ['groq/compound', 'groq/compound-mini', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
+/* 1x1 PNG — enough to prove whether a model accepts image input at all */
+const TEST_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 const state = { auth:null, models:[], text:null, vision:null };
 
@@ -297,6 +302,17 @@ function verdict() {
     return;
   }
 
+  if (state.text === 'ok' && state.vision === 'novision') {
+    v.classList.add('mid');
+    v.innerHTML = `<h2>Text AI works — photo identification does not</h2>
+      The key is valid and <code>${TEXT_MODEL}</code> is answering, so barcode scanning,
+      name search and the Waste Advisor all work. But no model on this account accepts
+      image input, so <b>Try Photo Identification</b> cannot work until Groq offers a
+      vision model again. The app tries each candidate and falls back cleanly, so users
+      get a clear message rather than a silent failure.`;
+    return;
+  }
+
   if (state.text === 'ok' && state.vision === 'ok') {
     v.classList.add('ok');
     v.innerHTML = `<h2>The API is working</h2>
@@ -316,6 +332,45 @@ function verdict() {
     See the status codes above — the error body from Groq states the exact reason.`;
 }
 
+/* ---- Test 4: which models actually accept an image? ---- */
+async function testVisionCapability() {
+  const el = card('t-vcap', 'Image support — which model can read photos');
+  const working = [];
+  const notes   = [];
+
+  for (const model of VISION_CANDIDATES) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + GROQ_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model, max_tokens: 12,
+          messages: [{ role:'user', content: [
+            { type:'text', text:'What colour is this image? One word.' },
+            { type:'image_url', image_url: { url: TEST_IMG } }
+          ]}]
+        })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) { working.push(model); notes.push(`✅ <code>${model}</code> — accepts images`); }
+      else {
+        const m = body.error?.code || body.error?.message || ('HTTP ' + res.status);
+        notes.push(`❌ <code>${model}</code> — ${m}`);
+      }
+    } catch (e) {
+      notes.push(`❌ <code>${model}</code> — request failed`);
+    }
+  }
+
+  state.visionWorking = working;
+  finish(el, working.length ? 'pass' : 'fail',
+    working.length ? working.length + ' working' : 'none',
+    (working.length
+      ? 'Photo identification will use <b>' + working[0] + '</b>.'
+      : '<b>No available model accepts image input.</b> Photo identification cannot work on this account; barcode scanning and name search are unaffected.')
+    + '<div style="margin-top:8px;line-height:1.9">' + notes.join('<br>') + '</div>');
+}
+
 async function runAll() {
   const btn = document.getElementById('btn-run');
   btn.disabled = true;
@@ -324,8 +379,9 @@ async function runAll() {
   document.getElementById('verdict').className = 'verdict';
 
   await testAuth();
-  await testModel(TEXT_MODEL,   'Text model',   'text');
-  await testModel(VISION_MODEL, 'Vision model', 'vision');
+  await testModel(TEXT_MODEL, 'Text model', 'text');
+  await testVisionCapability();
+  state.vision = state.visionWorking?.length ? 'ok' : 'novision';
   verdict();
 
   btn.disabled = false;

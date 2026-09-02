@@ -1448,7 +1448,25 @@ function halvewasteLookup(query) {
    Called when Open Food Facts has no packaging data for a product.
    ============================================================ */
 const GROQ_KEY   = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+/* Groq decommissioned llama-3.3-70b-versatile and llama-4-scout (Sept 2026).
+   Verify the current list any time with classifier/api-check.html. */
+const GROQ_MODEL = 'openai/gpt-oss-120b';
+
+/* No dedicated vision model is guaranteed on the account, and Groq retires them
+   without notice, so try each image-capable candidate in turn and remember the
+   one that works for this browser. */
+const VISION_MODEL_CANDIDATES = [
+  'groq/compound',
+  'groq/compound-mini',
+  'qwen/qwen3.8-27b',
+  'qwen/qwen3.6-27b'
+];
+function getCachedVisionModel() {
+  try { return localStorage.getItem('groqVisionModel') || null; } catch (_) { return null; }
+}
+function setCachedVisionModel(m) {
+  try { m ? localStorage.setItem('groqVisionModel', m) : localStorage.removeItem('groqVisionModel'); } catch (_) {}
+}
 
 /* Builds an Error carrying Groq's real status + error code, so failures can be
    reported accurately instead of being blamed on the network. */
@@ -1655,6 +1673,32 @@ function groqToRule(aiResult) {
    GROQ VISION — identify product from a photo
    ============================================================ */
 async function classifyWithGroqVision(base64Image) {
+  // Prefer a model already proven to work in this browser, then the rest.
+  const cached = getCachedVisionModel();
+  const order  = cached
+    ? [cached, ...VISION_MODEL_CANDIDATES.filter(m => m !== cached)]
+    : VISION_MODEL_CANDIDATES.slice();
+
+  let lastErr = null;
+  for (const model of order) {
+    try {
+      const result = await visionRequest(model, base64Image);
+      setCachedVisionModel(model);
+      return result;
+    } catch (err) {
+      lastErr = err;
+      // 404 = model gone, 400 = model cannot accept images. Both mean "try the next one".
+      if (err?.status === 404 || err?.status === 400) {
+        if (cached === model) setCachedVisionModel(null);
+        continue;
+      }
+      throw err; // 401 / 429 / timeout — trying other models will not help
+    }
+  }
+  throw lastErr || new Error('No image-capable model available');
+}
+
+async function visionRequest(model, base64Image) {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     signal: AbortSignal.timeout(18000),
@@ -1663,7 +1707,7 @@ async function classifyWithGroqVision(base64Image) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model,
       temperature: 0.1,
       max_tokens: 320,
       messages: [{
@@ -1796,8 +1840,17 @@ async function capturePhoto() {
     const aiResult = await classifyWithGroqVision(base64);
     const mockProduct = { product_name: aiResult.name || 'Photographed item', brands: '', image_url: null, quantity: '' };
     showResult(aiResult.name || 'Photo', mockProduct, groqToRule(aiResult), true);
-  } catch (_) {
-    showUncertain('Photo Analysis Failed', 'Could not identify the product from the photo. Try the name search below instead.', null);
+  } catch (err) {
+    console.error('Photo identification failed:', err);
+    const noVisionModel = err?.status === 404 || err?.status === 400 ||
+                          err?.message === 'No image-capable model available';
+    showUncertain(
+      'Photo Analysis Failed',
+      noVisionModel
+        ? 'Photo identification is temporarily unavailable — the AI image service has been retired. Please use the name search below, which is working normally.'
+        : aiFailureReason(err) + ' Try the name search below instead.',
+      null
+    );
   }
 
   document.querySelector('#state-analysing .analysing-body h2').textContent = 'Looking up product...';

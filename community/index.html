@@ -2098,7 +2098,7 @@ async function askGroqBinFinder(query) {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
       signal: AbortSignal.timeout(15000),
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_TEXT_MODEL,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -2243,6 +2243,10 @@ function showResult() {
 const WASTE_PDF_URL = 'https://www.alburycity.nsw.gov.au/__data/assets/pdf_file/0019/372223/AlburyCity-Waste-Management-Strategy.pdf';
 const GROQ_ADVISOR_KEY = ['gsk_29dfbVXlisWvFAEhUhbw', 'WGdyb3FYGbCg3Z6I5AQ46PmarujC8UMQ'].join('');
 
+/* Groq decommissioned llama-3.3-70b-versatile (Sept 2026).
+   Check the current list any time with classifier/api-check.html. */
+const GROQ_TEXT_MODEL = 'openai/gpt-oss-120b';
+
 /* Carries Groq's real status + error code so failures are reported accurately
    instead of always being blamed on the user's connection. */
 async function groqError(res) {
@@ -2366,7 +2370,7 @@ async function askAdvisor() {
         'Content-Type':  'application/json'
       },
       body: JSON.stringify({
-        model:       'llama-3.3-70b-versatile',
+        model:       GROQ_TEXT_MODEL,
         temperature: 0.2,
         max_tokens:  700,
         messages: [
